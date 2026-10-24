@@ -82,9 +82,12 @@ create table public.invites (
 -- Reglas
 -- ─────────────────────────────────────────────────────────────
 
+-- Las reglas corren como dueño (security definer): deben ver todos los miembros,
+-- no solo los que RLS deja ver a quien hace la petición.
+
 -- Máximo dos personas por cuenta.
 create function public.enforce_two_members() returns trigger
-language plpgsql as $$
+language plpgsql security definer set search_path = public as $$
 begin
   if (select count(*) from public.ledger_members where ledger_id = new.ledger_id) >= 2 then
     raise exception 'Esta cuenta ya tiene dos personas' using errcode = 'check_violation';
@@ -98,7 +101,7 @@ create trigger ledger_members_max_two
 
 -- Quien paga tiene que ser miembro de la cuenta.
 create function public.enforce_payer_is_member() returns trigger
-language plpgsql as $$
+language plpgsql security definer set search_path = public as $$
 begin
   if not exists (
     select 1 from public.ledger_members where ledger_id = new.ledger_id and user_id = new.payer_id
@@ -200,8 +203,9 @@ create policy "ver mis invitaciones" on public.invites
 create function public.create_ledger_with_invite() returns text
 language plpgsql security definer set search_path = public as $$
 declare
-  v_ledger uuid;
-  v_code   text;
+  v_ledger   uuid;
+  v_code     text;
+  v_attempts int := 0;
 begin
   if auth.uid() is null then
     raise exception 'Necesitas iniciar sesión';
@@ -211,10 +215,16 @@ begin
   insert into ledger_members (ledger_id, user_id, tike_variant, avatar_color)
     values (v_ledger, auth.uid(), 'rosa', 'yellow');
 
+  -- Un código se puede reusar solo si su invitación venció sin canjearse;
+  -- las canjeadas se conservan como registro de quién se unió.
   loop
+    v_attempts := v_attempts + 1;
+    if v_attempts > 200 then
+      raise exception 'No se pudo generar un código, intenta de nuevo';
+    end if;
     v_code := 'CRZ-' || lpad((floor(random() * 10000))::int::text, 4, '0');
     exit when not exists (
-      select 1 from invites where code = v_code and redeemed_at is null and expires_at > now()
+      select 1 from invites where code = v_code and (redeemed_at is not null or expires_at > now())
     );
   end loop;
 
