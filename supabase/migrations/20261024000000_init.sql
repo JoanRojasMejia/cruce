@@ -251,30 +251,56 @@ begin
   return v_code;
 end $$;
 
--- Canjea un código: agrega a quien lo usa (recibo verde, avatar violeta) y devuelve el ledger.
-create function public.redeem_invite(p_code text) returns uuid
+-- Intentos fallidos de canjear un código. Solo los usa redeem_invite (sin políticas: nadie los lee desde la app).
+-- Con 10.000 códigos posibles, sin este límite un código vigente se adivina en unos miles de intentos.
+create table public.invite_attempts (
+  id           bigint generated always as identity primary key,
+  user_id      uuid not null references auth.users (id) on delete cascade,
+  attempted_at timestamptz not null default now()
+);
+create index invite_attempts_user_time_idx on public.invite_attempts (user_id, attempted_at desc);
+alter table public.invite_attempts enable row level security;
+
+-- Canjea un código: agrega a quien lo usa (recibo verde, avatar violeta).
+-- Devuelve {"ok": true, "ledger_id": ...} o {"ok": false, "error": ..., "message": ...}.
+-- Los errores de código se devuelven en vez de lanzarse: una excepción desharía el registro del intento fallido.
+-- error: "invalid" (no existe, venció o ya se usó), "own" (código propio), "too_many_attempts".
+create function public.redeem_invite(p_code text) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   v_invite public.invites%rowtype;
+  v_error  text;
 begin
   if auth.uid() is null then
     raise exception 'Necesitas iniciar sesión';
   end if;
 
+  if (select count(*) from public.invite_attempts
+      where user_id = auth.uid() and attempted_at > now() - interval '1 hour') >= 5 then
+    return jsonb_build_object('ok', false, 'error', 'too_many_attempts',
+      'message', 'Hiciste demasiados intentos. Espera una hora e intenta de nuevo.');
+  end if;
+
   select * into v_invite from public.invites where code = upper(trim(p_code)) for update;
 
   if not found or v_invite.redeemed_at is not null or v_invite.expires_at <= now() then
-    raise exception 'El código no es válido o ya venció';
+    v_error := 'invalid';
+  elsif v_invite.created_by = auth.uid() then
+    v_error := 'own';
   end if;
-  if v_invite.created_by = auth.uid() then
-    raise exception 'No puedes usar tu propio código';
+
+  if v_error is not null then
+    insert into public.invite_attempts (user_id) values (auth.uid());
+    return jsonb_build_object('ok', false, 'error', v_error,
+      'message', case v_error when 'own' then 'No puedes usar tu propio código'
+                              else 'El código no es válido o ya venció' end);
   end if;
 
   insert into public.ledger_members (ledger_id, user_id, tike_variant, avatar_color)
     values (v_invite.ledger_id, auth.uid(), 'verde', 'violet');
 
   update public.invites set redeemed_by = auth.uid(), redeemed_at = now() where code = v_invite.code;
-  return v_invite.ledger_id;
+  return jsonb_build_object('ok', true, 'ledger_id', v_invite.ledger_id);
 end $$;
 
 revoke all on function public.create_ledger_with_invite() from public, anon;
@@ -289,6 +315,9 @@ grant execute on function public.redeem_invite(text) to authenticated;
 -- Supabase da por defecto todos los permisos de tabla a anon y authenticated.
 -- TRUNCATE se salta RLS: nadie desde la app lo necesita.
 revoke truncate on all tables in schema public from anon, authenticated;
+
+-- Los intentos de canje no se leen ni se escriben desde la app.
+revoke all on public.invite_attempts from anon, authenticated;
 
 -- De una cuenta solo se edita el reparto por defecto; quién la creó y la moneda no cambian.
 revoke update on public.ledgers from anon, authenticated;

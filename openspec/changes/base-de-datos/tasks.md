@@ -20,7 +20,7 @@
 
 - [x] 3.1 Revisión independiente de las políticas RLS y de las funciones `security definer` (verificado: hallazgos resueltos o anotados abajo)
 - [x] 3.2 Corregir lo confirmado, con prueba en rojo antes y en verde después: mover un movimiento a otra cuenta, reescribir `created_by`/`created_at`, cambiar `ledgers.created_by`, `TRUNCATE` desde la app, `search_path` vacío en funciones `security definer`, permisos de EXECUTE (verificado: 48 pruebas en verde)
-- [ ] 3.3 Código de invitación adivinable por fuerza bruta (Alta): un usuario con sesión entró a una cuenta ajena en ~5.000 intentos. Pendiente de decisión de Joan sobre el formato del código
+- [x] 3.3 Código de invitación adivinable por fuerza bruta (Alta). Decisión de Joan: mantener `CRZ-####` y limitar a 5 intentos fallidos por hora. `redeem_invite` devuelve `jsonb` con `ok`/`error`/`message` para que el intento quede registrado en `invite_attempts` (verificado: pruebas en rojo y en verde; el ataque de 10.000 intentos ya no entra)
 
 ### Hallazgos de la revisión que quedan para otros checkpoints
 

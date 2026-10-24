@@ -2,7 +2,7 @@
 -- Se actúa como el rol authenticated con request.jwt.claims, igual que una petición real de la app.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 -- Datos, creados como postgres (sin RLS).
 insert into auth.users (id, email) values
@@ -96,6 +96,9 @@ select set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-2222222
 select throws_ok(
   $$update public.ledgers set created_by = '33333333-3333-3333-3333-333333333333' where id = 'aaaaaaaa-0000-0000-0000-000000000001'$$,
   '42501', null, 'Nadie cambia quién creó la cuenta');
+select throws_ok(
+  $$select count(*) from public.invite_attempts$$,
+  '42501', null, 'Nadie lee la tabla de intentos de canje desde la app');
 select lives_ok(
   $$update public.ledgers set default_other_percent = 40 where id = 'aaaaaaaa-0000-0000-0000-000000000001'$$,
   'Un miembro sí puede cambiar el reparto por defecto');
