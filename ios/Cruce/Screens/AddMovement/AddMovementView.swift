@@ -23,6 +23,7 @@ struct AddMovementView: View {
     @State private var category: MovementCategory
     @State private var splitMode: SplitMode
     @State private var otherShare: Double
+    @FocusState private var editingConcept: Bool
 
     init(editing: Movement? = nil) {
         self.editing = editing
@@ -43,29 +44,35 @@ struct AddMovementView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 ScreenHeader(title: editing == nil ? "Nuevo movimiento" : "Editar movimiento")
                 amountCard
                 payerPicker
-                NeoTextField(label: "Concepto", text: $concept, placeholder: "Ej. Cena viernes")
+                NeoTextField(label: "Concepto", text: $concept, placeholder: "Ej. Cena viernes", focus: $editingConcept)
+                    .submitLabel(.done)
                 categoryPicker
                 splitPicker
                 previewCard
+                // Mientras se escribe el concepto, el teclado del sistema reemplaza al numérico.
+                if !editingConcept {
+                    AmountKeypad(digits: $digits)
+                }
             }
             .padding(.horizontal, Spacing.screen)
             .padding(.top, 8)
             .padding(.bottom, 12)
         }
         .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        // Solo el botón queda fijo: el teclado numérico va en el contenido, debajo de la vista previa,
+        // para que nunca la tape. En pantallas chicas se llega con scroll.
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 12) {
-                AmountKeypad(digits: $digits)
                 Button(editing == nil ? "Guardar movimiento" : "Guardar cambios") {
                     Task { await save() }
                 }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
                 .disabled(amount == 0)
-                .opacity(amount == 0 ? 0.5 : 1)
             }
             .padding(.horizontal, Spacing.screen)
             .padding(.top, 10)
@@ -99,7 +106,7 @@ struct AddMovementView: View {
     }
 
     private var payerPicker: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text("¿Quién pagó?").textStyle(.fieldLabel)
             HStack(spacing: 10) {
                 payerButton(app.me, title: "\(app.me.name) (tú)")
@@ -130,7 +137,7 @@ struct AddMovementView: View {
     }
 
     private var categoryPicker: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text("Categoría").textStyle(.fieldLabel)
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
@@ -148,7 +155,7 @@ struct AddMovementView: View {
     }
 
     private var splitPicker: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             Text("Reparto").textStyle(.fieldLabel)
             NeoSegmented(options: SplitMode.allCases, selection: $splitMode, title: \.title)
             if splitMode == .percentage {

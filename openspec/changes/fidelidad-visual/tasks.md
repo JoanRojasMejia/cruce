@@ -7,7 +7,7 @@
 ## 2. Corregir diferencias visuales
 
 - [x] 2.1 Inicio: "Ver todo" subrayado (el `.underline()` no llega al texto del `Button`), subtítulo de las filas en una línea, "Pagarle a Jesús" sin desbordarse, estado vacío con el botón abajo y `$0` más pequeño (verificado: capturas de `homeTheyOwe`, `homeYouOwe` y `homeEmpty` contra 03, 04 y 02; el subtítulo con fecha sigue en dos líneas, igual que en el diseño 04)
-- [ ] 2.2 Agregar movimiento: la vista previa "Ahora: …" visible y el teclado numérico oculto mientras se escribe el concepto (verificado: captura igual a `05-Agregar.png` y prueba con el teclado abierto)
+- [x] 2.2 Agregar movimiento: la vista previa "Ahora: …" visible y el teclado numérico oculto mientras se escribe el concepto (verificado: en iPhone 16 todo entra sin scroll, como `05-Agregar.png`; al escribir el concepto solo queda el teclado del sistema. Las teclas se ven de 40 pt y conservan 44 pt de área táctil)
 - [x] 2.3 A paz y salvo: corregir el texto para compartir "el hoy" (verificado: `DateTextTests` en rojo y luego en verde; el texto queda "… $20.000 el vie 23 oct.")
 - [x] 2.4 Tipografía y fechas en toda la app: interlineado de unos 22 pt en párrafos `body`/`bodyLarge`; fechas "14 oct" sin "de" (verificado: `DateTextTests` y capturas)
 - [x] 2.5 Botones: estilo de texto configurable (16/800 cuando van lado a lado: "Compartir"/"Copiar", "Agregar gasto"/"Pagarle a Jesús"), una sola línea con escala mínima, color de sombra configurable (Apple con sombra amarilla) y estado deshabilitado sin aclarar borde ni sombra (verificado: capturas de `invite`, `homeYouOwe`, `signUp`, `add`)

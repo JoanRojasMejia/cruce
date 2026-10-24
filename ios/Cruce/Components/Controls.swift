@@ -135,11 +135,13 @@ struct NeoTextField: View {
     @Binding var text: String
     var placeholder: String = ""
     var fill: Color = CruceColor.surface
+    /// Opcional: para que la pantalla sepa cuándo se está escribiendo (por ejemplo, para ocultar su teclado propio).
+    var focus: FocusState<Bool>.Binding?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label).textStyle(.fieldLabel)
-            TextField(placeholder, text: $text)
+            field
                 .font(.archivo(15, .bold))
                 .padding(.horizontal, 14)
                 .frame(height: 44)
@@ -147,6 +149,15 @@ struct NeoTextField: View {
                 .accessibilityLabel(label)
         }
         .foregroundStyle(CruceColor.ink)
+    }
+
+    @ViewBuilder
+    private var field: some View {
+        if let focus {
+            TextField(placeholder, text: $text).focused(focus)
+        } else {
+            TextField(placeholder, text: $text)
+        }
     }
 }
 

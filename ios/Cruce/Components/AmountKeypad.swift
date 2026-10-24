@@ -22,8 +22,10 @@ struct AmountKeypad: View {
                         }
                     }
                     .foregroundStyle(CruceColor.ink)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .frame(maxWidth: .infinity, minHeight: 40)
                     .neoSurface(radius: Radius.chip, border: BorderWidth.thin)
+                    // Se ven de 40 pt como en el diseño, pero el área táctil sigue siendo de 44 pt.
+                    .contentShape(Rectangle().inset(by: -2))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(key == "⌫" ? "Borrar" : key)
