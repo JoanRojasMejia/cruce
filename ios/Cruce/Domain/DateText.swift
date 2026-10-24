@@ -43,9 +43,14 @@ enum DateText {
         return day
     }
 
-    /// "Hoy, vie 23 oct".
+    /// "vie 23 de oct", sin "Hoy" ni "Ayer". Para frases como "el vie 23 de oct".
+    static func day(_ date: Date) -> String {
+        clean(weekdayDay.string(from: date))
+    }
+
+    /// "Hoy, vie 23 de oct".
     static func long(_ date: Date, now: Date = .now) -> String {
-        let day = clean(weekdayDay.string(from: date))
+        let day = day(date)
         let rel = relative(date, now: now)
         return rel == "Hoy" || rel == "Ayer" ? "\(rel), \(day)" : day
     }

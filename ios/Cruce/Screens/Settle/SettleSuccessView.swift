@@ -64,7 +64,7 @@ struct SettleSuccessView: View {
     }
 
     private var shareText: String {
-        "Quedamos a paz y salvo en Cruce: \(Money.format(payment.amount)) el \(DateText.long(payment.date).lowercased())."
+        "Quedamos a paz y salvo en Cruce: \(Money.format(payment.amount)) el \(DateText.day(payment.date))."
     }
 
     private var decorations: some View {

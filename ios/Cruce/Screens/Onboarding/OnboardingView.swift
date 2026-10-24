@@ -3,7 +3,11 @@ import SwiftUI
 /// Onboarding de 3 pasos (pantallas 01, 11 y 12).
 struct OnboardingView: View {
     @Environment(AppState.self) private var app
-    @State private var page = 0
+    @State private var page: Int
+
+    init(page: Int = 0) {
+        _page = State(initialValue: page)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {

@@ -28,9 +28,11 @@ struct MainView: View {
         NavigationStack(path: $app.path) {
             HomeView()
                 .toolbar(.hidden, for: .navigationBar)
+                .swipeBackEnabled()
                 .navigationDestination(for: Route.self) { route in
                     destination(for: route)
                         .toolbar(.hidden, for: .navigationBar)
+                        .swipeBackEnabled()
                 }
         }
         .sheet(item: $app.lastSaved) { movement in

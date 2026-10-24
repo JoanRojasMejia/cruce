@@ -5,10 +5,11 @@ struct MovementDetailView: View {
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
     let movementID: UUID
-    @State private var confirmingDelete = false
+    @State private var confirmingDelete: Bool
 
-    init(movementID: UUID) {
+    init(movementID: UUID, confirmingDelete: Bool = false) {
         self.movementID = movementID
+        _confirmingDelete = State(initialValue: confirmingDelete)
     }
 
     var body: some View {
