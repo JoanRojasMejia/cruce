@@ -20,7 +20,9 @@ Los valores de la guía están en código en `ios/Cruce/DesignSystem`. Si cambia
 | Gris línea | `#E2DBCB` | Separadores |
 | Gris neutro | `#D9D4C7` | Pestaña del saldo en $0 |
 
-- **Tipografía:** Archivo 500–900 (licencia OFL, incluida en la app).
+- **Tipografía:** Archivo 500–900 (licencia OFL, incluida en la app). Los párrafos (`body` 15 y `bodyLarge` 16) usan 22 de alto de línea. Las fechas cortas van sin "de": "14 oct", "vie 23 oct".
+- **Botones lado a lado:** usan el texto de `buttonSecondary` (16 / 800) aunque sean primarios, para que quepan los dos.
+- **Texto grande:** la app respeta Dynamic Type hasta `accessibility1`.
 - **Bordes:** 2 / 2,5 / 3 px. **Radios:** 10 chip · 12 input · 14 botón · 16 tarjeta · 20 diálogo · 28 hoja.
 - **Sombras:** sólidas, sin blur, desplazamiento igual en x e y: 2, 3, 4, 5, 6, 8 px.
 - **Espaciado:** margen lateral 20, área táctil mínima 44.

@@ -49,13 +49,13 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 | Parte | Estado | ¿Verificado? |
 |---|---|---|
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
-| App iOS con todas las pantallas y datos de ejemplo | Compila y corre en el simulador (iPhone 16, iOS 18.2, Xcode 27 beta) | Sí. Flujo completo recorrido sin crashes; fuentes Archivo, ilustraciones e ícono cargan |
-| Pruebas de Swift (saldo y formato de pesos) | 12 pruebas en verde | Sí: `xcodebuild … test` |
+| App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Falta probar la animación de los botones en un iPhone físico |
+| Pruebas de Swift (saldo, formato de pesos y fechas) | 16 pruebas en verde | Sí: `xcodebuild … test` |
 | Migración de Supabase | Escrita | Solo se revisó la sintaxis. **Nunca se ha aplicado** en una base real |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
 
-**CP0 cerrado.** Lo siguiente es el CP1 (fidelidad visual); las diferencias encontradas en el recorrido están anotadas en el roadmap.
+**CP0 cerrado. CP1 casi cerrado:** solo falta verificar en un iPhone físico la animación de presionar los botones (tarea 5.1 de `fidelidad-visual`). Después se archiva el cambio y sigue el CP2.
 
 ---
 
@@ -118,6 +118,7 @@ open Cruce.xcodeproj                        # para correr con ⌘R y ver las vis
 - Si el simulador "iPhone 16" no existe, lista los disponibles con `xcrun simctl list devices available` y usa otro.
 - Para instalarla en un iPhone físico: Xcode → Signing & Capabilities → Team.
 - **Cada vez que agregues o muevas archivos, vuelve a correr `xcodegen`.**
+- **Abrir una pantalla directo (solo Debug):** `xcrun simctl launch <udid> com.joanrojas.cruce -screen <nombre>` y luego `xcrun simctl io <udid> screenshot captura.png`. Los nombres están en `App/DebugScreen.swift` (`homeTheyOwe`, `add`, `history`, `settle`…). Sirve para comparar contra `docs/design/screens/` sin tocar la pantalla.
 
 ### Backend
 ```bash

@@ -30,11 +30,11 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 
 ## CP1 · Fidelidad visual contra el diseño
 *Cambio de OpenSpec: `openspec/changes/fidelidad-visual/`.*
-- [ ] Comparar cada pantalla con su captura en `docs/design/screens/` y anotar diferencias.
-- [ ] Corregir espaciados, tamaños y colores que no coincidan (usando solo los tokens de `DesignSystem`).
-- [ ] Recuperar el gesto de deslizar para volver con la barra de navegación oculta.
-- [ ] Revisar en iPhone SE (pantalla pequeña) e iPhone Pro Max: nada cortado y con scroll donde haga falta.
-- [ ] Definir el límite de Dynamic Type (por ejemplo, hasta `.accessibility1`) y probarlo.
+- [x] Comparar cada pantalla con su captura en `docs/design/screens/` y anotar diferencias. *Lista en `openspec/changes/fidelidad-visual/tasks.md`.*
+- [x] Corregir espaciados, tamaños y colores que no coincidan (usando solo los tokens de `DesignSystem`).
+- [x] Recuperar el gesto de deslizar para volver con la barra de navegación oculta.
+- [x] Revisar en iPhone SE (pantalla pequeña) e iPhone Pro Max: nada cortado y con scroll donde haga falta.
+- [x] Definir el límite de Dynamic Type (por ejemplo, hasta `.accessibility1`) y probarlo. *Decidido: `.accessibility1`.*
 - [ ] Animación de presionar en los botones (la sombra baja a 0), verificada en un dispositivo.
 
 Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista completa):
