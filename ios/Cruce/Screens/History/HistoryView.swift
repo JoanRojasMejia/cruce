@@ -40,7 +40,8 @@ struct HistoryView: View {
                                             payerName: app.member(movement.payerID).name,
                                             partnerName: app.partner.name,
                                             isPayerMe: movement.payerID == app.me.id,
-                                            compact: true
+                                            compact: true,
+                                            viewerName: app.me.name
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -63,16 +64,16 @@ struct HistoryView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Chip(title: "Todos", isSelected: personFilter == .all) { personFilter = .all }
-                Chip(title: "Pagó \(app.me.name)", isSelected: personFilter == .member(app.me.id), dotColor: app.me.avatarColor.color) {
+                Chip(title: "Pagó \(app.me.name)", isSelected: personFilter == .member(app.me.id), member: app.me) {
                     personFilter = .member(app.me.id)
                 }
-                Chip(title: "Pagó \(app.partner.name)", isSelected: personFilter == .member(app.partner.id), dotColor: app.partner.avatarColor.color) {
+                Chip(title: "Pagó \(app.partner.name)", isSelected: personFilter == .member(app.partner.id), member: app.partner) {
                     personFilter = .member(app.partner.id)
                 }
             }
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    Chip(title: "Todas", isSelected: categoryFilter == nil, selectedColor: CruceColor.yellow) {
+                    Chip(title: "Todas", isSelected: categoryFilter == nil, selectedColor: CruceColor.yellow, showsCheck: false) {
                         categoryFilter = nil
                     }
                     ForEach(MovementCategory.allCases) { item in

@@ -104,16 +104,24 @@ struct SettleView: View {
         }
     }
 
+    /// Quien usa la app es quien debe y, por tanto, quien paga.
+    private var iPay: Bool {
+        if case .youOwe = app.balance { return true }
+        return false
+    }
+
     private var methodPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("¿Cómo se pagó?").textStyle(.fieldLabel)
+            Text(iPay ? "¿Cómo le pagaste?" : "¿Cómo te pagó?").textStyle(.fieldLabel)
             HStack(spacing: 8) {
                 ForEach(Method.allCases, id: \.self) { item in
                     Button { method = item } label: {
+                        // Ancho según el texto, como en el diseño ("Transferencia" es más ancho).
                         Text(item.rawValue)
                             .font(.archivo(14, item == method ? .extraBold : .bold))
                             .foregroundStyle(item == method ? .white : CruceColor.ink)
-                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .padding(.horizontal, 16)
+                            .frame(minHeight: 44)
                             .neoSurface(fill: item == method ? CruceColor.ink : CruceColor.surface, radius: Radius.input, border: BorderWidth.thin)
                     }
                     .buttonStyle(.plain)

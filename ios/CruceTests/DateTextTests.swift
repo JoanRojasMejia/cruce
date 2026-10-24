@@ -13,6 +13,16 @@ final class DateTextTests: XCTestCase {
         XCTAssertEqual(DateText.long(friday, now: friday), "Hoy, vie 23 oct")
     }
 
+    func testMomentSaysHourWithArticle() {
+        let calendar = Calendar(identifier: .gregorian)
+        let oneOClock = calendar.date(bySettingHour: 13, minute: 16, second: 0, of: friday)!
+        XCTAssertEqual(DateText.moment(oneOClock, now: friday), "hoy a la 1:16 p. m.")
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: friday)!
+        XCTAssertEqual(DateText.moment(yesterday, now: friday), "ayer a las 8:00 p. m.")
+        let older = calendar.date(byAdding: .day, value: -2, to: friday)!
+        XCTAssertEqual(DateText.moment(older, now: friday), "el 21 oct a las 8:00 p. m.")
+    }
+
     func testShortDatesHaveNoDe() {
         // El diseño escribe "14 oct", no "14 de oct".
         let older = Calendar(identifier: .gregorian).date(byAdding: .day, value: -9, to: friday)!

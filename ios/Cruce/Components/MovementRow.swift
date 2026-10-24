@@ -11,6 +11,9 @@ struct MovementRow: View {
     let isPayerMe: Bool
     var dateText: String?
     var compact: Bool = false
+    /// Nombre de quien usa la app. Si se pasa, el subtítulo nombra a ambos como en el historial
+    /// ("Pagó Joan · $36.000 · 50/50"); si no, habla en segunda persona ("Pagaste $36.000").
+    var viewerName: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -53,10 +56,17 @@ struct MovementRow: View {
     }
 
     private var subtitle: String {
-        let who = isPayerMe ? "Pagaste" : "\(payerName) pagó"
-        var parts = ["\(who) \(Money.format(movement.amount))"]
+        var parts: [String]
+        let other: String
+        if let viewerName {
+            parts = ["Pagó \(payerName)", Money.format(movement.amount)]
+            other = isPayerMe ? partnerName : viewerName
+        } else {
+            parts = ["\(isPayerMe ? "Pagaste" : "\(payerName) pagó") \(Money.format(movement.amount))"]
+            other = isPayerMe ? partnerName : "ti"
+        }
         if movement.kind == .expense {
-            parts.append(movement.split == .fullOther ? "todo de \(isPayerMe ? partnerName : "ti")" : movement.split.title)
+            parts.append(movement.split == .fullOther ? "todo de \(other)" : movement.split.title)
         }
         if let dateText { parts.append(dateText) }
         return parts.joined(separator: " · ")

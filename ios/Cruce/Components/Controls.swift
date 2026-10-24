@@ -67,13 +67,19 @@ struct Chip: View {
     var isSelected: Bool
     var selectedColor: Color = CruceColor.ink
     var dotColor: Color?
+    /// Mini avatar en lugar del punto de color (filtros por persona).
+    var member: Member?
+    /// Check al estar seleccionado con color (categorías); el filtro "Todas" no lo lleva.
+    var showsCheck: Bool = true
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                if isSelected && selectedColor != CruceColor.ink {
+                if isSelected && selectedColor != CruceColor.ink && showsCheck {
                     Image(systemName: "checkmark").font(.system(size: 11, weight: .black))
+                } else if let member {
+                    Avatar(member: member, size: 18)
                 } else if let dotColor {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(dotColor)

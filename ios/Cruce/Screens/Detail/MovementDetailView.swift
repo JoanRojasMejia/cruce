@@ -124,7 +124,8 @@ struct MovementDetailView: View {
             .padding(.vertical, 12)
             .neoSurface(fill: impact >= 0 ? CruceColor.lime : CruceColor.peach, radius: Radius.button)
 
-            Text("Lo anotó \(app.member(movement.createdBy).name) · \(DateText.relative(movement.date).lowercased())")
+            // Usa la fecha del movimiento: todavía no se guarda cuándo se anotó (llega con Supabase en el CP5).
+            Text("Lo anotó \(app.member(movement.createdBy).name) \(DateText.moment(movement.date))")
                 .textStyle(.secondary)
                 .foregroundStyle(CruceColor.textSecondary)
 

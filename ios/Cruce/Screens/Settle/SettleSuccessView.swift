@@ -70,10 +70,13 @@ struct SettleSuccessView: View {
     private var decorations: some View {
         ZStack {
             Circle().fill(CruceColor.pink).frame(width: 220).offset(x: -170, y: -230)
-            Rectangle().fill(CruceColor.violet).frame(width: 300, height: 300).rotationEffect(.degrees(-14)).offset(x: 170, y: 380)
+            Rectangle().fill(CruceColor.violet).frame(width: 420, height: 420).rotationEffect(.degrees(-14)).offset(x: 200, y: 330)
             RoundedRectangle(cornerRadius: 2).fill(CruceColor.green).frame(width: 16, height: 16)
                 .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(CruceColor.ink, lineWidth: 2.5))
                 .rotationEffect(.degrees(18)).offset(x: 120, y: -360)
+            RoundedRectangle(cornerRadius: 2).fill(CruceColor.surface).frame(width: 12, height: 22)
+                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(CruceColor.ink, lineWidth: 2.5))
+                .rotationEffect(.degrees(-28)).offset(x: -148, y: -362)
         }
         .accessibilityHidden(true)
     }

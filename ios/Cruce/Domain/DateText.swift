@@ -61,6 +61,15 @@ enum DateText {
         time.string(from: date)
     }
 
+    /// "hoy a la 1:16 p. m.", "ayer a las 8:00 p. m." o "el 21 oct a las 8:00 p. m.".
+    static func moment(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> String {
+        let rel = relative(date, now: now, calendar: calendar)
+        let day = (rel == "Hoy" || rel == "Ayer") ? rel.lowercased() : "el \(rel)"
+        // En español la 1 lleva "la"; las demás horas, "las".
+        let article = calendar.component(.hour, from: date) % 12 == 1 ? "la" : "las"
+        return "\(day) a \(article) \(hour(date))"
+    }
+
     /// Quita los puntos de abreviatura ("oct." → "oct", "vie.," → "vie").
     private static func clean(_ text: String) -> String {
         text.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: ",", with: "")
