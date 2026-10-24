@@ -230,14 +230,18 @@ struct BeforeAfter: View {
     let afterTitle: String
     let after: String
     var afterColor: Color = CruceColor.lime
+    /// Relleno de la caja punteada: transparente sobre crema, blanco dentro de diálogos.
+    var beforeFill: Color = .clear
 
     var body: some View {
+        // Las dos cajas con el mismo alto y el texto arriba, aunque una frase ocupe más líneas.
         HStack(spacing: 10) {
             box(title: beforeTitle, value: before)
-                .neoSurface(fill: .clear, radius: Radius.input, border: BorderWidth.thin, dashed: true)
+                .neoSurface(fill: beforeFill, radius: Radius.input, border: BorderWidth.thin, dashed: true)
             box(title: afterTitle, value: after)
                 .neoSurface(fill: afterColor, radius: Radius.input)
         }
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func box(title: String, value: String) -> some View {
@@ -248,6 +252,6 @@ struct BeforeAfter: View {
         .foregroundStyle(CruceColor.ink)
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

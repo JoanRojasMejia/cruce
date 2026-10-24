@@ -12,7 +12,11 @@ struct MovementSavedSheet: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            IllustrationView(illustration: .saved, height: 190)
+            // Agarrador propio: el del sistema es gris y fino.
+            Capsule().fill(CruceColor.ink).frame(width: 48, height: 6)
+                .accessibilityHidden(true)
+
+            IllustrationView(illustration: .saved, height: 170)
 
             Text("¡Gasto guardado!")
                 .font(.archivo(30, .black, relativeTo: .largeTitle))
@@ -49,8 +53,22 @@ struct MovementSavedSheet: View {
         }
         .foregroundStyle(CruceColor.ink)
         .padding(.horizontal, Spacing.screen)
-        .padding(.top, 24)
+        .padding(.top, 12)
         .padding(.bottom, 12)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+}
+
+/// Fondo de una hoja inferior: crema con borde de tinta en el canto superior.
+struct SheetBackground: View {
+    var body: some View {
+        UnevenRoundedRectangle(topLeadingRadius: Radius.sheet, topTrailingRadius: Radius.sheet, style: .circular)
+            .fill(CruceColor.cream)
+            .overlay(
+                UnevenRoundedRectangle(topLeadingRadius: Radius.sheet, topTrailingRadius: Radius.sheet, style: .circular)
+                    .strokeBorder(CruceColor.ink, lineWidth: BorderWidth.thick)
+            )
+            .ignoresSafeArea(edges: .bottom)
     }
 }
 

@@ -35,12 +35,19 @@ struct MainView: View {
                         .swipeBackEnabled()
                 }
         }
+        // Oscurece el inicio detrás de "Gasto guardado" más que la atenuación del sistema.
+        .overlay {
+            if app.lastSaved != nil {
+                CruceColor.scrim.ignoresSafeArea().transition(.opacity).allowsHitTesting(false)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: app.lastSaved != nil)
         .sheet(item: $app.lastSaved) { movement in
             MovementSavedSheet(movement: movement)
-                .presentationDetents([.height(620), .large])
+                .presentationDetents([.height(520), .large])
                 .presentationCornerRadius(Radius.sheet)
-                .presentationBackground(CruceColor.cream)
-                .presentationDragIndicator(.visible)
+                .presentationBackground { SheetBackground() }
+                .presentationDragIndicator(.hidden)
         }
         .fullScreenCover(item: $app.lastSettlement) { payment in
             SettleSuccessView(payment: payment)

@@ -234,7 +234,8 @@ struct DeleteConfirmation: View {
                     before: app.phrase(forNet: app.net),
                     afterTitle: "SI LO ELIMINAS",
                     after: app.phrase(forNet: afterNet),
-                    afterColor: CruceColor.peach
+                    afterColor: CruceColor.peach,
+                    beforeFill: CruceColor.surface
                 )
                 HStack(spacing: 10) {
                     Button("Cancelar", action: onCancel)
