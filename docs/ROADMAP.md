@@ -2,6 +2,7 @@
 
 Se trabaja **un checkpoint a la vez, en orden**. Cada uno termina con sus pruebas en verde y un commit.
 Marca `[x]` cuando una tarea esté hecha y actualiza la sección "Estado actual" de `CLAUDE.md`.
+Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver `CLAUDE.md` §9); al cerrarlo se archiva y sus requisitos pasan a `openspec/specs/`.
 
 ---
 
@@ -28,6 +29,7 @@ Marca `[x]` cuando una tarea esté hecha y actualiza la sección "Estado actual"
 **Hecho cuando:** la app corre en el simulador, todas las pruebas pasan y el flujo se recorre sin crashes.
 
 ## CP1 · Fidelidad visual contra el diseño
+*Cambio de OpenSpec: `openspec/changes/fidelidad-visual/`.*
 - [ ] Comparar cada pantalla con su captura en `docs/design/screens/` y anotar diferencias.
 - [ ] Corregir espaciados, tamaños y colores que no coincidan (usando solo los tokens de `DesignSystem`).
 - [ ] Recuperar el gesto de deslizar para volver con la barra de navegación oculta.

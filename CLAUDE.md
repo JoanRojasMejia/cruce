@@ -90,8 +90,13 @@ cruce/
 ├── backend/                  Go 1.22+, solo librería estándar
 │   ├── cmd/api/main.go
 │   └── internal/{config,httpapi,notify}
-└── supabase/
-    └── migrations/20261024000000_init.sql
+├── supabase/
+│   └── migrations/20261024000000_init.sql
+├── openspec/                 Registro de specs y cambios (OpenSpec, ver §9)
+│   ├── config.yaml           Esquema spec-driven, artefactos en español
+│   ├── specs/                Cómo se comporta la app hoy (fuente de verdad)
+│   └── changes/              Cambios en curso; archive/ guarda los cerrados
+└── .claude/, .opencode/      Comandos /opsx (propose, apply, archive…) para cada agente
 ```
 
 ---
@@ -234,6 +239,13 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 ## 9. Cómo trabajar en este repo
 
 1. Abre `docs/ROADMAP.md` y toma **el primer checkpoint sin marcar**. No avances al siguiente sin terminar el actual.
-2. Antes de escribir código, explica en pocas líneas el plan del checkpoint y espera el visto bueno.
-3. Al terminar, verifica los criterios de "Hecho cuando", corre las pruebas, marca las casillas en `ROADMAP.md`, actualiza la sección 2 de este archivo y propón el commit.
-4. Si una decisión es del dueño del producto (Joan), pregunta en vez de asumir. Hay una lista de decisiones abiertas en `ROADMAP.md`.
+2. Cada checkpoint es un cambio de OpenSpec en `openspec/changes/<nombre>/` (propuesta, delta de specs y `tasks.md`). Si no existe, créalo con `/opsx:propose` (OpenCode: `/opsx-propose`) a partir del checkpoint.
+3. Antes de escribir código, explica en pocas líneas el plan del checkpoint y espera el visto bueno.
+4. Al terminar, verifica los criterios de "Hecho cuando", corre las pruebas, marca las casillas en `tasks.md` y en `ROADMAP.md`, actualiza la sección 2 de este archivo, archiva el cambio (`openspec archive <nombre>`, que actualiza `openspec/specs/`) y propón el commit.
+5. Si una decisión es del dueño del producto (Joan), pregunta en vez de asumir. Hay una lista de decisiones abiertas en `ROADMAP.md`.
+
+### OpenSpec
+- CLI: `npx @fission-ai/openspec@1.15.0 <comando>` (o instálalo con `npm i -g @fission-ai/openspec`). Usa `OPENSPEC_TELEMETRY=0` para no enviar estadísticas de uso.
+- Comandos útiles: `openspec list` (cambios), `openspec list --specs`, `openspec show <nombre>`, `openspec validate --all --strict`.
+- Las specs describen comportamiento observable, no clases ni librerías. Los encabezados y las palabras SHALL/MUST van en inglés; el resto, en español.
+- Historial: el CP0 está archivado en `openspec/changes/archive/2026-10-23-cerrar-cp0/`; el CP1 es el cambio activo `fidelidad-visual`.
