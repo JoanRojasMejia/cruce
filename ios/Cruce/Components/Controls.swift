@@ -38,6 +38,22 @@ struct BackButton: View {
 }
 
 /// Encabezado con botón de volver y título.
+/// Contenido de pantalla completa que ocupa al menos el alto disponible (los `Spacer` siguen empujando
+/// los botones hacia abajo) y hace scroll solo si no cabe: iPhone SE o texto grande.
+struct FittingScroll<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        GeometryReader { proxy in
+            ScrollView {
+                content.frame(minHeight: proxy.size.height, alignment: .top)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.hidden)
+        }
+    }
+}
+
 struct ScreenHeader<Trailing: View>: View {
     let title: String
     var onBack: (() -> Void)?

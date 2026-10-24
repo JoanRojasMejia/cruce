@@ -16,8 +16,12 @@ struct FolderCard<Content: View>: View {
             Text(tab)
                 .textStyle(.label)
                 .foregroundStyle(CruceColor.ink)
+                .lineLimit(1)
+                .fixedSize()
                 .padding(.leading, 12)
-                .frame(width: tabWidth, height: 26, alignment: .leading)
+                .padding(.trailing, 16)
+                // Ancho del diseño como mínimo; crece si el texto es más grande (Dynamic Type).
+                .frame(minWidth: tabWidth, minHeight: 26, alignment: .leading)
                 .background(tabShape.fill(tabColor))
                 .overlay(tabShape.stroke(CruceColor.ink, lineWidth: BorderWidth.regular))
                 .padding(.leading, 14)

@@ -10,6 +10,13 @@ struct OnboardingView: View {
     }
 
     var body: some View {
+        FittingScroll { content }
+            .foregroundStyle(CruceColor.ink)
+            .background(alignment: .topLeading) { decorations }
+            .screenBackground()
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 CruceLogo()
@@ -54,12 +61,9 @@ struct OnboardingView: View {
                 .buttonStyle(.neoLink)
             }
         }
-        .foregroundStyle(CruceColor.ink)
         .padding(.horizontal, Spacing.screen)
         .padding(.top, 8)
         .padding(.bottom, 16)
-        .background(alignment: .topLeading) { decorations }
-        .screenBackground()
     }
 
     private var primaryTitle: String {
@@ -155,7 +159,7 @@ private struct CrossingPage: View {
             }
             .accessibilityElement(children: .combine)
 
-            Text("Cada gasto se\ncruza solo.").textStyle(.title1Compact)
+            Text("Cada gasto se\ncruza solo.").textStyle(.title1Compact).fixedSize(horizontal: false, vertical: true)
             Text("Nada de dos listas. Cruce compensa lo que se deben y deja una sola cifra.")
                 .textStyle(.bodyLarge)
                 .fixedSize(horizontal: false, vertical: true)

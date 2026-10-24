@@ -22,11 +22,11 @@ struct MovementRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(movement.concept)
                     .textStyle(.rowTitle)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 Text(subtitle)
                     .textStyle(.secondary)
                     .foregroundStyle(CruceColor.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(3)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 

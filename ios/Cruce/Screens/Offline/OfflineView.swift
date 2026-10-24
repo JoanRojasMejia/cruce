@@ -6,6 +6,12 @@ struct OfflineView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        FittingScroll { content }
+            .foregroundStyle(CruceColor.ink)
+            .screenBackground()
+    }
+
+    private var content: some View {
         VStack(spacing: 20) {
             HStack {
                 CruceLogo()
@@ -20,7 +26,7 @@ struct OfflineView: View {
             Spacer(minLength: 0)
 
             VStack(spacing: 14) {
-                IllustrationView(illustration: .offline, height: 290)
+                IllustrationView(illustration: .offline, height: 290, minHeight: 180)
                 Text("No pudimos sincronizar")
                     .font(.archivo(28, .black, relativeTo: .title))
                     .tracking(-0.8)
@@ -63,11 +69,9 @@ struct OfflineView: View {
                     .buttonStyle(.neoLink)
             }
         }
-        .foregroundStyle(CruceColor.ink)
         .padding(.horizontal, Spacing.screen)
         .padding(.top, 8)
         .padding(.bottom, 16)
-        .screenBackground()
     }
 }
 

@@ -23,8 +23,8 @@
 
 ## 4. Tamaños de pantalla y texto
 
-- [ ] 4.1 Revisar en iPhone SE y iPhone Pro Max: nada cortado y con scroll donde haga falta (verificado: capturas en los dos simuladores)
-- [ ] 4.2 Limitar Dynamic Type a `.accessibility1` (decidido por Joan el 23 oct 2026) y probarlo (verificado: capturas con el tamaño máximo)
+- [x] 4.1 Revisar en iPhone SE y iPhone Pro Max: nada cortado y con scroll donde haga falta (verificado: capturas de las 20 pantallas en los dos simuladores; onboarding, conectados, saldar y sin conexión pasan a `FittingScroll` y hacen scroll en el SE)
+- [x] 4.2 Limitar Dynamic Type a `.accessibility1` (decidido por Joan el 23 oct 2026) y probarlo (verificado: capturas con el tamaño máximo del sistema; las pestañas de carpeta crecen, montos y chips se escalan y las filas usan hasta 2 y 3 líneas)
 
 ## 5. Botones
 

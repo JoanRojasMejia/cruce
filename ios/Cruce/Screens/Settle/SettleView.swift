@@ -12,6 +12,14 @@ struct SettleView: View {
     @State private var method: Method = .nequi
 
     var body: some View {
+        FittingScroll {
+            content
+        }
+        .foregroundStyle(CruceColor.ink)
+        .screenBackground()
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
             ScreenHeader(title: "Saldar cuentas")
 
@@ -58,13 +66,10 @@ struct SettleView: View {
         .padding(.horizontal, Spacing.screen)
         .padding(.top, 8)
         .padding(.bottom, 16)
-        .foregroundStyle(CruceColor.ink)
-        .screenBackground()
     }
 
     /// Quién paga y quién recibe, con el antes y el después.
     private var paymentCard: some View {
-        let iOwe = { if case .youOwe = app.balance { return true } else { return false } }()
         let payer = iOwe ? app.me : app.partner
         let receiver = iOwe ? app.partner : app.me
 
@@ -77,7 +82,7 @@ struct SettleView: View {
                             .font(.archivo(30, .black))
                             .tracking(-1)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.6)
+                            .minimumScaleFactor(0.4)
                         HStack(spacing: 0) {
                             Rectangle().fill(CruceColor.ink).frame(height: 3)
                             Image(systemName: "chevron.right").font(.system(size: 16, weight: .black))
@@ -105,20 +110,22 @@ struct SettleView: View {
     }
 
     /// Quien usa la app es quien debe y, por tanto, quien paga.
-    private var iPay: Bool {
+    private var iOwe: Bool {
         if case .youOwe = app.balance { return true }
         return false
     }
 
     private var methodPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(iPay ? "¿Cómo le pagaste?" : "¿Cómo te pagó?").textStyle(.fieldLabel)
+            Text(iOwe ? "¿Cómo le pagaste?" : "¿Cómo te pagó?").textStyle(.fieldLabel)
             HStack(spacing: 8) {
                 ForEach(Method.allCases, id: \.self) { item in
                     Button { method = item } label: {
                         // Ancho según el texto, como en el diseño ("Transferencia" es más ancho).
                         Text(item.rawValue)
                             .font(.archivo(14, item == method ? .extraBold : .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                             .foregroundStyle(item == method ? .white : CruceColor.ink)
                             .padding(.horizontal, 16)
                             .frame(minHeight: 44)

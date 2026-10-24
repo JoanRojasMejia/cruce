@@ -219,6 +219,8 @@ struct JoinView: View {
         HStack(spacing: 8) {
             Text("CRZ")
                 .font(.archivo(22, .black))
+                .lineLimit(1)
+                .fixedSize()
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)
                 .frame(height: 64)
@@ -269,39 +271,43 @@ struct ConnectedView: View {
             }
             .accessibilityHidden(true)
 
-            VStack(spacing: 24) {
-                VStack(spacing: 14) {
-                    IllustrationView(illustration: .welcome, height: 250)
-                    HStack(spacing: 6) {
-                        Avatar(member: app.me, size: 40)
-                        CruceLogoMark(size: 30, fill: CruceColor.ink, stroke: CruceColor.yellow)
-                        Avatar(member: app.partner, size: 40)
+            FittingScroll {
+                VStack(spacing: 24) {
+                    VStack(spacing: 14) {
+                        IllustrationView(illustration: .welcome, height: 250, minHeight: 160)
+                        HStack(spacing: 6) {
+                            Avatar(member: app.me, size: 40)
+                            CruceLogoMark(size: 30, fill: CruceColor.ink, stroke: CruceColor.yellow)
+                            Avatar(member: app.partner, size: 40)
+                        }
+                        Text("¡\(app.me.name) y \(app.partner.name) ya están conectados!")
+                            .font(.archivo(32, .black, relativeTo: .largeTitle))
+                            .tracking(-1.2)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("Todo lo que anoten aparece en los dos celulares al instante.")
+                            .textStyle(.body)
+                            .foregroundStyle(CruceColor.textBody)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Text("¡\(app.me.name) y \(app.partner.name) ya están conectados!")
-                        .font(.archivo(32, .black, relativeTo: .largeTitle))
-                        .tracking(-1.2)
-                        .multilineTextAlignment(.center)
-                    Text("Todo lo que anoten aparece en los dos celulares al instante.")
-                        .textStyle(.body)
-                        .foregroundStyle(CruceColor.textBody)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal, 22)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
-                .neoSurface(radius: Radius.dialog, border: BorderWidth.thick, shadow: ShadowOffset.xxl)
+                    .padding(.horizontal, 22)
+                    .padding(.top, 20)
+                    .padding(.bottom, 24)
+                    .neoSurface(radius: Radius.dialog, border: BorderWidth.thick, shadow: ShadowOffset.xxl)
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
 
-                Button { app.phase = .main } label: {
-                    Label("Ir al inicio", systemImage: "arrow.right").labelStyle(TrailingIconLabelStyle())
+                    Button { app.phase = .main } label: {
+                        Label("Ir al inicio", systemImage: "arrow.right").labelStyle(TrailingIconLabelStyle())
+                    }
+                    .buttonStyle(.neoDark)
                 }
-                .buttonStyle(.neoDark)
+                .foregroundStyle(CruceColor.ink)
+                .padding(.horizontal, 24)
+                .padding(.top, 40)
+                .padding(.bottom, 16)
             }
-            .foregroundStyle(CruceColor.ink)
-            .padding(.horizontal, 24)
-            .padding(.top, 40)
-            .padding(.bottom, 16)
         }
     }
 }
