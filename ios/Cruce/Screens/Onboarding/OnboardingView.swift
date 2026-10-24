@@ -84,11 +84,11 @@ struct OnboardingView: View {
         GeometryReader { proxy in
             switch page {
             case 0:
-                Circle().fill(CruceColor.pink).frame(width: 220, height: 220).position(x: 40, y: 230)
+                Circle().fill(CruceColor.pink).frame(width: 220, height: 220).position(x: 40, y: 265)
                 Rectangle().fill(CruceColor.violet).frame(width: 190, height: 170)
                     .rotationEffect(.degrees(-12)).position(x: proxy.size.width + 10, y: 330)
             case 2:
-                Circle().fill(CruceColor.green).frame(width: 240, height: 240).position(x: proxy.size.width + 40, y: 220)
+                Circle().fill(CruceColor.green).frame(width: 240, height: 240).position(x: proxy.size.width - 40, y: 250)
                 Rectangle().fill(CruceColor.pink).frame(width: 150, height: 120)
                     .rotationEffect(.degrees(14)).position(x: 35, y: 380)
             default:
@@ -113,10 +113,11 @@ struct TrailingIconLabelStyle: LabelStyle {
 private struct WelcomePage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            IllustrationView(illustration: .welcome, height: 320)
-            Text("Cuentas claras\nentre dos.").textStyle(.title1)
+            IllustrationView(illustration: .welcome, height: 320, minHeight: 160)
+            Text("Cuentas claras\nentre dos.").textStyle(.title1).fixedSize(horizontal: false, vertical: true)
             Text("Anoten lo que paga cada uno. Cruce cruza los gastos y les muestra un solo saldo: quién le debe a quién.")
                 .textStyle(.bodyLarge)
+                .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(CruceColor.textBody)
         }
     }
@@ -157,6 +158,7 @@ private struct CrossingPage: View {
             Text("Cada gasto se\ncruza solo.").textStyle(.title1Compact)
             Text("Nada de dos listas. Cruce compensa lo que se deben y deja una sola cifra.")
                 .textStyle(.bodyLarge)
+                .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(CruceColor.textBody)
         }
     }
@@ -183,10 +185,11 @@ private struct CrossingPage: View {
 private struct SettlePage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            IllustrationView(illustration: .allClear, height: 320)
-            Text("Salden cuando\nquieran.").textStyle(.title1)
+            IllustrationView(illustration: .allClear, height: 320, minHeight: 160)
+            Text("Salden cuando\nquieran.").textStyle(.title1).fixedSize(horizontal: false, vertical: true)
             Text("Cuando uno le paga al otro, lo registran con un toque y el saldo vuelve a $0. Sin cuentas pendientes ni malentendidos.")
                 .textStyle(.bodyLarge)
+                .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(CruceColor.textBody)
         }
     }

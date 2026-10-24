@@ -42,13 +42,17 @@ enum Illustration {
 struct IllustrationView: View {
     let illustration: Illustration
     var height: CGFloat
+    /// Si se pasa, la ilustración puede encogerse hasta este alto cuando falta espacio,
+    /// antes que cortar el texto de la pantalla.
+    var minHeight: CGFloat?
 
     var body: some View {
         Image(illustration.assetName)
             .resizable()
             .scaledToFit()
             .frame(maxWidth: .infinity)
-            .frame(height: height)
+            .frame(minHeight: minHeight ?? height, maxHeight: height)
+            .layoutPriority(minHeight == nil ? 0 : -1)
             .accessibilityLabel(illustration.accessibilityLabel)
     }
 }

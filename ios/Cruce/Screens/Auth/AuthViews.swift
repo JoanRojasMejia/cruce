@@ -126,7 +126,12 @@ struct InviteView: View {
                 HStack(spacing: 12) {
                     HStack(spacing: 0) {
                         Avatar(member: app.me, size: 38)
-                        Rectangle().fill(CruceColor.ink).frame(width: 22, height: 2.5)
+                        Path { path in
+                            path.move(to: CGPoint(x: 0, y: 1.25))
+                            path.addLine(to: CGPoint(x: 22, y: 1.25))
+                        }
+                        .stroke(CruceColor.ink, style: StrokeStyle(lineWidth: 2.5, dash: [4, 3]))
+                        .frame(width: 22, height: 2.5)
                         Text("?")
                             .font(.archivo(16, .black))
                             .frame(width: 38, height: 38)
@@ -169,7 +174,8 @@ struct JoinView: View {
             BackButton { app.phase = .invite }
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Únete con un código").textStyle(.title1Compact)
+                // Salto explícito: iOS 17 reparte las líneas distinto ("Únete con / un código").
+                Text("Únete con un\ncódigo").textStyle(.title1Compact)
                 Text("Pídele el código a tu amigo. Lo encuentra en su app, en la pantalla para invitar.")
                     .textStyle(.bodyLarge)
                     .foregroundStyle(CruceColor.textBody)
@@ -256,7 +262,10 @@ struct ConnectedView: View {
             CruceColor.yellow.ignoresSafeArea()
             ZStack {
                 Circle().fill(CruceColor.violet).frame(width: 240).offset(x: 170, y: -260)
-                Rectangle().fill(CruceColor.green).frame(width: 280, height: 260).rotationEffect(.degrees(16)).offset(x: -150, y: 380)
+                Rectangle().fill(CruceColor.green).frame(width: 280, height: 260).rotationEffect(.degrees(16)).offset(x: -150, y: 330)
+                RoundedRectangle(cornerRadius: 2).fill(CruceColor.pink).frame(width: 16, height: 16)
+                    .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(CruceColor.ink, lineWidth: 2.5))
+                    .rotationEffect(.degrees(-20)).offset(x: -160, y: -330)
             }
             .accessibilityHidden(true)
 

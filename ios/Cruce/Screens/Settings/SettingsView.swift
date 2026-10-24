@@ -32,7 +32,7 @@ struct SettingsView: View {
                         Text("Con \(app.partner.name)").font(.archivo(15, .bold))
                         Spacer()
                         if let first = app.sortedMovements.last?.date {
-                            Text("desde el \(DateText.relative(first))").textStyle(.secondary).foregroundStyle(CruceColor.textSecondary)
+                            Text("desde \(DateText.relative(first))").textStyle(.secondary).foregroundStyle(CruceColor.textSecondary)
                         }
                     }
                     divider
@@ -66,9 +66,9 @@ struct SettingsView: View {
                 }
 
                 section("DATOS") {
-                    actionRow("Exportar historial (CSV)", systemImage: "square.and.arrow.down") {}
+                    actionRow("Exportar historial (CSV)", systemImage: "arrow.down.to.line") {}
                     divider
-                    actionRow("Desvincular a \(app.partner.name)", systemImage: "xmark.square.fill", tint: CruceColor.pink) {}
+                    actionRow("Desvincular a \(app.partner.name)", systemImage: "xmark", tint: CruceColor.pink) {}
                     divider
                     actionRow("Cerrar sesión", systemImage: "rectangle.portrait.and.arrow.right") {
                         app.signOut()
@@ -116,9 +116,20 @@ struct SettingsView: View {
     private func actionRow(_ title: String, systemImage: String, tint: Color = CruceColor.ink, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(tint == CruceColor.ink ? CruceColor.ink : tint)
+                Group {
+                    if tint == CruceColor.ink {
+                        Image(systemName: systemImage).font(.system(size: 16, weight: .bold))
+                    } else {
+                        // Acción delicada: cuadro de color con borde y símbolo en tinta, como en el diseño.
+                        Image(systemName: systemImage)
+                            .font(.system(size: 10, weight: .black))
+                            .frame(width: 20, height: 20)
+                            .background(RoundedRectangle(cornerRadius: 5).fill(tint))
+                            .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(CruceColor.ink, lineWidth: BorderWidth.thin))
+                    }
+                }
+                // Ancho fijo para que los textos de las filas queden alineados.
+                .frame(width: 24)
                 Text(title).font(.archivo(15, tint == CruceColor.ink ? .bold : .extraBold))
                 Spacer()
             }

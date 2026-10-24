@@ -14,8 +14,8 @@
 - [x] 2.6 Gasto guardado: hoja más baja con fondo oscurecido, agarrador negro grueso y borde superior; cajas "Antes/Ahora" de igual altura y con relleno blanco cuando el diseño lo pide (verificado: capturas de `saved`, `delete`, `settle`, `offline`. Pendiente menor: el oscurecido del fondo sigue más claro que en el diseño)
 - [x] 2.7 Historial: subtítulo "Pagó Joan · $36.000 · 50/50", filtros de quién pagó con mini avatar, sin check en "Todas" (verificado: captura de `history` contra 07)
 - [x] 2.8 Detalle, Eliminar, Saldar, Éxito y Sin conexión: pie con hora ("Lo anotó Joan hoy a la 1:16 p. m.", con `DateText.moment` y pruebas; usa la fecha del movimiento hasta que exista la de creación), "¿Cómo te pagó?" / "¿Cómo le pagaste?", chips de medio de pago a lo ancho del contenido, confeti y formas de Éxito (verificado: capturas contra 17, 18, 08, 09 y 10)
-- [ ] 2.9 Onboarding, registro, invitar, unirse y conectados: posición de los círculos, texto legal subrayado, conector punteado, saltos de línea de los títulos, confeti y forma verde (verificado: capturas contra 01, 11, 12, 13, 14, 15 y 16)
-- [ ] 2.10 Ajustes: ícono de "Desvincular" (cuadro rosa con borde y X negra), íconos de ancho fijo, "desde 14 oct" (verificado: captura de `settings` contra 19)
+- [x] 2.9 Onboarding, registro, invitar, unirse y conectados: posición de los círculos, texto legal subrayado, conector punteado, saltos de línea de los títulos, confeti y forma verde (verificado: capturas contra 01, 11, 12, 13, 14, 15 y 16; las ilustraciones del onboarding ceden espacio antes que cortar el título)
+- [x] 2.10 Ajustes: ícono de "Desvincular" (cuadro rosa con borde y X negra), íconos de ancho fijo, "desde 14 oct" (verificado: captura de `settings` contra 19)
 
 ## 3. Navegación
 
