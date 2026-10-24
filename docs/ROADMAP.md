@@ -29,13 +29,13 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 **Hecho cuando:** la app corre en el simulador, todas las pruebas pasan y el flujo se recorre sin crashes.
 
 ## CP1 · Fidelidad visual contra el diseño
-*Cambio de OpenSpec: `openspec/changes/fidelidad-visual/`.*
+*Cambio de OpenSpec archivado en `openspec/changes/archive/2026-10-23-fidelidad-visual/`.*
 - [x] Comparar cada pantalla con su captura en `docs/design/screens/` y anotar diferencias. *Lista en `openspec/changes/fidelidad-visual/tasks.md`.*
 - [x] Corregir espaciados, tamaños y colores que no coincidan (usando solo los tokens de `DesignSystem`).
 - [x] Recuperar el gesto de deslizar para volver con la barra de navegación oculta.
 - [x] Revisar en iPhone SE (pantalla pequeña) e iPhone Pro Max: nada cortado y con scroll donde haga falta.
 - [x] Definir el límite de Dynamic Type (por ejemplo, hasta `.accessibility1`) y probarlo. *Decidido: `.accessibility1`.*
-- [ ] Animación de presionar en los botones (la sombra baja a 0), verificada en un dispositivo.
+- [x] Animación de presionar en los botones (la sombra baja a 0), verificada en un dispositivo. *En un iPhone 17 Pro; el botón queda hundido al menos 120 ms para que se vea en toques rápidos.*
 
 Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista completa):
 - Inicio: el botón de ajustes usa un engranaje y el diseño un sol; "Ver todo" va subrayado en el diseño; "Domicilio Rappi" usa ícono de comida y el diseño una bolsa en durazno; el subtítulo de las filas parte la fecha en dos líneas.

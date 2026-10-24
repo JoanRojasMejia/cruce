@@ -28,7 +28,7 @@
 
 ## 5. Botones
 
-- [ ] 5.1 Animación de presionar (la sombra baja a 0), verificada en un dispositivo físico
+- [x] 5.1 Animación de presionar (la sombra baja a 0), verificada en un dispositivo físico (verificado por Joan en su iPhone 17 Pro el 23 oct 2026; el botón queda hundido al menos 120 ms para que se vea en toques rápidos dentro de un scroll)
 
 ## Diferencias encontradas (1.1)
 

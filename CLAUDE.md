@@ -49,13 +49,13 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 | Parte | Estado | ¿Verificado? |
 |---|---|---|
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
-| App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Falta probar la animación de los botones en un iPhone físico |
+| App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
 | Pruebas de Swift (saldo, formato de pesos y fechas) | 16 pruebas en verde | Sí: `xcodebuild … test` |
 | Migración de Supabase | Escrita | Solo se revisó la sintaxis. **Nunca se ha aplicado** en una base real |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
 
-**CP0 cerrado. CP1 casi cerrado:** solo falta verificar en un iPhone físico la animación de presionar los botones (tarea 5.1 de `fidelidad-visual`). Después se archiva el cambio y sigue el CP2.
+**CP0 y CP1 cerrados.** Lo siguiente es el CP2: Supabase en local y la base de datos validada.
 
 ---
 
@@ -249,4 +249,4 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - CLI: `npx @fission-ai/openspec@1.15.0 <comando>` (o instálalo con `npm i -g @fission-ai/openspec`). Usa `OPENSPEC_TELEMETRY=0` para no enviar estadísticas de uso.
 - Comandos útiles: `openspec list` (cambios), `openspec list --specs`, `openspec show <nombre>`, `openspec validate --all --strict`.
 - Las specs describen comportamiento observable, no clases ni librerías. Los encabezados y las palabras SHALL/MUST van en inglés; el resto, en español.
-- Historial: el CP0 está archivado en `openspec/changes/archive/2026-10-23-cerrar-cp0/`; el CP1 es el cambio activo `fidelidad-visual`.
+- Historial: el CP0 y el CP1 están archivados en `openspec/changes/archive/` (`2026-10-23-cerrar-cp0` y `2026-10-23-fidelidad-visual`). El CP2 todavía no tiene cambio: créalo con `/opsx:propose` al arrancarlo.
