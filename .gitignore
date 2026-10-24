@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Xcode (el proyecto se genera con XcodeGen desde ios/project.yml)
+ios/*.xcodeproj
+ios/*.xcworkspace
+xcuserdata/
+DerivedData/
+*.xcuserstate
+build/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Go
+backend/bin/
+backend/.env
+
+# Supabase
+supabase/.branches
+supabase/.temp
+supabase/.env
+
+# Secretos
+.env
+*.env.local

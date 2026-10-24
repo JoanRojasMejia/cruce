@@ -1,0 +1,239 @@
+# CLAUDE.md — Contexto del proyecto Cruce
+
+Este archivo es la especificación viva del proyecto. Léelo completo antes de tocar código.
+Lo leen Claude Code (`CLAUDE.md`) y OpenCode (`AGENTS.md` apunta aquí).
+El plan de trabajo, con los checkpoints, está en [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+---
+
+## 1. Qué es Cruce
+
+Una app de iPhone para que **dos amigos, Joan y Jesús**, lleven sus cuentas compartidas en un solo libro.
+
+- **Problema:** hoy anotan las deudas por separado ("él me debe 30.000", "yo le debo 60.000") y no las pueden cruzar.
+- **Solución:** cada gasto se compensa automáticamente contra lo que el otro debe, y la app muestra siempre **un único saldo neto**: quién le debe a quién y cuánto.
+- **Solo dos personas por cuenta.** No es una app de grupos.
+- **Todo el texto en español (Colombia).** Moneda: pesos colombianos, formato `$30.000`.
+
+### Movimiento
+
+Cada movimiento tiene: quién pagó, monto, concepto, fecha, categoría y reparto.
+
+| Reparto | Qué significa | Lo que el otro le debe a quien pagó |
+|---|---|---|
+| `50/50` (por defecto) | Mitad y mitad | 50 % del monto |
+| Porcentaje | El usuario elige cuánto le toca al otro | `otherShare` % del monto |
+| Todo es del otro | Préstamos | 100 % del monto |
+
+**Ejemplo canónico (está en las pruebas):** Joan paga una cena de $60.000 a medias, así que Jesús le debe $30.000. Jesús paga un mercado de $100.000 a medias, así que Joan le debe $50.000. **Saldo neto: Joan le debe $20.000 a Jesús.**
+
+### Saldar cuentas
+
+Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien debe le paga el total al otro y el saldo queda en $0. Se elige el medio de pago (Efectivo, Nequi o Transferencia).
+
+### Reglas de producto que no se negocian
+
+1. **El saldo nunca se guarda: siempre se calcula** sumando los movimientos.
+2. **Dinero en enteros.** `Int` en Swift, `bigint` en Postgres. Nunca `Double` ni `Decimal` con centavos.
+3. **Redondeo:** al peso más cercano, .5 hacia arriba: `(monto * porcentaje + 50) / 100`. Es igual en Swift (`Money.share`) y en SQL (`owed_by_other`).
+4. **Formato:** `$30.000`, `$1.800.000`, `+$18.000`, `−$50.000`. El signo menos es U+2212 (−), no un guion.
+5. **Quién le debe a quién nunca depende solo del color.** Siempre va con la frase ("Jesús te debe"), el signo +/− y el texto "a tu favor" o "a favor de Jesús". La flecha va de quien debe a quien recibe.
+6. **Regla del recibo rosa o verde ("Tike").** Las ilustraciones de "te deben" y "debes" tienen dos versiones. **Quien creó la cuenta (Joan) ve el recibo rosa; quien se unió con código (Jesús) ve el verde.** Se guarda por miembro (`Member.tikeVariant` en Swift, `ledger_members.tike_variant` en SQL).
+7. **Colores de avatar:** quien crea la cuenta es amarillo y quien se une es violeta.
+8. **Eliminar es borrado suave** (`deleted_at`): el otro recibe un aviso.
+
+---
+
+## 2. Estado actual (24 oct 2026)
+
+| Parte | Estado | ¿Verificado? |
+|---|---|---|
+| Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
+| App iOS con todas las pantallas y datos de ejemplo | Escrita | **No. Nunca se ha compilado** (se escribió sin Xcode) |
+| Pruebas de Swift (saldo y formato de pesos) | Escritas | No, porque la app no se ha compilado |
+| Migración de Supabase | Escrita | Solo se revisó la sintaxis. **Nunca se ha aplicado** en una base real |
+| Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
+| Git | **No iniciado** | — |
+
+**Lo primero es el checkpoint CP0 del roadmap:** compilar, corregir y dejar las pruebas en verde.
+
+---
+
+## 3. Estructura del repositorio
+
+```
+cruce/
+├── CLAUDE.md                 Este archivo
+├── AGENTS.md → CLAUDE.md     Mismo contenido para OpenCode
+├── README.md
+├── docs/
+│   ├── ROADMAP.md            Checkpoints, se toman uno a uno
+│   ├── arquitectura.md       Decisiones de arquitectura
+│   ├── diseno.md             Tokens e ilustraciones
+│   └── design/screens/       Capturas PNG de las 20 pantallas y la guía (referencia visual)
+├── ios/
+│   ├── project.yml           Proyecto de XcodeGen (el .xcodeproj NO se sube al repo)
+│   ├── Cruce/
+│   │   ├── App/              CruceApp, RootView + MainView (navegación), AppState
+│   │   ├── DesignSystem/     Colors, Typography, Metrics, NeoSurface, NeoButtonStyle, Illustration
+│   │   ├── Components/       FolderCard, MovementRow, Controls (IconButton, Chip, NeoSegmented,
+│   │   │                     NeoTextField, NeoToggleStyle, PageDots, Badge, BeforeAfter),
+│   │   │                     AmountKeypad, Avatar, CategoryIcon, CruceLogo
+│   │   ├── Models/           Member, Movement, SplitRule, MovementCategory
+│   │   ├── Domain/           BalanceCalculator, Money, DateText (lógica pura y probada)
+│   │   ├── Data/             LedgerRepository (protocolo), InMemoryLedgerRepository, MockData
+│   │   ├── Screens/          Onboarding, Auth, Home, AddMovement, History, Detail, Settle,
+│   │   │                     Offline, Settings
+│   │   └── Resources/        Fuentes Archivo (OFL), Assets.xcassets (ilustraciones @2x/@3x,
+│   │                         AppIcon, AccentColor, LaunchBackground)
+│   └── CruceTests/           BalanceCalculatorTests, MoneyTests
+├── backend/                  Go 1.22+, solo librería estándar
+│   ├── cmd/api/main.go
+│   └── internal/{config,httpapi,notify}
+└── supabase/
+    └── migrations/20261024000000_init.sql
+```
+
+---
+
+## 4. Cómo levantar y probar cada parte
+
+### Requisitos en la Mac
+- Xcode 15 o superior, con el simulador de iOS 17 o superior.
+- `brew install xcodegen go supabase/tap/supabase` y Docker Desktop (para Supabase en local).
+
+### App iOS
+```bash
+cd ios
+xcodegen                                    # genera Cruce.xcodeproj desde project.yml
+xcodebuild -project Cruce.xcodeproj -scheme Cruce \
+  -destination 'platform=iOS Simulator,name=iPhone 16' build test
+open Cruce.xcodeproj                        # para correr con ⌘R y ver las vistas previas
+```
+- Si el simulador "iPhone 16" no existe, lista los disponibles con `xcrun simctl list devices available` y usa otro.
+- Para instalarla en un iPhone físico: Xcode → Signing & Capabilities → Team.
+- **Cada vez que agregues o muevas archivos, vuelve a correr `xcodegen`.**
+
+### Backend
+```bash
+cd backend
+go vet ./... && go test ./...
+WEBHOOK_SECRET=dev go run ./cmd/api
+curl localhost:8080/healthz
+```
+
+### Supabase (local)
+```bash
+supabase init          # solo la primera vez (crea supabase/config.toml)
+supabase start         # levanta Postgres, Auth y Realtime en Docker
+supabase db reset      # aplica supabase/migrations
+```
+
+---
+
+## 5. Diseño
+
+- **Fuente de verdad visual:** el canvas "Cruce — 3 propuestas" en Claude, página **"Opción A · flujo completo"**: https://claude.ai/code/artifact/5771f196-d1c4-4797-928a-4cd74aa50c18 (es privado del dueño; el agente no puede abrirlo).
+- **Referencia para el agente:** `docs/design/screens/*.png` (a 390×844 @2x) y `docs/design/screens/00-Guia-Estilo.png`.
+- **Estilo:** neobrutalista juguetón. Fondo crema, bordes negros gruesos, sombras sólidas desplazadas (sin blur), tarjetas tipo carpeta con pestaña de color y tipografía grotesca muy bold.
+- **Los tokens viven en `ios/Cruce/DesignSystem/`.** No inventes colores ni tamaños: usa `CruceColor`, `TextStyleToken`, `Radius`, `BorderWidth`, `ShadowOffset` y `Spacing`. Si cambias el diseño, actualiza también `docs/diseno.md`.
+
+### Pantallas → código
+
+| # | Captura | Vista de SwiftUI |
+|---|---|---|
+| 01, 11, 12 | Onboarding 1/3, 2/3, 3/3 | `OnboardingView` |
+| 13 | Crear cuenta | `SignUpView` |
+| 14 | Invitar (la ve quien crea) | `InviteView` |
+| 15 | Unirse con código (la ve quien se une) | `JoinView` |
+| 16 | Conectados | `ConnectedView` |
+| 02 | Inicio vacío | `HomeView` → `EmptyHomeContent` |
+| 03 / 04 | Inicio: te deben / debes (Joan, recibo rosa) | `HomeView` + `BalanceCard` |
+| 20 | Inicio desde la vista de Jesús (recibo verde) | `HomeView` con `viewer: MockData.jesus` |
+| 05 | Agregar movimiento (también editar) | `AddMovementView(editing:)` |
+| 06 | Gasto guardado (hoja inferior) | `MovementSavedSheet` |
+| 07 | Historial | `HistoryView` |
+| 17 | Detalle | `MovementDetailView` |
+| 18 | Eliminar | `DeleteConfirmation` |
+| 08 | Saldar cuentas | `SettleView` |
+| 09 | A paz y salvo | `SettleSuccessView` |
+| 10 | Sin conexión | `OfflineView` |
+| 19 | Ajustes | `SettingsView` |
+
+### Ilustraciones
+`Assets.xcassets/Illustrations/il-0X-*.imageset`. El enum `Illustration` las mapea; `AppState.balanceIllustration` aplica la regla rosa o verde. Los originales están en `~/Downloads/new-idea-proyect/ilustrations/`.
+
+---
+
+## 6. Arquitectura
+
+```
+iPhone de Joan ─┐                       ┌─ Database Webhook ─► Backend Go ─► APNs (push)
+                ├─► Supabase ───────────┤
+iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPhones
+                    RLS · Realtime)
+```
+
+- **La app habla directo con Supabase** (supabase-swift): auth, lectura y escritura de movimientos, tiempo real.
+- **La lógica sensible vive en Postgres:** la vista `ledger_balances` y las funciones `create_ledger_with_invite()` y `redeem_invite(code)`. RLS en todas las tablas.
+- **Go va al lado, no en medio:** recibe los webhooks de `movements`, envía las notificaciones push, el recordatorio mensual y limpia las invitaciones.
+- Detalle en `docs/arquitectura.md`.
+
+### Modelo de datos: Swift ↔ SQL
+
+| Swift | SQL |
+|---|---|
+| `Member` (id, name, avatarColor, tikeVariant) | `profiles` + `ledger_members` (tike_variant, avatar_color) |
+| `Movement.kind` `.expense` / `.settlement` | `movements.kind` `expense` / `settlement` |
+| `Movement.payerID`, `amount`, `concept`, `category`, `date`, `createdBy`, `paymentMethod` | `payer_id`, `amount`, `concept`, `category`, `occurred_at`, `created_by`, `payment_method` |
+| `SplitRule.equal` | `split_type = 'equal'`, `other_share_percent = 50` |
+| `SplitRule.percentage(otherShare:)` | `split_type = 'percentage'`, `other_share_percent = n` |
+| `SplitRule.fullOther` | `split_type = 'full_other'`, `other_share_percent = 100` |
+| `Movement.owedByOther` (calculado) | `owed_by_other` (columna generada) |
+| `BalanceCalculator.net` | vista `ledger_balances.net` |
+| `MovementCategory` | enum `movement_category` (comida, mercado, transporte, hogar, ocio, prestamo, otro) |
+
+### Piezas clave de la app
+- **`AppState`** (`@Observable`, `@MainActor`): la sesión (`me` y `partner`), los movimientos, la navegación (`path: [Route]`), `lastSaved` (abre la hoja "Gasto guardado") y `lastSettlement` (abre "A paz y salvo"). Las acciones son `save`, `delete`, `settle`, `retrySync` y `signOut`.
+- **`LedgerRepository`**: es la frontera con el backend. Hoy la implementa `InMemoryLedgerRepository` (un actor); en el CP5 entra `SupabaseLedgerRepository` con la misma interfaz.
+- **`AppState.preview(phase:viewer:movements:)`**: datos de ejemplo para las vistas previas y para la app mientras no haya backend. `MockData` reproduce el canvas: desde la vista de Joan, "Jesús te debe $20.000".
+
+---
+
+## 7. Convenciones
+
+- **iOS 17+, solo iPhone, modo claro forzado**, orientación vertical.
+- **Swift 5** (`SWIFT_VERSION 5.0` en project.yml). SwiftUI con `@Observable`/`@Environment(AppState.self)`. Sin Combine ni UIKit, salvo cuando no haya alternativa (por ejemplo `UIPasteboard`).
+- **Vistas con parámetros y propiedades `private` necesitan un `init` explícito:** si no, el init memberwise queda privado.
+- **Cada pantalla tiene su `#Preview`.** Si agregas una pantalla, agrega su preview y su fila en la tabla de la sección 5.
+- **Textos de la interfaz en español**, con tuteo y tono cercano, sin jerga bancaria. Los comentarios del código también van en español.
+- **Accesibilidad:** área táctil mínima de 44 pt, `accessibilityLabel` en los botones de solo ícono, las ilustraciones con su label y la dirección de la deuda siempre en texto.
+- **Dependencias:** no agregues paquetes sin preguntar. Las previstas son `supabase-swift` (CP3) y, como opción, `swift-snapshot-testing` (CP12). El backend usa solo la librería estándar mientras se pueda.
+- **Migraciones:** nunca edites una migración que ya se aplicó en la nube; crea una nueva en `supabase/migrations/`.
+- **Secretos:** nunca en el repo. `.env` está en `.gitignore`. La llave `service_role` vive solo en el backend.
+- **Commits:** pequeños, en español, uno por tarea del checkpoint. Antes de cada commit: `xcodebuild … test` y `go test ./...` en verde.
+
+---
+
+## 8. Riesgos conocidos y cosas sin verificar
+
+- **La app de Swift nunca se ha compilado.** Errores probables:
+  - inits memberwise privados;
+  - inferencia de tipos en ternarios con `.white`;
+  - `#Preview` que usan `let` y `return`;
+  - aislamiento de `@MainActor` en `AppState.preview`.
+  Corrígelos sin cambiar el comportamiento ni el diseño.
+- **Fuentes:** los `.ttf` se convirtieron desde los `woff2` de Fontsource y se les renombró la tabla de nombres. Los nombres PostScript esperados son `Archivo-Medium`, `Archivo-SemiBold`, `Archivo-Bold`, `Archivo-ExtraBold` y `Archivo-Black`. Verifica que carguen; si se ve la fuente del sistema, revisa `UIAppFonts` en `project.yml`.
+- **Sign in with Apple** requiere la membresía de Apple Developer (de pago), igual que las notificaciones push y TestFlight. Con una cuenta gratuita la app solo se puede instalar desde Xcode y deja de abrir a los 7 días.
+- **El botón "Continuar con Apple" es un mock.** Apple exige su botón oficial (`SignInWithAppleButton`).
+- **La migración SQL nunca se ha ejecutado.** Hay que validarla con `supabase db reset` y probar RLS con dos usuarios distintos.
+- **No implementado todavía:** "Cambiar monto" (pago parcial), exportar CSV, desvincular, editar perfil, reparto por defecto, el ajuste del recordatorio y el deslizar para volver con la barra de navegación oculta.
+
+---
+
+## 9. Cómo trabajar en este repo
+
+1. Abre `docs/ROADMAP.md` y toma **el primer checkpoint sin marcar**. No avances al siguiente sin terminar el actual.
+2. Antes de escribir código, explica en pocas líneas el plan del checkpoint y espera el visto bueno.
+3. Al terminar, verifica los criterios de "Hecho cuando", corre las pruebas, marca las casillas en `ROADMAP.md`, actualiza la sección 2 de este archivo y propón el commit.
+4. Si una decisión es del dueño del producto (Joan), pregunta en vez de asumir. Hay una lista de decisiones abiertas en `ROADMAP.md`.
