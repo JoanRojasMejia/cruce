@@ -69,7 +69,7 @@ struct NeoButtonStyle: ButtonStyle {
 /// Mantiene el botón hundido un mínimo de tiempo después de cada toque.
 /// Dentro de un `ScrollView`, iOS entrega "presionado" y "soltado" casi juntos en un toque rápido,
 /// y sin esto la sombra baja y sube tan rápido que no se ve.
-private struct HeldPress<Content: View>: View {
+struct HeldPress<Content: View>: View {
     let isPressed: Bool
     @ViewBuilder let content: (Bool) -> Content
 
@@ -105,6 +105,24 @@ extension ButtonStyle where Self == NeoButtonStyle {
     static var neoSecondary: NeoButtonStyle { NeoButtonStyle(kind: .secondary, height: 54) }
     static var neoDestructive: NeoButtonStyle { NeoButtonStyle(kind: .destructive, height: 54) }
     static var neoDark: NeoButtonStyle { NeoButtonStyle(kind: .dark, shadow: ShadowOffset.l) }
+}
+
+/// Botón cuadrado de ícono (volver, ajustes, editar): superficie blanca con sombra que se hunde al presionar.
+struct NeoIconButtonStyle: ButtonStyle {
+    var radius: CGFloat = 12
+    var shadow: CGFloat = ShadowOffset.s
+
+    func makeBody(configuration: Configuration) -> some View {
+        HeldPress(isPressed: configuration.isPressed) { pressed in
+            let shape = RoundedRectangle(cornerRadius: radius, style: .circular)
+            configuration.label
+                .neoSurface(radius: radius)
+                .offset(x: pressed ? shadow : 0, y: pressed ? shadow : 0)
+                .background(shape.fill(CruceColor.ink).offset(x: shadow, y: shadow))
+                .contentShape(shape)
+                .animation(.easeOut(duration: 0.08), value: pressed)
+        }
+    }
 }
 
 /// Botón de texto subrayado ("Ya tengo una cuenta", "Saltar").

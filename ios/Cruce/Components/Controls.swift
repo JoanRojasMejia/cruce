@@ -13,9 +13,8 @@ struct IconButton: View {
                 .font(.system(size: size * 0.45, weight: .bold))
                 .foregroundStyle(CruceColor.ink)
                 .frame(width: size, height: size)
-                .neoSurface(radius: 12, shadow: ShadowOffset.s)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NeoIconButtonStyle())
         .frame(minWidth: Spacing.minTouch, minHeight: Spacing.minTouch)
         .accessibilityLabel(accessibilityLabel)
     }
@@ -37,7 +36,6 @@ struct BackButton: View {
     }
 }
 
-/// Encabezado con botón de volver y título.
 /// Contenido de pantalla completa que ocupa al menos el alto disponible (los `Spacer` siguen empujando
 /// los botones hacia abajo) y hace scroll solo si no cabe: iPhone SE o texto grande.
 struct FittingScroll<Content: View>: View {
@@ -54,6 +52,7 @@ struct FittingScroll<Content: View>: View {
     }
 }
 
+/// Encabezado con botón de volver y título.
 struct ScreenHeader<Trailing: View>: View {
     let title: String
     var onBack: (() -> Void)?

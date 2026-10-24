@@ -116,6 +116,7 @@ xcodebuild -project Cruce.xcodeproj -scheme Cruce \
 open Cruce.xcodeproj                        # para correr con ⌘R y ver las vistas previas
 ```
 - Si el simulador "iPhone 16" no existe, lista los disponibles con `xcrun simctl list devices available` y usa otro.
+- Si `xcodebuild` dice "Unable to find a device matching" aunque el simulador exista (pasa cuando hay varios iOS instalados), usa su identificador: `-destination 'id=<UDID>'`.
 - Para instalarla en un iPhone físico: Xcode → Signing & Capabilities → Team.
 - **Cada vez que agregues o muevas archivos, vuelve a correr `xcodegen`.**
 - **Abrir una pantalla directo (solo Debug):** `xcrun simctl launch <udid> com.joanrojas.cruce -screen <nombre>` y luego `xcrun simctl io <udid> screenshot captura.png`. Los nombres están en `App/DebugScreen.swift` (`homeTheyOwe`, `add`, `history`, `settle`…). Sirve para comparar contra `docs/design/screens/` sin tocar la pantalla.
