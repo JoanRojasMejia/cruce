@@ -4,6 +4,7 @@
 # Xcode (el proyecto se genera con XcodeGen desde ios/project.yml)
 ios/*.xcodeproj
 ios/*.xcworkspace
+ios/Cruce/Info.plist
 xcuserdata/
 DerivedData/
 *.xcuserstate
@@ -21,6 +22,9 @@ backend/.env
 supabase/.branches
 supabase/.temp
 supabase/.env
+
+# Herramientas locales de agentes (registro de skills)
+.atl/
 
 # Secretos
 .env

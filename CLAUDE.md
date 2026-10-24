@@ -44,18 +44,18 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 
 ---
 
-## 2. Estado actual (24 oct 2026)
+## 2. Estado actual (23 oct 2026)
 
 | Parte | Estado | ¿Verificado? |
 |---|---|---|
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
-| App iOS con todas las pantallas y datos de ejemplo | Escrita | **No. Nunca se ha compilado** (se escribió sin Xcode) |
-| Pruebas de Swift (saldo y formato de pesos) | Escritas | No, porque la app no se ha compilado |
+| App iOS con todas las pantallas y datos de ejemplo | Compila y corre en el simulador (iPhone 16, iOS 18.2, Xcode 27 beta) | Sí. Flujo completo recorrido sin crashes; fuentes Archivo, ilustraciones e ícono cargan |
+| Pruebas de Swift (saldo y formato de pesos) | 12 pruebas en verde | Sí: `xcodebuild … test` |
 | Migración de Supabase | Escrita | Solo se revisó la sintaxis. **Nunca se ha aplicado** en una base real |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
-| Git | **No iniciado** | — |
+| Git | Iniciado (rama `main`) | — |
 
-**Lo primero es el checkpoint CP0 del roadmap:** compilar, corregir y dejar las pruebas en verde.
+**CP0 cerrado.** Lo siguiente es el CP1 (fidelidad visual); las diferencias encontradas en el recorrido están anotadas en el roadmap.
 
 ---
 

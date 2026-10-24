@@ -19,8 +19,9 @@ struct NeoSurface: ViewModifier {
                     style: StrokeStyle(lineWidth: border, dash: dashed ? [6, 5] : [])
                 )
             )
+            // Sin sombra no se pinta nada detrás: con relleno transparente se vería un bloque de tinta.
             .background(
-                shape.fill(shadowColor).offset(x: shadow, y: shadow)
+                shape.fill(shadow > 0 ? shadowColor : .clear).offset(x: shadow, y: shadow)
             )
     }
 }

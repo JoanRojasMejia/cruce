@@ -16,14 +16,14 @@ Marca `[x]` cuando una tarea esté hecha y actualiza la sección "Estado actual"
 ---
 
 ## CP0 · Levantar el proyecto y compilar
-- [ ] `git init`, primer commit con todo lo que hay.
-- [ ] `cd ios && xcodegen` genera el proyecto sin errores.
-- [ ] Corregir los errores de compilación de Swift (el código nunca se ha compilado; ver CLAUDE.md §8).
-- [ ] `xcodebuild … build test` pasa en el simulador, con `BalanceCalculatorTests` y `MoneyTests` en verde.
-- [ ] Verificar que las fuentes Archivo cargan (no debe verse la fuente del sistema).
-- [ ] Verificar que las ilustraciones y el ícono aparecen.
-- [ ] Recorrer el flujo completo en el simulador: onboarding → crear cuenta → invitar → conectados → inicio → agregar → gasto guardado → historial → detalle → eliminar → saldar → a paz y salvo → ajustes → cerrar sesión.
-- [ ] `cd backend && go test ./...` en verde.
+- [x] `git init`, primer commit con todo lo que hay.
+- [x] `cd ios && xcodegen` genera el proyecto sin errores.
+- [x] Corregir los errores de compilación de Swift (el código nunca se ha compilado; ver CLAUDE.md §8). *Compiló sin errores. Se corrigió `NeoSurface`: con `shadow: 0` pintaba un bloque de tinta detrás, y las tarjetas punteadas transparentes ("Antes", "Esperando a tu amigo…") se veían negras.*
+- [x] `xcodebuild … build test` pasa en el simulador, con `BalanceCalculatorTests` y `MoneyTests` en verde.
+- [x] Verificar que las fuentes Archivo cargan (no debe verse la fuente del sistema).
+- [x] Verificar que las ilustraciones y el ícono aparecen.
+- [x] Recorrer el flujo completo en el simulador: onboarding → crear cuenta → invitar → conectados → inicio → agregar → gasto guardado → historial → detalle → eliminar → saldar → a paz y salvo → ajustes → cerrar sesión.
+- [x] `cd backend && go test ./...` en verde.
 
 **Hecho cuando:** la app corre en el simulador, todas las pruebas pasan y el flujo se recorre sin crashes.
 
@@ -34,6 +34,11 @@ Marca `[x]` cuando una tarea esté hecha y actualiza la sección "Estado actual"
 - [ ] Revisar en iPhone SE (pantalla pequeña) e iPhone Pro Max: nada cortado y con scroll donde haga falta.
 - [ ] Definir el límite de Dynamic Type (por ejemplo, hasta `.accessibility1`) y probarlo.
 - [ ] Animación de presionar en los botones (la sombra baja a 0), verificada en un dispositivo.
+
+Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista completa):
+- Inicio: el botón de ajustes usa un engranaje y el diseño un sol; "Ver todo" va subrayado en el diseño; "Domicilio Rappi" usa ícono de comida y el diseño una bolsa en durazno; el subtítulo de las filas parte la fecha en dos líneas.
+- Agregar movimiento: la vista previa "Ahora: …" queda tapada por el teclado numérico; con el teclado del sistema abierto (concepto) el teclado numérico sigue visible y la pantalla se comprime.
+- A paz y salvo: el texto de "Compartir con Jesús" dice "$20.000 el hoy, vie 23 de oct".
 
 **Hecho cuando:** cada pantalla se ve como su captura en un iPhone de tamaño estándar y no se rompe en los extremos.
 
