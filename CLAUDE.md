@@ -51,11 +51,11 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
 | App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
 | Pruebas de Swift (saldo, formato de pesos y fechas) | 16 pruebas en verde | Sí: `xcodebuild … test` |
-| Migración de Supabase | Escrita | Solo se revisó la sintaxis. **Nunca se ha aplicado** en una base real |
+| Base de datos (Supabase) | Migración aplicada en local y en la nube (proyecto `cruce`, Oregon) | Sí: 54 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS) y revisión de seguridad hecha |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
 
-**CP0 y CP1 cerrados.** Lo siguiente es el CP2: Supabase en local y la base de datos validada.
+**CP0, CP1 y CP2 cerrados.** Lo siguiente es el CP3: inicio de sesión. Antes hay que decidir si se paga la membresía de Apple Developer (ver decisiones abiertas en el roadmap).
 
 ---
 
@@ -131,9 +131,9 @@ curl localhost:8080/healthz
 
 ### Supabase (local)
 ```bash
-supabase init          # solo la primera vez (crea supabase/config.toml)
-supabase start         # levanta Postgres, Auth y Realtime en Docker
+supabase start         # levanta Postgres, Auth y Realtime en Docker (config.toml ya está en el repo)
 supabase db reset      # aplica supabase/migrations
+supabase test db       # 54 pruebas pgTAP de supabase/tests
 ```
 
 ---
@@ -233,7 +233,8 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - **Fuentes:** los `.ttf` se convirtieron desde los `woff2` de Fontsource y se les renombró la tabla de nombres. Los nombres PostScript esperados son `Archivo-Medium`, `Archivo-SemiBold`, `Archivo-Bold`, `Archivo-ExtraBold` y `Archivo-Black`. Verifica que carguen; si se ve la fuente del sistema, revisa `UIAppFonts` en `project.yml`.
 - **Sign in with Apple** requiere la membresía de Apple Developer (de pago), igual que las notificaciones push y TestFlight. Con una cuenta gratuita la app solo se puede instalar desde Xcode y deja de abrir a los 7 días.
 - **El botón "Continuar con Apple" es un mock.** Apple exige su botón oficial (`SignInWithAppleButton`).
-- **La migración SQL nunca se ha ejecutado.** Hay que validarla con `supabase db reset` y probar RLS con dos usuarios distintos.
+- **La migración ya está en la nube:** desde ahora no se edita `20261024000000_init.sql`; cualquier cambio va en una migración nueva.
+- **`redeem_invite` devuelve `jsonb`** (`ok`, `error`, `message`) en vez de lanzar errores, por el límite de 5 intentos fallidos por hora. La app debe mostrar `message`.
 - **No implementado todavía:** "Cambiar monto" (pago parcial), exportar CSV, desvincular, editar perfil, reparto por defecto, el ajuste del recordatorio y el deslizar para volver con la barra de navegación oculta.
 
 ---
@@ -250,4 +251,4 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - CLI: `npx @fission-ai/openspec@1.15.0 <comando>` (o instálalo con `npm i -g @fission-ai/openspec`). Usa `OPENSPEC_TELEMETRY=0` para no enviar estadísticas de uso.
 - Comandos útiles: `openspec list` (cambios), `openspec list --specs`, `openspec show <nombre>`, `openspec validate --all --strict`.
 - Las specs describen comportamiento observable, no clases ni librerías. Los encabezados y las palabras SHALL/MUST van en inglés; el resto, en español.
-- Historial: el CP0 y el CP1 están archivados en `openspec/changes/archive/` (`2026-10-23-cerrar-cp0` y `2026-10-23-fidelidad-visual`). El CP2 todavía no tiene cambio: créalo con `/opsx:propose` al arrancarlo.
+- Historial: el CP0, el CP1 y el CP2 están archivados en `openspec/changes/archive/` (`2026-10-23-cerrar-cp0`, `2026-10-23-fidelidad-visual` y `2026-10-23-base-de-datos`). El CP3 todavía no tiene cambio: créalo con `/opsx:propose` al arrancarlo.

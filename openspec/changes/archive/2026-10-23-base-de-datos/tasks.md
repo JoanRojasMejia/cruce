@@ -32,12 +32,12 @@
 
 ## 4. Nube
 
-- [ ] 4.1 Joan crea el proyecto en supabase.com y corre `supabase login` y `supabase link` (verificado: `supabase projects list` muestra el proyecto enlazado)
-- [ ] 4.2 `supabase db push` aplica la migración en la nube (verificado: `supabase migration list` muestra la migración en local y remoto)
+- [x] 4.1 Joan crea el proyecto en supabase.com y corre `supabase login` y `supabase link` (verificado: `supabase projects list` muestra `cruce`, West US/Oregon)
+- [x] 4.2 `supabase db push` aplica la migración en la nube (verificado: `supabase migration list` la muestra en local y remoto; `supabase db diff --linked` no encuentra diferencias; RLS, TRUNCATE y permisos de `invite_attempts` revisados en la nube. Las pruebas pgTAP no corren en la nube porque pgTAP no está instalado ahí, y no se instala en producción)
 
 ## 5. Documentación
 
-- [ ] 5.1 `supabase/README.md` explica cómo correr las pruebas; `ROADMAP.md` y `CLAUDE.md` actualizados
+- [x] 5.1 `supabase/README.md` explica cómo correr las pruebas; `ROADMAP.md` y `CLAUDE.md` actualizados
 
 ## Workflow follow-up
 

@@ -13,6 +13,8 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 - [ ] **Persistencia local para el modo sin conexión:** SwiftData o archivo JSON (CP7).
 - [ ] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? (CP11).
 - [ ] **Pruebas de captura:** ¿se agrega `swift-snapshot-testing`? (CP12).
+- [ ] **Una cuenta por persona:** ¿una persona puede pertenecer a más de una cuenta compartida? Hoy la base lo permite y la app asume una sola (CP4).
+- [ ] **Borrar la cuenta de usuario:** Apple lo exige; falta definir qué pasa con la cuenta compartida y los movimientos del otro (CP11 o CP13).
 
 ---
 
@@ -45,16 +47,18 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** cada pantalla se ve como su captura en un iPhone de tamaño estándar y no se rompe en los extremos.
 
 ## CP2 · Supabase en local y base de datos validada
-- [ ] `supabase init`, `supabase start` y `supabase db reset` aplican la migración sin errores.
-- [ ] Script de pruebas SQL (pgTAP o un `.sql` con asserts) que cubra:
-  - [ ] `owed_by_other` con 50/50, porcentaje y "todo es del otro", incluido el redondeo de impares;
-  - [ ] la vista `ledger_balances` con el ejemplo canónico (−20.000 / +20.000);
-  - [ ] el máximo de dos miembros por cuenta;
-  - [ ] que quien paga sea miembro;
-  - [ ] RLS: un tercer usuario no ve nada; cada uno ve solo su cuenta;
-  - [ ] `create_ledger_with_invite` devuelve `CRZ-####`, el creador queda rosa y amarillo;
-  - [ ] `redeem_invite` une a la segunda persona en verde y violeta, y rechaza códigos vencidos, usados o propios.
-- [ ] Crear el proyecto de Supabase en la nube y `supabase db push`.
+*Cambio de OpenSpec archivado en `openspec/changes/archive/2026-10-23-base-de-datos/`. 54 pruebas pgTAP en `supabase/tests/`.*
+- [x] `supabase init`, `supabase start` y `supabase db reset` aplican la migración sin errores.
+- [x] Script de pruebas SQL (pgTAP o un `.sql` con asserts) que cubra:
+  - [x] `owed_by_other` con 50/50, porcentaje y "todo es del otro", incluido el redondeo de impares;
+  - [x] la vista `ledger_balances` con el ejemplo canónico (−20.000 / +20.000);
+  - [x] el máximo de dos miembros por cuenta;
+  - [x] que quien paga sea miembro;
+  - [x] RLS: un tercer usuario no ve nada; cada uno ve solo su cuenta;
+  - [x] `create_ledger_with_invite` devuelve `CRZ-####`, el creador queda rosa y amarillo;
+  - [x] `redeem_invite` une a la segunda persona en verde y violeta, y rechaza códigos vencidos, usados o propios.
+- [x] Crear el proyecto de Supabase en la nube y `supabase db push`. *Proyecto `cruce` en West US (Oregon).*
+- [x] Revisión independiente de seguridad. *Se corrigieron 6 hallazgos, incluido el código de invitación adivinable: ahora hay máximo 5 intentos fallidos por hora.*
 
 **Hecho cuando:** las pruebas SQL pasan en local y la migración está aplicada en la nube.
 
