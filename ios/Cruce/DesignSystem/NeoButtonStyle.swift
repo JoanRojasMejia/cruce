@@ -17,18 +17,28 @@ struct NeoButtonStyle: ButtonStyle {
     var height: CGFloat = 56
     var shadow: CGFloat = ShadowOffset.m
     var radius: CGFloat = Radius.button
+    /// Estilo del texto; por defecto `.button` en primario y oscuro, `.buttonSecondary` en el resto.
+    /// Los botones que van lado a lado usan `.buttonSecondary` aunque sean primarios.
+    var text: TextStyleToken?
+    /// Color de la sombra cuando no es el del tipo (por ejemplo, amarilla en "Continuar con Apple").
+    var shadowTint: Color?
+
+    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed
         let shape = RoundedRectangle(cornerRadius: radius, style: .circular)
         return configuration.label
-            .textStyle(kind == .primary || kind == .dark ? .button : .buttonSecondary)
-            .foregroundStyle(foreground)
+            .textStyle(text ?? (kind == .primary || kind == .dark ? .button : .buttonSecondary))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            // Deshabilitado: se apagan el relleno y el texto, pero el borde y la sombra siguen en tinta.
+            .foregroundStyle(foreground.opacity(isEnabled ? 1 : 0.45))
             .frame(maxWidth: .infinity, minHeight: height)
-            .background(shape.fill(background))
+            .background(shape.fill(isEnabled ? background : CruceColor.surface))
             .overlay(shape.strokeBorder(CruceColor.ink, lineWidth: BorderWidth.regular))
             .offset(x: pressed ? shadow : 0, y: pressed ? shadow : 0)
-            .background(shape.fill(shadowColor).offset(x: shadow, y: shadow))
+            .background(shape.fill(shadowTint ?? shadowColor).offset(x: shadow, y: shadow))
             .contentShape(shape)
             .animation(.easeOut(duration: 0.08), value: pressed)
     }

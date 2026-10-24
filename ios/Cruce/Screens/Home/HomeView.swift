@@ -6,22 +6,27 @@ struct HomeView: View {
     @Environment(AppState.self) private var app
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                if app.movements.isEmpty {
-                    EmptyHomeContent()
-                } else {
-                    BalanceCard()
-                    actions
-                    recent
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    if app.movements.isEmpty {
+                        EmptyHomeContent()
+                            .frame(maxHeight: .infinity)
+                    } else {
+                        BalanceCard()
+                        actions
+                        recent
+                    }
                 }
+                .padding(.horizontal, Spacing.screen)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                // Al menos el alto de la pantalla: el inicio vacío lleva su botón abajo y en pantallas chicas hace scroll.
+                .frame(minHeight: proxy.size.height, alignment: .top)
             }
-            .padding(.horizontal, Spacing.screen)
-            .padding(.top, 8)
-            .padding(.bottom, 24)
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .screenBackground()
     }
 
@@ -49,7 +54,7 @@ struct HomeView: View {
                 Button { app.path.append(.addMovement) } label: { Label("Agregar gasto", systemImage: "plus") }
                     .buttonStyle(.neoSecondary)
                 Button { app.path.append(.settle) } label: { Label("Pagarle a \(app.partner.name)", systemImage: "checkmark") }
-                    .buttonStyle(.neoPrimary)
+                    .buttonStyle(NeoButtonStyle(kind: .primary, height: 54, text: .buttonSecondary))
             case .theyOweYou:
                 Button { app.path.append(.addMovement) } label: { Label("Agregar gasto", systemImage: "plus") }
                     .buttonStyle(.neoPrimary)
@@ -69,10 +74,11 @@ struct HomeView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("Últimos movimientos").textStyle(.sectionTitle)
                 Spacer()
-                Button("Ver todo") { app.path.append(.history) }
-                    .font(.archivo(14, .bold))
-                    .underline()
-                    .foregroundStyle(CruceColor.ink)
+                // El subrayado va en el Text: aplicado al Button no llega a la etiqueta.
+                Button { app.path.append(.history) } label: {
+                    Text("Ver todo").font(.archivo(14, .bold)).underline()
+                }
+                .foregroundStyle(CruceColor.ink)
             }
             ForEach(app.sortedMovements.prefix(3)) { movement in
                 Button { app.path.append(.detail(movement.id)) } label: {
@@ -197,7 +203,7 @@ struct EmptyHomeContent: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Están a paz y salvo").font(.archivo(18, .extraBold))
-                        Text("$0").textStyle(.amount)
+                        Text("$0").textStyle(.amountMedium)
                     }
                     Spacer()
                     HStack(spacing: -10) {
@@ -207,6 +213,8 @@ struct EmptyHomeContent: View {
                 }
                 .foregroundStyle(CruceColor.ink)
             }
+
+            Spacer(minLength: 20)
 
             VStack(spacing: 12) {
                 IllustrationView(illustration: .empty, height: 250)
@@ -220,6 +228,8 @@ struct EmptyHomeContent: View {
                     .frame(maxWidth: 300)
             }
             .foregroundStyle(CruceColor.ink)
+
+            Spacer(minLength: 20)
 
             Button { app.path.append(.addMovement) } label: {
                 Label("Agregar el primer gasto", systemImage: "plus")

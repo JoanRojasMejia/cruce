@@ -4,17 +4,18 @@ import Foundation
 enum DateText {
     private static let locale = Locale(identifier: "es_CO")
 
+    // Formatos fijos: la plantilla localizada de es_CO agrega "de" ("14 de oct") y el diseño usa "14 oct".
     private static let shortDay: DateFormatter = {
         let f = DateFormatter()
         f.locale = locale
-        f.setLocalizedDateFormatFromTemplate("d MMM")
+        f.dateFormat = "d MMM"
         return f
     }()
 
     private static let weekdayDay: DateFormatter = {
         let f = DateFormatter()
         f.locale = locale
-        f.setLocalizedDateFormatFromTemplate("EEE d MMM")
+        f.dateFormat = "EEE d MMM"
         return f
     }()
 
@@ -43,12 +44,12 @@ enum DateText {
         return day
     }
 
-    /// "vie 23 de oct", sin "Hoy" ni "Ayer". Para frases como "el vie 23 de oct".
+    /// "vie 23 oct", sin "Hoy" ni "Ayer". Para frases como "el vie 23 oct".
     static func day(_ date: Date) -> String {
         clean(weekdayDay.string(from: date))
     }
 
-    /// "Hoy, vie 23 de oct".
+    /// "Hoy, vie 23 oct".
     static func long(_ date: Date, now: Date = .now) -> String {
         let day = day(date)
         let rel = relative(date, now: now)

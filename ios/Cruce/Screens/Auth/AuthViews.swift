@@ -42,13 +42,17 @@ struct SignUpView: View {
                     if !trimmed.isEmpty { app.me.name = trimmed }
                     app.phase = .invite
                 } label: {
-                    Label("Continuar con Apple", systemImage: "apple.logo")
+                    Text("Continuar con Apple")
                 }
-                .buttonStyle(NeoButtonStyle(kind: .dark, height: 56, shadow: ShadowOffset.m))
-                .labelStyle(NeoLabelStyle())
+                .buttonStyle(NeoButtonStyle(kind: .dark, height: 56, shadow: ShadowOffset.m, shadowTint: CruceColor.yellow))
 
-                Text("Al continuar aceptas los **Términos** y la **Política de privacidad** de Cruce.")
+                (Text("Al continuar aceptas los ")
+                    + Text("Términos").font(.archivo(12, .extraBold)).underline().foregroundColor(CruceColor.ink)
+                    + Text(" y la ")
+                    + Text("Política de privacidad").font(.archivo(12, .extraBold)).underline().foregroundColor(CruceColor.ink)
+                    + Text(" de Cruce."))
                     .textStyle(.secondary)
+                    .lineSpacing(4)
                     .foregroundStyle(CruceColor.textSecondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
@@ -103,7 +107,7 @@ struct InviteView: View {
                         ShareLink(item: "Únete a mi cuenta en Cruce con el código \(code)") {
                             Label("Compartir", systemImage: "square.and.arrow.up")
                         }
-                        .buttonStyle(NeoButtonStyle(kind: .primary, height: 50, shadow: ShadowOffset.s, radius: Radius.input))
+                        .buttonStyle(NeoButtonStyle(kind: .primary, height: 50, shadow: ShadowOffset.s, radius: Radius.input, text: .buttonSecondary))
                         Button {
                             UIPasteboard.general.string = code
                             copied = true
@@ -194,7 +198,6 @@ struct JoinView: View {
             Button("Unirme a la cuenta de \(MockData.joan.name)") { app.phase = .connected }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
                 .disabled(digits.count < 4)
-                .opacity(digits.count < 4 ? 0.5 : 1)
         }
         .foregroundStyle(CruceColor.ink)
         .padding(.horizontal, Spacing.screen)

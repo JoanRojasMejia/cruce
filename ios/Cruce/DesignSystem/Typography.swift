@@ -37,9 +37,9 @@ enum TextStyleToken {
     case buttonSecondary
     /// Título de una fila de movimiento · 15 / 800
     case rowTitle
-    /// Párrafos · 15 / 600
+    /// Párrafos · 15 / 22 / 600
     case body
-    /// Párrafos de onboarding · 16 / 600
+    /// Párrafos de onboarding · 16 / 22 / 600
     case bodyLarge
     /// Etiquetas de campos · 13 / 800
     case fieldLabel
@@ -80,11 +80,19 @@ enum TextStyleToken {
         default: return 0
         }
     }
+
+    /// Espacio extra entre líneas para llegar al alto de línea de la guía (22 pt en párrafos).
+    var lineSpacing: CGFloat {
+        switch self {
+        case .body, .bodyLarge: return 5
+        default: return 0
+        }
+    }
 }
 
 extension View {
-    /// Aplica fuente y tracking de un estilo de la guía.
+    /// Aplica fuente, tracking e interlineado de un estilo de la guía.
     func textStyle(_ style: TextStyleToken) -> some View {
-        font(style.font).tracking(style.tracking)
+        font(style.font).tracking(style.tracking).lineSpacing(style.lineSpacing)
     }
 }
