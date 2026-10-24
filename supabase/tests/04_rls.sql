@@ -2,7 +2,7 @@
 -- Se actúa como el rol authenticated con request.jwt.claims, igual que una petición real de la app.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(22);
 
 -- Datos, creados como postgres (sin RLS).
 insert into auth.users (id, email) values
@@ -73,8 +73,35 @@ select lives_ok(
   $$update public.movements set deleted_at = now() where id = 'cccccccc-0000-0000-0000-000000000001'$$,
   'Joan puede borrar (suave) un movimiento de su cuenta');
 
--- Jesús: no ve la invitación de Joan, pero sí la cuenta.
+-- Un miembro no puede sacar un movimiento de la cuenta ni reescribir quién lo anotó o cuándo.
+-- (Joan pertenece también a la cuenta 3 en este punto de la prueba.)
+reset role;
+insert into public.ledgers (id, created_by) values ('aaaaaaaa-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111');
+insert into public.ledger_members (ledger_id, user_id, tike_variant, avatar_color) values
+  ('aaaaaaaa-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'rosa', 'yellow');
+set local role authenticated;
+select throws_ok(
+  $$update public.movements set ledger_id = 'aaaaaaaa-0000-0000-0000-000000000004', payer_id = '11111111-1111-1111-1111-111111111111'
+    where id = 'cccccccc-0000-0000-0000-000000000002'$$,
+  null, null, 'Nadie mueve un movimiento a otra cuenta (lo escondería del otro sin aviso)');
+select throws_ok(
+  $$update public.movements set created_by = '11111111-1111-1111-1111-111111111111' where id = 'cccccccc-0000-0000-0000-000000000002'$$,
+  null, null, 'Nadie cambia quién anotó un movimiento');
+select throws_ok(
+  $$update public.movements set created_at = '2020-01-01' where id = 'cccccccc-0000-0000-0000-000000000002'$$,
+  null, null, 'Nadie cambia cuándo se anotó un movimiento');
+
+-- Jesús: no ve la invitación de Joan, pero sí la cuenta, y no puede cambiar quién la creó.
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', true);
+select throws_ok(
+  $$update public.ledgers set created_by = '33333333-3333-3333-3333-333333333333' where id = 'aaaaaaaa-0000-0000-0000-000000000001'$$,
+  '42501', null, 'Nadie cambia quién creó la cuenta');
+select lives_ok(
+  $$update public.ledgers set default_other_percent = 40 where id = 'aaaaaaaa-0000-0000-0000-000000000001'$$,
+  'Un miembro sí puede cambiar el reparto por defecto');
+select throws_ok(
+  $$truncate public.movements$$,
+  '42501', null, 'Nadie vacía una tabla con TRUNCATE (se salta RLS)');
 select is((select count(*) from public.invites), 0::bigint,
   'Jesús no ve las invitaciones que creó Joan');
 select is((select count(*) from public.ledgers), 1::bigint,

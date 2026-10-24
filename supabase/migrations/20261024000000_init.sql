@@ -25,7 +25,7 @@ create table public.profiles (
 create table public.ledgers (
   id                    uuid primary key default gen_random_uuid(),
   created_by            uuid not null references public.profiles (id),
-  currency              text not null default 'COP',
+  currency              text not null default 'COP' check (currency = 'COP'),
   default_other_percent smallint not null default 50 check (default_other_percent between 0 and 100),
   created_at            timestamptz not null default now()
 );
@@ -87,7 +87,7 @@ create table public.invites (
 
 -- Máximo dos personas por cuenta.
 create function public.enforce_two_members() returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = '' as $$
 begin
   if (select count(*) from public.ledger_members where ledger_id = new.ledger_id) >= 2 then
     raise exception 'Esta cuenta ya tiene dos personas' using errcode = 'check_violation';
@@ -101,7 +101,7 @@ create trigger ledger_members_max_two
 
 -- Quien paga tiene que ser miembro de la cuenta.
 create function public.enforce_payer_is_member() returns trigger
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = '' as $$
 begin
   if not exists (
     select 1 from public.ledger_members where ledger_id = new.ledger_id and user_id = new.payer_id
@@ -126,6 +126,24 @@ create trigger movements_touch_updated_at
   before update on public.movements
   for each row execute function public.touch_updated_at();
 
+-- La cuenta, el autor y la fecha en que se anotó un movimiento no cambian nunca.
+-- Si se pudiera cambiar la cuenta, un miembro escondería un gasto del otro sin borrado suave ni aviso.
+create function public.protect_movement_identity() returns trigger
+language plpgsql as $$
+begin
+  if new.ledger_id is distinct from old.ledger_id
+     or new.created_by is distinct from old.created_by
+     or new.created_at is distinct from old.created_at then
+    raise exception 'No se puede cambiar la cuenta, quién anotó ni cuándo se anotó un movimiento'
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end $$;
+
+create trigger movements_protect_identity
+  before update on public.movements
+  for each row execute function public.protect_movement_identity();
+
 -- ─────────────────────────────────────────────────────────────
 -- Saldo
 -- ─────────────────────────────────────────────────────────────
@@ -149,7 +167,7 @@ group by lm.ledger_id, lm.user_id;
 
 -- Evita recursión en las políticas de ledger_members.
 create function public.is_ledger_member(p_ledger uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = '' as $$
   select exists (
     select 1 from public.ledger_members where ledger_id = p_ledger and user_id = auth.uid()
   );
@@ -178,7 +196,7 @@ create policy "editar mi perfil" on public.profiles
 create policy "ver mis cuentas" on public.ledgers
   for select using (public.is_ledger_member(id));
 create policy "editar mis cuentas" on public.ledgers
-  for update using (public.is_ledger_member(id));
+  for update using (public.is_ledger_member(id)) with check (public.is_ledger_member(id));
 
 create policy "ver miembros de mis cuentas" on public.ledger_members
   for select using (public.is_ledger_member(ledger_id));
@@ -201,7 +219,7 @@ create policy "ver mis invitaciones" on public.invites
 -- Crea la cuenta compartida, agrega a quien la crea (recibo rosa, avatar amarillo)
 -- y devuelve un código de invitación tipo CRZ-4821.
 create function public.create_ledger_with_invite() returns text
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = '' as $$
 declare
   v_ledger   uuid;
   v_code     text;
@@ -211,8 +229,8 @@ begin
     raise exception 'Necesitas iniciar sesión';
   end if;
 
-  insert into ledgers (created_by) values (auth.uid()) returning id into v_ledger;
-  insert into ledger_members (ledger_id, user_id, tike_variant, avatar_color)
+  insert into public.ledgers (created_by) values (auth.uid()) returning id into v_ledger;
+  insert into public.ledger_members (ledger_id, user_id, tike_variant, avatar_color)
     values (v_ledger, auth.uid(), 'rosa', 'yellow');
 
   -- Un código se puede reusar solo si su invitación venció sin canjearse;
@@ -224,26 +242,26 @@ begin
     end if;
     v_code := 'CRZ-' || lpad((floor(random() * 10000))::int::text, 4, '0');
     exit when not exists (
-      select 1 from invites where code = v_code and (redeemed_at is not null or expires_at > now())
+      select 1 from public.invites where code = v_code and (redeemed_at is not null or expires_at > now())
     );
   end loop;
 
-  delete from invites where code = v_code;
-  insert into invites (code, ledger_id, created_by) values (v_code, v_ledger, auth.uid());
+  delete from public.invites where code = v_code;
+  insert into public.invites (code, ledger_id, created_by) values (v_code, v_ledger, auth.uid());
   return v_code;
 end $$;
 
 -- Canjea un código: agrega a quien lo usa (recibo verde, avatar violeta) y devuelve el ledger.
 create function public.redeem_invite(p_code text) returns uuid
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = '' as $$
 declare
-  v_invite invites%rowtype;
+  v_invite public.invites%rowtype;
 begin
   if auth.uid() is null then
     raise exception 'Necesitas iniciar sesión';
   end if;
 
-  select * into v_invite from invites where code = upper(trim(p_code)) for update;
+  select * into v_invite from public.invites where code = upper(trim(p_code)) for update;
 
   if not found or v_invite.redeemed_at is not null or v_invite.expires_at <= now() then
     raise exception 'El código no es válido o ya venció';
@@ -252,10 +270,10 @@ begin
     raise exception 'No puedes usar tu propio código';
   end if;
 
-  insert into ledger_members (ledger_id, user_id, tike_variant, avatar_color)
+  insert into public.ledger_members (ledger_id, user_id, tike_variant, avatar_color)
     values (v_invite.ledger_id, auth.uid(), 'verde', 'violet');
 
-  update invites set redeemed_by = auth.uid(), redeemed_at = now() where code = v_invite.code;
+  update public.invites set redeemed_by = auth.uid(), redeemed_at = now() where code = v_invite.code;
   return v_invite.ledger_id;
 end $$;
 
@@ -263,6 +281,26 @@ revoke all on function public.create_ledger_with_invite() from public, anon;
 revoke all on function public.redeem_invite(text) from public, anon;
 grant execute on function public.create_ledger_with_invite() to authenticated;
 grant execute on function public.redeem_invite(text) to authenticated;
+
+-- ─────────────────────────────────────────────────────────────
+-- Permisos
+-- ─────────────────────────────────────────────────────────────
+
+-- Supabase da por defecto todos los permisos de tabla a anon y authenticated.
+-- TRUNCATE se salta RLS: nadie desde la app lo necesita.
+revoke truncate on all tables in schema public from anon, authenticated;
+
+-- De una cuenta solo se edita el reparto por defecto; quién la creó y la moneda no cambian.
+revoke update on public.ledgers from anon, authenticated;
+grant update (default_other_percent) on public.ledgers to authenticated;
+
+-- is_ledger_member la usan las políticas de RLS; las funciones de los triggers no se llaman directo.
+revoke all on function public.is_ledger_member(uuid) from public, anon;
+grant execute on function public.is_ledger_member(uuid) to authenticated;
+revoke all on function public.enforce_two_members() from public, anon, authenticated;
+revoke all on function public.enforce_payer_is_member() from public, anon, authenticated;
+revoke all on function public.protect_movement_identity() from public, anon, authenticated;
+revoke all on function public.touch_updated_at() from public, anon, authenticated;
 
 -- ─────────────────────────────────────────────────────────────
 -- Tiempo real: los dos celulares ven los cambios al instante.

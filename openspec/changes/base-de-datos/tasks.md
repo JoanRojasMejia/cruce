@@ -18,7 +18,17 @@
 
 ## 3. Revisión
 
-- [ ] 3.1 Revisión independiente de las políticas RLS y de las funciones `security definer` (verificado: hallazgos resueltos o anotados)
+- [x] 3.1 Revisión independiente de las políticas RLS y de las funciones `security definer` (verificado: hallazgos resueltos o anotados abajo)
+- [x] 3.2 Corregir lo confirmado, con prueba en rojo antes y en verde después: mover un movimiento a otra cuenta, reescribir `created_by`/`created_at`, cambiar `ledgers.created_by`, `TRUNCATE` desde la app, `search_path` vacío en funciones `security definer`, permisos de EXECUTE (verificado: 48 pruebas en verde)
+- [ ] 3.3 Código de invitación adivinable por fuerza bruta (Alta): un usuario con sesión entró a una cuenta ajena en ~5.000 intentos. Pendiente de decisión de Joan sobre el formato del código
+
+### Hallazgos de la revisión que quedan para otros checkpoints
+
+- **Una cuenta por persona (Media):** hoy un usuario puede crear cuentas sin límite y pertenecer a varias. La app asume un solo `partner`. Decisión de producto pendiente; encaja en el CP4.
+- **Regenerar un código vencido (bloquea un flujo):** no hay función para pedir otro código para la misma cuenta; hoy habría que crear otra. CP4.
+- **Avisar en Invitar cuando el otro se une:** `ledger_members` no está en la publicación de tiempo real. CP4.
+- **Borrar la cuenta del usuario (bloquea un flujo):** las llaves foráneas a `profiles` no tienen `on delete`; Apple exige poder borrar la cuenta. Hay que definir qué pasa con la cuenta compartida. CP11 o CP13.
+- **Desvincular:** no hay política ni función. CP11 (ya estaba en el roadmap).
 
 ## 4. Nube
 
