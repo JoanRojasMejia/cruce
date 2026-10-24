@@ -26,7 +26,12 @@ struct NeoButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
-        let pressed = configuration.isPressed
+        HeldPress(isPressed: configuration.isPressed) { pressed in
+            body(configuration: configuration, pressed: pressed)
+        }
+    }
+
+    private func body(configuration: Configuration, pressed: Bool) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .circular)
         return configuration.label
             .textStyle(text ?? (kind == .primary || kind == .dark ? .button : .buttonSecondary))
@@ -58,6 +63,40 @@ struct NeoButtonStyle: ButtonStyle {
 
     private var shadowColor: Color {
         kind == .dark ? .white : CruceColor.ink
+    }
+}
+
+/// Mantiene el botón hundido un mínimo de tiempo después de cada toque.
+/// Dentro de un `ScrollView`, iOS entrega "presionado" y "soltado" casi juntos en un toque rápido,
+/// y sin esto la sombra baja y sube tan rápido que no se ve.
+private struct HeldPress<Content: View>: View {
+    let isPressed: Bool
+    @ViewBuilder let content: (Bool) -> Content
+
+    @State private var held = false
+    @State private var pressedAt = Date.distantPast
+    @State private var releaseTask: Task<Void, Never>?
+
+    /// Tiempo mínimo que el botón se ve hundido, en segundos.
+    private static var minimumPress: TimeInterval { 0.12 }
+
+    var body: some View {
+        content(held)
+            .onChange(of: isPressed) { _, pressed in
+                releaseTask?.cancel()
+                if pressed {
+                    pressedAt = .now
+                    held = true
+                } else {
+                    let elapsed = Date.now.timeIntervalSince(pressedAt)
+                    let remaining = max(0, Self.minimumPress - elapsed)
+                    releaseTask = Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(remaining))
+                        guard !Task.isCancelled else { return }
+                        held = false
+                    }
+                }
+            }
     }
 }
 
