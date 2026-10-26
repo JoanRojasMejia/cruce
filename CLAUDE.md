@@ -107,12 +107,19 @@ cruce/
 - Xcode 15 o superior, con el simulador de iOS 17 o superior.
 - `brew install xcodegen go supabase/tap/supabase` y Docker Desktop (para Supabase en local).
 
+### Pruebas de la lógica (sin Xcode ni simulador)
+```bash
+cd ios/Packages/CruceCore && swift test   # Swift Testing: saldo, formato de pesos y fechas
+```
+- La lógica pura (`Models`, `Domain` y los datos de ejemplo `MockData`) vive en el paquete local `ios/Packages/CruceCore`; la app lo importa con `import CruceCore`.
+- Basta con las Command Line Tools. No hace falta prender Colima, Supabase ni un simulador.
+
 ### App iOS
 ```bash
 cd ios
 xcodegen                                    # genera Cruce.xcodeproj desde project.yml
 xcodebuild -project Cruce.xcodeproj -scheme Cruce \
-  -destination 'platform=iOS Simulator,name=iPhone 16' build test
+  -destination 'platform=iOS Simulator,name=iPhone 16' build
 open Cruce.xcodeproj                        # para correr con ⌘R y ver las vistas previas
 ```
 - Si el simulador "iPhone 16" no existe, lista los disponibles con `xcrun simctl list devices available` y usa otro.

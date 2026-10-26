@@ -12,7 +12,12 @@ open Cruce.xcodeproj
 ```
 
 En Xcode: **Signing & Capabilities → Team**, elige tu cuenta y corre en el simulador o en tu iPhone.
-Las pruebas corren con `⌘U`.
+Las pruebas de la lógica no necesitan Xcode ni simulador:
+
+```bash
+cd ios/Packages/CruceCore
+swift test                 # Swift Testing: saldo, formato de pesos y fechas
+```
 
 ## Estructura
 
