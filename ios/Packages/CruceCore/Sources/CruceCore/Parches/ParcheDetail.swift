@@ -1,0 +1,186 @@
+import Foundation
+
+/// Los códigos que se escriben en "Tengo un código": `CRZ-` (cruce), `PCH-` (parche) y `SOY-` (lugar en un parche).
+public enum ParcheCode {
+    public enum Kind: String, Hashable, Sendable {
+        case cruce = "CRZ-"
+        case parche = "PCH-"
+        case place = "SOY-"
+    }
+
+    /// Alfabeto sin caracteres ambiguos (sin 0/O, 1/I/L), igual que en la base de datos.
+    public static let alphabet = Array("ABCDEFGHJKMNPQRSTUVWXYZ23456789")
+    /// Caracteres después del prefijo.
+    public static let length = 6
+
+    /// Mayúsculas y sin espacios a los lados.
+    public static func normalize(_ code: String) -> String {
+        code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+
+    /// El tipo de código según su prefijo, o `nil` si no es ninguno.
+    public static func kind(of code: String) -> Kind? {
+        let normalized = normalize(code)
+        return [Kind.cruce, .parche, .place].first { normalized.hasPrefix($0.rawValue) }
+    }
+
+    /// Un código nuevo; en la app los genera la base de datos y este solo lo usan los dobles en memoria.
+    public static func generate(_ kind: Kind) -> String {
+        var generator = SystemRandomNumberGenerator()
+        return generate(kind, using: &generator)
+    }
+
+    public static func generate(_ kind: Kind, using generator: inout some RandomNumberGenerator) -> String {
+        kind.rawValue + String((0..<length).map { _ in alphabet.randomElement(using: &generator)! })
+    }
+}
+
+/// Qué pasó en un parche. En la base lo escriben triggers en `parche_activity`.
+public enum ParcheActivityKind: String, Codable, Hashable, Sendable {
+    case parcheCreated
+    case expenseCreated
+    case expenseEdited
+    case expenseDeleted
+    case paymentRecorded
+    case paymentConfirmed
+    case participantAdded
+    case participantJoined
+    case placeClaimed
+    case parcheClosed
+    case debtMovedToCruce
+}
+
+/// Un aviso dentro de la app. No hay notificaciones push.
+public struct ParcheActivity: Identifiable, Codable, Hashable, Sendable {
+    public let id: UUID
+    public let parcheID: UUID
+    public var kind: ParcheActivityKind
+    /// Participante que hizo la acción.
+    public var actorID: UUID?
+    /// La persona de la que se trata: la que se agregó, se unió o se quedó con su lugar; quien pagó o quien debía.
+    public var participantID: UUID?
+    /// La otra persona: quien recibió el pago o a quien le debían.
+    public var otherParticipantID: UUID?
+    /// Quien anotó el gasto o el pago (para "editó un gasto que anotaste").
+    public var recordedByID: UUID?
+    public var amount: Int?
+    public var concept: String?
+    public var createdAt: Date
+
+    public init(
+        id: UUID = UUID(), parcheID: UUID, kind: ParcheActivityKind, actorID: UUID?, participantID: UUID? = nil,
+        otherParticipantID: UUID? = nil, recordedByID: UUID? = nil, amount: Int? = nil, concept: String? = nil,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.parcheID = parcheID
+        self.kind = kind
+        self.actorID = actorID
+        self.participantID = participantID
+        self.otherParticipantID = otherParticipantID
+        self.recordedByID = recordedByID
+        self.amount = amount
+        self.concept = concept
+        self.createdAt = createdAt
+    }
+}
+
+/// Todo lo de un parche visto por quien usa la app. Los saldos se calculan, nunca se guardan.
+public struct ParcheDetail: Identifiable, Codable, Hashable, Sendable {
+    public var parche: Parche
+    public var participants: [ParcheParticipant]
+    /// Todos los gastos, también los borrados (borrado suave).
+    public var expenses: [ParcheExpense]
+    public var payments: [ParchePayment]
+    public var transfers: [ParcheCruceTransfer]
+    public var activity: [ParcheActivity]
+    /// El participante de quien usa la app.
+    public var myParticipantID: UUID?
+    /// Participantes con los que quien usa la app comparte un cruce.
+    public var crucePartnerIDs: Set<UUID>
+
+    public init(
+        parche: Parche, participants: [ParcheParticipant], expenses: [ParcheExpense] = [],
+        payments: [ParchePayment] = [], transfers: [ParcheCruceTransfer] = [], activity: [ParcheActivity] = [],
+        myParticipantID: UUID? = nil, crucePartnerIDs: Set<UUID> = []
+    ) {
+        self.parche = parche
+        self.participants = participants
+        self.expenses = expenses
+        self.payments = payments
+        self.transfers = transfers
+        self.activity = activity
+        self.myParticipantID = myParticipantID
+        self.crucePartnerIDs = crucePartnerIDs
+    }
+
+    public var id: UUID { parche.id }
+
+    /// Orden del parche (orden de unión); decide los empates del redondeo y de las transferencias.
+    public var order: [UUID] {
+        participants.enumerated()
+            .sorted {
+                $0.element.joinedAt != $1.element.joinedAt
+                    ? $0.element.joinedAt < $1.element.joinedAt : $0.offset < $1.offset
+            }
+            .map(\.element.id)
+    }
+
+    public var me: ParcheParticipant? {
+        myParticipantID.flatMap(participant)
+    }
+
+    public func participant(_ id: UUID) -> ParcheParticipant? {
+        participants.first { $0.id == id }
+    }
+
+    /// Gastos vigentes, del más reciente al más antiguo.
+    public var visibleExpenses: [ParcheExpense] {
+        expenses.filter { !$0.isDeleted }.sorted {
+            $0.spentOn != $1.spentOn ? $0.spentOn > $1.spentOn : $0.createdAt > $1.createdAt
+        }
+    }
+
+    /// Total gastado en gastos vigentes, con propina.
+    public var totalSpent: Int {
+        expenses.filter { !$0.isDeleted }.map(\.amount).reduce(0, +)
+    }
+
+    public var confirmedPayments: [ParchePayment] { payments.filter(\.isConfirmed) }
+    public var pendingPayments: [ParchePayment] { payments.filter { !$0.isConfirmed } }
+
+    public var balances: [ParcheBalance] {
+        ParcheCalculator.balances(order: order, expenses: expenses, payments: payments, transfers: transfers)
+    }
+
+    public func balance(of participantID: UUID) -> Int {
+        balances.first { $0.participantID == participantID }?.net ?? 0
+    }
+
+    /// Cerrado y con todos los saldos en cero.
+    public var isSettled: Bool {
+        ParcheCalculator.isSettled(status: parche.status, balances: balances)
+    }
+
+    /// Cómo saldar con el menor número de transferencias.
+    public var suggestedTransfers: [ParcheTransfer] {
+        ParcheCalculator.minimumTransfers(balances)
+    }
+
+    /// Lo que `a` le debe directamente a `b`.
+    public func directDebt(from a: UUID, to b: UUID) -> Int {
+        ParcheCalculator.directDebt(from: a, to: b, expenses: expenses, payments: payments, transfers: transfers)
+    }
+
+    /// Avisos más recientes primero.
+    public var sortedActivity: [ParcheActivity] {
+        activity.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    /// Avisos de otras personas desde la última vez que quien usa la app abrió el parche.
+    public var unseenCount: Int {
+        guard let me else { return 0 }
+        let lastSeen = me.lastSeenAt ?? .distantPast
+        return activity.filter { $0.actorID != me.id && $0.createdAt > lastSeen }.count
+    }
+}
