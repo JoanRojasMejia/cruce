@@ -1,4 +1,5 @@
 import CruceCore
+import Supabase
 import SwiftUI
 
 /// Los tres stores de la app, juntos solo para llevarlos de la raíz a las vistas. No tiene lógica.
@@ -7,14 +8,24 @@ struct AppStores {
     let ledger: LedgerStore
     let router: Router
 
-    /// Arranque de Release: onboarding, sin movimientos y con miembros provisionales neutros.
-    /// Lo reemplazan la sesión y el código reales del CP3/CP4; Release todavía no se distribuye.
+    /// Arranque real: la sesión con Supabase Auth (local en Debug, la nube en Release), un solo `SupabaseClient`
+    /// para la autenticación y los datos, y sin movimientos hasta el CP5. La etapa sale de `session.refresh()`.
     @MainActor
     static func live() -> AppStores {
+        let config = SupabaseConfig.load()
+        let client = SupabaseClient(
+            supabaseURL: config.url,
+            supabaseKey: config.anonKey,
+            // Emite la sesión guardada al arrancar aunque haya vencido; `currentUserID()` la renueva.
+            options: SupabaseClientOptions(auth: .init(emitLocalSessionAsInitialSession: true))
+        )
         let session = SessionStore(
             phase: .onboarding,
             me: Member(name: "Tú", avatarColor: .yellow, tikeVariant: .rosa),
-            partner: Member(name: "Tu amigo", avatarColor: .violet, tikeVariant: .verde)
+            partner: Member(name: "Tu amigo", avatarColor: .violet, tikeVariant: .verde),
+            auth: SupabaseAuthService(client: client),
+            directory: SupabaseAccountDirectory(client: client),
+            isReady: false
         )
         let ledger = LedgerStore(session: session, repository: InMemoryLedgerRepository())
         return AppStores(session: session, ledger: ledger, router: Router())
