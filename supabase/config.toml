@@ -244,6 +244,16 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Correo con el código de 6 dígitos para entrar a Cruce (sin enlace mágico).
+# Supabase usa magic_link para quien ya existe y confirmation para alguien nuevo si la confirmación está activa.
+[auth.email.template.magic_link]
+subject = "Tu código para entrar a Cruce"
+content_path = "./supabase/templates/codigo.html"
+
+[auth.email.template.confirmation]
+subject = "Tu código para entrar a Cruce"
+content_path = "./supabase/templates/codigo.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
