@@ -23,6 +23,10 @@ settings:
 packages:
   CruceCore:
     path: Packages/CruceCore
+  # Solo la app depende de supabase-swift; CruceCore no (así sus pruebas corren en Linux).
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    exactVersion: 2.55.4
 
 targets:
   Cruce:
@@ -30,6 +34,10 @@ targets:
     platform: iOS
     sources:
       - path: Cruce
+    # Las claves de Supabase (SUPABASE_URL y SUPABASE_ANON_KEY) llegan desde ios/Config.xcconfig.
+    configFiles:
+      Debug: Cruce/Config/Cruce.xcconfig
+      Release: Cruce/Config/Cruce.xcconfig
     info:
       path: Cruce/Info.plist
       properties:
@@ -46,6 +54,12 @@ targets:
           - Archivo-Bold.ttf
           - Archivo-ExtraBold.ttf
           - Archivo-Black.ttf
+        # Las lee `SupabaseConfig` al arrancar.
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        # Debug habla con Supabase local por http (127.0.0.1).
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.joanrojas.cruce
@@ -55,6 +69,8 @@ targets:
         ENABLE_PREVIEWS: YES
     dependencies:
       - package: CruceCore
+      - package: Supabase
+        product: Supabase
 
 schemes:
   Cruce:

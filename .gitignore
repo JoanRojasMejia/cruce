@@ -27,6 +27,8 @@ supabase/.env
 .atl/
 
 # Secretos
+# Claves de Supabase de la app (se versiona Config.example.xcconfig)
+ios/Config.xcconfig
 .env
 *.env.local
 

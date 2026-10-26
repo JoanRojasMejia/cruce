@@ -1,0 +1,4 @@
+// Ajustes de la app que sí se versionan. Las claves de Supabase viven en `ios/Config.xcconfig`
+// (ignorado por git; copia `ios/Config.example.xcconfig`). Si falta, la app compila igual
+// y al arrancar falla con un mensaje claro.
+#include? "../../Config.xcconfig"
