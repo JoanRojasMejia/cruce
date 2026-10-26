@@ -1,0 +1,43 @@
+# Tasks
+
+Cada tarea termina en un commit (Conventional Commits, descripción en español) directo en `main`; `git push` solo cuando el usuario lo pida. Requisito de cada commit (§7 de `CLAUDE.md`): `swift test` en `ios/Packages/CruceCore` y `go test ./...` en `backend` en verde, y `xcodebuild … build` si el commit toca la app. La tarea 2.1 deja el paquete en rojo a propósito y se confirma junto con la 2.2.
+
+Modos de `CLAUDE.local.md`: las tareas 1.1, 2.3, 4.1 y 5.1 necesitan Colima (modo “Base de datos / backend”, sin simulador); las que corren `xcodebuild` necesitan Colima apagado. Al terminar cada sesión: `supabase stop && colima stop` y `xcrun simctl shutdown all`.
+
+## 1. Go alineado y con análisis estático
+
+- [ ] 1.1 Cambiar `backend/go.mod` a `go 1.27.0` y `backend/Dockerfile` a `golang:1.27-alpine`; en `CLAUDE.md` §3, “Go 1.22+” pasa a “Go 1.27” (verificado: `cd backend && go vet ./... && go test ./...` pasan; `docker build -t cruce-api backend` termina bien con Colima prendido; `rg -n "1\.2[24]" backend CLAUDE.md` no encuentra versiones viejas). Commit: `build(backend): alinear Go a 1.27 en go.mod y Dockerfile`
+- [ ] 1.2 Instalar `staticcheck` con `go install honnef.co/go/tools/cmd/staticcheck@<versión que soporte Go 1.27>`, correrlo, corregir lo que reporte sin cambiar el comportamiento y documentar en `backend/README.md` (“Pruebas”) los comandos `gofmt -l .`, `go vet ./...` y `staticcheck ./...` (verificado: `test -z "$(gofmt -l .)"`, `go vet ./...` y `staticcheck ./...` sin salida y `go test ./...` en verde; si `staticcheck` aún no soporta Go 1.27, se anota en `design.md` y se sigue sin él). Commit: `chore(backend): agregar staticcheck y corregir sus avisos`
+
+## 2. `CruceCore` en Swift 6
+
+- [ ] 2.1 Cambiar `swiftLanguageModes: [.v5]` por `[.v6]` en `ios/Packages/CruceCore/Package.swift` y actualizar su comentario (verificado en RED: `swift build` falla con los errores de concurrencia estricta; se anota la lista de errores en el commit de la 2.2). Sin commit propio
+- [ ] 2.2 Corregir los errores: `Sendable` explícito en los tipos públicos de valor (`Member`, `Movement`, `SplitRule`, `MovementCategory`, `TikeVariant`, `AvatarColor`, `BalanceState` y los que pida el compilador) y, si hace falta, formateadores de `DateText` creados en cada llamada con los mismos patrones; en `CLAUDE.md` §7, aclarar que la app sigue en Swift 5 y `CruceCore` en Swift 6 (verificado en GREEN: `swift build` sin errores ni avisos de concurrencia; `swift test` pasa con todas las pruebas; `TZ=Asia/Tokyo swift test` también; `cd ios && xcodegen && xcodebuild … build` da `BUILD SUCCEEDED`). Commit: `refactor(ios): pasar CruceCore al modo de lenguaje Swift 6`
+- [ ] 2.3 Correr la suite en Linux en la Mac, con Colima prendido y sin simulador: `docker run --rm -v "$PWD/ios/Packages/CruceCore:/pkg" -w /pkg swift:6.4 swift test` (verificado: pasan las mismas pruebas que en la Mac. Si `DateTextTests` falla por textos distintos de `es_CO`, se fijan en `DateText` los símbolos de mes y día abreviados, como ya se hace con `amSymbol`/`pmSymbol`, y la suite pasa en Linux y en la Mac; ese arreglo va en su propio commit `fix(ios): fijar los textos de fecha para que coincidan en Linux`. Si pasa sin cambios, la tarea no tiene commit)
+
+## 3. Formato de Swift
+
+- [ ] 3.1 Crear `.swift-format` en la raíz desde `swift format dump-configuration`, con sangría de 4 espacios y largo de línea de 120, y desactivar solo las reglas que choquen con el estilo de SwiftUI ya escrito, con su motivo en el mensaje del commit; documentar en `ios/README.md` los comandos `swift format lint --strict --recursive ios/` y `swift format --in-place --recursive ios/` (verificado: `swift format lint --recursive ios/` lee la configuración y solo reporta avisos de formato, sin errores de configuración). Commit: `style(ios): agregar la configuración de swift-format`
+- [ ] 3.2 Correr `swift format --in-place --recursive ios/` en un commit que solo cambie formato (verificado: `swift format lint --strict --recursive ios/` no reporta nada; `git diff --stat` solo muestra archivos `.swift`; `swift test` pasa; `xcodebuild … build` da `BUILD SUCCEEDED`). Commit: `style(ios): aplicar swift format a todo ios/`
+
+## 4. Integración continua
+
+- [ ] 4.1 Decidir en la Mac la lista mínima de servicios para las pruebas pgTAP: con Colima prendido y sin simulador, `supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor,postgrest,kong` y `supabase test db`; si falla, volver a agregar solo el servicio que falte (`kong`, `postgrest` o `gotrue`) y repetir (verificado: pasan las 54 pruebas pgTAP con la lista final, que se anota en la decisión 4 de `design.md`). Sin commit propio
+- [ ] 4.2 Crear `.github/workflows/ci.yml`: disparadores `push` a `main`, `pull_request` y `workflow_dispatch`; trabajo `changes` con `dorny/paths-filter` (`backend/**`, `supabase/**`, `ios/Packages/CruceCore/**` y el propio flujo en cada filtro); trabajos `backend` (`setup-go` con `go-version-file`, `gofmt -l`, `go vet`, `staticcheck`, `go test`), `supabase` (`supabase/setup-cli` con versión fijada, `supabase start` con la lista de la 4.1, `supabase test db`) y `core` (`container: swift:6.4`, `swift format lint --strict` y `swift test`); `permissions: contents: read`, `concurrency` con `cancel-in-progress` y sin secretos. Documentar en `CLAUDE.md` §4 una sección “Integración continua” (qué corre, cuándo y cómo verla con `gh run list`) (verificado: `brew install actionlint` y `actionlint` sin errores; si no se puede instalar, `ruby -ryaml -e 'YAML.load_file(".github/workflows/ci.yml")'` lo lee sin errores). Commit: `ci: revisar backend, base de datos y lógica en cada cambio`
+- [ ] 4.3 Crear `.github/workflows/ios.yml` solo con `workflow_dispatch`, en macOS: `brew install xcodegen`, `cd ios && xcodegen`, `xcodebuild -project Cruce.xcodeproj -scheme Cruce -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build`; agregar a la sección de `CLAUDE.md` §4 cómo lanzarlo (`gh workflow run ios.yml`) y por qué es manual (verificado: `actionlint` sin errores; el mismo `xcodebuild` con `generic/platform=iOS Simulator` da `BUILD SUCCEEDED` en la Mac). Commit: `ci(ios): agregar la compilación manual de la app en macOS`
+
+## 5. Respaldo de la base de datos
+
+- [ ] 5.1 Crear `scripts/backup-db.sh` (ejecutable, `set -euo pipefail`): comprueba `supabase` y el proyecto vinculado, saca `schema.sql` y `data.sql` con `supabase db dump` en una carpeta temporal y solo si los dos terminan bien la mueve a `backups/<AAAA-MM-DD_HHMMSS>/`; opción `--local` para la base local; la contraseña nunca va en el script. Agregar `backups/` a `.gitignore` y documentar en `CLAUDE.md` §4 cómo y cuándo correrlo (verificado con la base local, Colima prendido: `scripts/backup-db.sh --local` dos veces deja dos carpetas distintas con `schema.sql` y `data.sql` no vacíos; `git status --short` no muestra `backups/`; sin `--local` y sin proyecto vinculado, el script sale con código distinto de 0, explica que falta `supabase link` y no crea carpeta; `rg -n "password|service_role" scripts/backup-db.sh` no encuentra secretos). Commit: `chore(supabase): agregar el script de respaldo de la base de datos`
+- [ ] 5.2 Paso del usuario: con su sesión (`supabase login`) y el proyecto vinculado (`supabase link`), correr `scripts/backup-db.sh` contra la nube (verificado: queda una carpeta en `backups/` con el esquema y los datos de la nube y `git status --short` no la muestra). Sin commit
+
+## 6. Verificación final
+
+- [ ] 6.1 Actualizar `CLAUDE.md` §2 (fila de CI y de respaldos) y §7 (antes de cada commit, además: `gofmt -l`, `staticcheck` y `swift format lint --strict` en verde) (verificado: cada comando nuevo de §4 y §7 corre tal cual en la Mac y pasa). Commit: `docs: documentar la base de calidad en CLAUDE.md`
+- [ ] 6.2 Antes del push, `gh repo view cruce-app/cruce --json visibility` dice `PUBLIC`. El push lo decide el usuario; después del push, `gh run list --workflow ci.yml` muestra la corrida en verde con los trabajos `backend`, `supabase` y `core`, y un commit posterior que solo toque documentación deja esos tres trabajos en “skipped” (verificado: salida de `gh run view` de las dos corridas)
+
+## Workflow follow-up
+
+- Archivar con `OPENSPEC_TELEMETRY=0 npx -y @fission-ai/openspec@1.15.0 archive base-de-calidad` solo cuando la 6.2 esté verificada.
+- Verificar que quedaron `openspec/specs/verificacion-automatica/spec.md` y `openspec/specs/respaldo-base-datos/spec.md`, que `pruebas-logica` tiene los dos requisitos nuevos y que `openspec validate --all --strict` pasa.
+- Siguiente cambio de herramientas antes del CP3: endurecer RLS en una migración nueva.
