@@ -8,7 +8,7 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 
 ## Decisiones abiertas (las toma Joan)
 
-- [ ] **Membresía de Apple Developer:** ¿se paga ya? La necesitan Sign in with Apple (CP3), las notificaciones push (CP9) y TestFlight (CP13). Sin ella, el CP3 usa inicio de sesión por correo (OTP) solo para desarrollo.
+- [ ] **Membresía de Apple Developer:** ¿se paga ya? La necesitan Sign in with Apple, las notificaciones push (CP9) y TestFlight (CP13). Por ahora no se paga: el CP3 se hizo con inicio de sesión por correo (código de 6 dígitos) y Sign in with Apple queda como función posterior.
 - [ ] **Hosting del backend de Go:** Fly.io, Render, Railway u otro (CP8).
 - [ ] **Persistencia local para el modo sin conexión:** SwiftData o archivo JSON (CP7).
 - [ ] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? (CP11).
@@ -63,12 +63,14 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** las pruebas SQL pasan en local y la migración está aplicada en la nube.
 
 ## CP3 · Inicio de sesión
-- [ ] Agregar `supabase-swift` vía SPM en `project.yml`.
-- [ ] Configuración en `Config.xcconfig` (no en el código): `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
-- [ ] Protocolo `AuthService` y su implementación con Supabase; sesión persistente entre aperturas.
-- [ ] Con membresía de Apple: `SignInWithAppleButton` oficial y la capacidad Sign in with Apple. Sin membresía: inicio por correo (OTP) para desarrollo.
-- [ ] Crear el perfil (`profiles`) con el nombre de `SignUpView`.
-- [ ] `RootView` decide la etapa según la sesión real: sin sesión → onboarding; con sesión y sin cuenta → invitar; con cuenta → inicio.
+*Hecho por correo en el cambio `inicio-sesion-correo` (26 oct 2026), sin membresía de Apple. Falta un paso con el dueño: pegar la plantilla del correo en el panel de la nube y probar con los correos de Jesús y Joan.*
+- [x] Agregar `supabase-swift` vía SPM en `project.yml`. *Versión fija 2.55.4, solo en el target de la app.*
+- [x] Configuración en `Config.xcconfig` (no en el código): `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
+- [x] Protocolo `AuthService` y su implementación con Supabase; sesión persistente entre aperturas.
+- [x] Inicio por correo con un código de 6 dígitos (sin enlace mágico ni contraseña).
+- [ ] *Función posterior, con la membresía de Apple:* `SignInWithAppleButton` oficial y la capacidad Sign in with Apple.
+- [x] Crear el perfil (`profiles`) con el nombre de `SignUpView`.
+- [x] `RootView` decide la etapa según la sesión real: sin sesión → onboarding; sin perfil → pedir el nombre; con sesión y sin cuenta → invitar; con cuenta → inicio.
 
 **Hecho cuando:** Joan y Jesús pueden iniciar sesión en dos simuladores y la sesión sobrevive a cerrar la app.
 

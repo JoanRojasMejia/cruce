@@ -13,7 +13,7 @@ Modos de `CLAUDE.local.md`: las tareas 1 a 3 son “Lógica pura” o compilaci�
 
 - [x] 2.1 Agregar supabase-swift por SPM al target de la app en `project.yml` (versión fija), `Config.example.xcconfig`, `Config.xcconfig` en `.gitignore`, las claves en `Info.plist` y su lectura al arrancar con error claro si faltan (verificado: supabase-swift fijo en 2.55.4; `Config.xcconfig` entra con `#include?` desde `ios/Cruce/Config/Cruce.xcconfig`, así la app compila aunque falte; `xcodebuild -showBuildSettings` muestra `SUPABASE_URL = http://127.0.0.1:54321` en Debug; `git status` no lista `Config.xcconfig`). Commit: `build(ios): agregar supabase-swift y la configuración por xcconfig`
 - [x] 2.2 `SupabaseAuthService` y `SupabaseAccountDirectory` en `ios/Cruce/Data/` con un solo `SupabaseClient`, conectados en `AppStores.live()`; `AppStores.sample()` sigue con los dobles (verificado: `BUILD SUCCEEDED`; CruceCore no importa Supabase: `rg -n "import Supabase" ios/Packages` no encuentra nada). Commit: `feat(ios): conectar la sesión con Supabase Auth`
-- [x] 2.3 Plantilla `supabase/templates/codigo.html` con `{{ .Token }}` y su referencia en `config.toml` para enlace mágico y confirmación. Commit: `feat(supabase): enviar el código de 6 dígitos en el correo`
+- [x] 2.3 Plantilla `supabase/templates/codigo.html` con `{{ .Token }}` y su referencia en `config.toml` para enlace mágico y confirmación (verificado en la 4.2: con Supabase local, el correo de un usuario nuevo y el de uno que ya existe llegan a mailpit con el asunto "Tu código para entrar a Cruce" y el código de 6 dígitos). Commit: `feat(supabase): enviar el código de 6 dígitos en el correo`
 
 ## 3. Pantallas
 
@@ -21,10 +21,10 @@ Modos de `CLAUDE.local.md`: las tareas 1 a 3 son “Lógica pura” o compilaci�
 
 ## 4. Verificación
 
-- [ ] 4.1 `swift test`, `swift format lint` y `xcodebuild … build` en Debug y Release en verde. Sin commit
-- [ ] 4.2 En local (modo Integración): entrar con un correo nuevo leyendo el código en mailpit, crear el perfil, llegar a invitar, cerrar y abrir la app con la sesión viva, cerrar sesión; un código equivocado muestra el error; repetir con una segunda cuenta en el mismo simulador. Sin commit
-- [ ] 4.3 Con aprobación: pegar la plantilla en el panel de Supabase (nube) y probar con los correos de Jesús y Joan desde un build Release en el simulador. Sin commit
+- [x] 4.1 `swift test`, `swift format lint` y `xcodebuild … build` en Debug y Release en verde (verificado: 56 pruebas en verde, lint sin salida, `BUILD SUCCEEDED` en Debug y en Release, también después del arreglo de ajustes). Sin commit
+- [x] 4.2 En local (modo Integración): entrar con un correo nuevo leyendo el código en mailpit, crear el perfil, llegar a invitar, cerrar y abrir la app con la sesión viva, cerrar sesión; un código equivocado muestra el error; repetir con una segunda cuenta en el mismo simulador (verificado el 26 oct 2026 en el iPhone 17 con Colima 2 GB y Supabase con mailpit: un correo mal escrito muestra "Ese correo no parece válido…"; el código llega a mailpit; un código equivocado muestra "El código no es correcto o ya venció…" y la sesión no se abre; el correcto pide el nombre y crea la fila en `profiles` con `id = auth.uid()`; llega a invitar; al cerrar y abrir la app vuelve a invitar sin pedir el correo; "Cerrar sesión" lleva al onboarding y sigue ahí al reabrir; una segunda cuenta que ya tenía perfil entra sin pedir el nombre; con una fila en `ledger_members` la app abre en el inicio, y "Cerrar sesión" desde ajustes vuelve al onboarding también después de reabrir. `supabase test db`: 74 pruebas en verde. La prueba encontró el texto "Cuenta de Apple conectada" en ajustes, corregido en `fix(ios): quitar la mención de Apple en ajustes`). Sin commit
+- [ ] 4.3 (pendiente: requiere al dueño) Con aprobación: pegar la plantilla en el panel de Supabase (nube) y probar con los correos de Jesús y Joan desde un build Release en el simulador. Sin commit
 
 ## 5. Documentación y cierre
 
-- [ ] 5.1 `CLAUDE.md` (§2, §4, §6, §8), `docs/ROADMAP.md` (CP3 hecho por correo; Apple como función posterior) e `ios/README.md` (cómo crear `Config.xcconfig` y leer el código en mailpit). Commit: `docs: documentar el inicio de sesión por correo`
+- [x] 5.1 `CLAUDE.md` (§2, §4, §6, §8), `docs/ROADMAP.md` (CP3 hecho por correo; Apple como función posterior) e `ios/README.md` (cómo crear `Config.xcconfig` y leer el código en mailpit). Commit: `docs: documentar el inicio de sesión por correo`

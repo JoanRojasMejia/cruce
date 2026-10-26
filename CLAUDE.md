@@ -61,20 +61,21 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 
 ---
 
-## 2. Estado actual (23 oct 2026)
+## 2. Estado actual (26 oct 2026)
 
 | Parte | Estado | ¿Verificado? |
 |---|---|---|
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
 | App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
-| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores y navegación) | 38 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
+| Inicio de sesión (CP3) | Por correo con un código de 6 dígitos (supabase-swift 2.55.4), sesión persistente, perfil y etapa de entrada según la sesión real. Sign in with Apple queda para cuando se pague la membresía | En local sí: pasos de la tarea 4.2 de `inicio-sesion-correo`. En la nube falta pegar la plantilla del correo y probar con los correos de Jesús y Joan |
+| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores, sesión y navegación) | 56 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
 | Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) aplicada en local y en la nube (26 oct 2026) | Sí: 74 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión) y revisión de seguridad hecha |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
 | Integración continua (GitHub Actions) | `ci.yml`: backend, base de datos y lógica, cada uno solo si cambió su carpeta; `ios.yml` compila la app a mano | Local: cada paso corre en la Mac (Linux con `swift:6.4` en Docker) y `actionlint` no reporta errores. En GitHub: corridas en verde desde el 26 oct 2026 |
 | Respaldos de la base de datos | `scripts/backup-db.sh` (nube) y `--local`; quedan en `backups/`, fuera de git | `--local` sí; nube sí (primer respaldo el 26 oct 2026). Mientras la nube no tenga datos reales no se respalda antes de cada migración |
 
-**CP0, CP1 y CP2 cerrados.** Lo siguiente es el CP3: inicio de sesión. Antes hay que decidir si se paga la membresía de Apple Developer (ver decisiones abiertas en el roadmap).
+**CP0, CP1 y CP2 cerrados; CP3 hecho por correo** (falta el paso en la nube con el dueño). Lo siguiente es el CP4: vincular a los dos.
 
 ---
 
@@ -95,6 +96,8 @@ cruce/
 │   ├── Cruce/
 │   │   ├── App/              CruceApp (raíz de composición), AppStores + .cruceStores, AppStores+Sample
 │   │   │                     (solo Debug), RootView + MainView (navegación), DebugScreen
+│   │   ├── Data/             SupabaseAuthService y SupabaseAccountDirectory (supabase-swift)
+│   │   ├── Config/           Cruce.xcconfig (incluye ios/Config.xcconfig, ignorado por git)
 │   │   ├── DesignSystem/     Colors, Typography, Metrics, NeoSurface, NeoButtonStyle, Illustration
 │   │   ├── Components/       FolderCard, MovementRow, Controls (IconButton, Chip, NeoSegmented,
 │   │   │                     NeoTextField, NeoToggleStyle, PageDots, Badge, BeforeAfter),
@@ -107,7 +110,8 @@ cruce/
 │       ├── Sources/CruceCore/
 │       │   ├── Models/       Member, Movement, SplitRule, MovementCategory
 │       │   ├── Domain/       BalanceCalculator, Money, DateText
-│       │   ├── Data/         LedgerRepository (protocolo) e InMemoryLedgerRepository (borrado suave)
+│       │   ├── Data/         LedgerRepository e InMemoryLedgerRepository (borrado suave); AuthService,
+│       │   │                 AccountDirectory y sus dobles en memoria
 │       │   ├── State/        SessionStore, LedgerStore, Router y Route (estado de la app)
 │       │   └── Fixtures/     MockData (datos de ejemplo para Debug, previews y pruebas)
 │       └── Tests/CruceCoreTests/  BalanceCalculator, DateText, Money, InMemoryLedgerRepository,
@@ -162,6 +166,11 @@ WEBHOOK_SECRET=dev go run ./cmd/api
 curl localhost:8080/healthz
 ```
 
+### Configuración de la app (Supabase)
+- `ios/Config.xcconfig` (ignorado por git) define `SUPABASE_URL` y `SUPABASE_ANON_KEY` para Debug (local, `http://127.0.0.1:54321`) y Release (la nube). Se crea copiando `ios/Config.example.xcconfig`; los pasos están en `ios/README.md`. La clave anónima es pública por diseño; la `service_role` nunca va ahí.
+- En Debug la app arranca con la sesión real contra Supabase local; con `-screen <nombre>` usa los datos de ejemplo.
+- Para entrar en local, levanta Supabase **sin excluir `mailpit`** y lee el código en `http://127.0.0.1:54324` (o con su API, ver `ios/README.md`).
+
 ### Supabase (local)
 ```bash
 supabase start         # levanta Postgres, Auth y Realtime en Docker (config.toml ya está en el repo)
@@ -203,7 +212,7 @@ scripts/backup-db.sh --local        # respalda la base local (con supabase start
 | # | Captura | Vista de SwiftUI |
 |---|---|---|
 | 01, 11, 12 | Onboarding 1/3, 2/3, 3/3 | `OnboardingView` |
-| 13 | Crear cuenta | `SignUpView` |
+| 13 | Entrar: correo, código y nombre | `SignUpView` (pasos `EmailStep`, `CodeStep` y `NameStep`) |
 | 14 | Invitar (la ve quien crea) | `InviteView` |
 | 15 | Unirse con código (la ve quien se une) | `JoinView` |
 | 16 | Conectados | `ConnectedView` |
@@ -255,12 +264,13 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 
 ### Piezas clave de la app
 - **Tres stores** (`@MainActor @Observable`, en `CruceCore/State/`), sin ViewModels por pantalla ni coordinador:
-  - **`SessionStore`**: `phase` (etapa del flujo de entrada), `me`, `partner`, `inviteCode`, `member(_:)` y `signOut()`.
+  - **`SessionStore`**: `phase` (etapa del flujo de entrada), `me`, `partner`, `inviteCode`, `member(_:)`, la sesión (`userID`, `pendingEmail`, `error`, `isWorking`, `isReady`) y las acciones `refresh()` (calcula la etapa: sin sesión → onboarding; sin perfil → pedir el nombre; sin `ledger_members` → invitar; con cuenta → inicio), `sendCode(to:)`, `resendCode()`, `verify(code:)`, `createProfile(name:)` y `signOut()`. Recibe un `AuthService` y un `AccountDirectory`.
   - **`LedgerStore`**: todos los movimientos (también los eliminados) y las lecturas de los vigentes (`visibleMovements`, `movement(_:)`, `isEmpty`, `net`, `balance`, `phrase(forNet:)`…), `lastSaved` (abre la hoja "Gasto guardado"), `lastSettlement` (abre "A paz y salvo"), `isOffline`, `pendingSyncCount` y las acciones `load`, `save`, `delete`, `settle` y `retrySync`. Lee `me`/`partner` del `SessionStore` en el momento.
   - **`Router`**: `path: [Route]`, `push`, `pop` y `popToRoot`.
   - Las acciones que cruzan stores quedan explícitas en la vista: "Cerrar sesión" (`router.popToRoot()` y `session.signOut()`), guardar un movimiento (`router.pop()` y `ledger.save`) y "Volver al inicio" en "A paz y salvo" (`router.popToRoot()`).
-- **`AppStores`** y **`.cruceStores(_:)`** (`App/AppStores.swift`): agrupa los tres stores y los inyecta en el `Environment` con un solo modificador; lo usan `CruceApp` (la raíz de composición), `DebugScreen` y cada `#Preview`. `AppStores.live()` es el arranque de Release (onboarding, sin movimientos, miembros provisionales y sin código hasta el CP3/CP4).
+- **`AppStores`** y **`.cruceStores(_:)`** (`App/AppStores.swift`): agrupa los tres stores y los inyecta en el `Environment` con un solo modificador; lo usan `CruceApp` (la raíz de composición), `DebugScreen` y cada `#Preview`. `AppStores.live()` es el arranque real (Release, y Debug sin `-screen`): sesión con Supabase, sin movimientos (CP5) y sin código de invitación (CP4).
 - **`AppStores.sample(phase:viewer:movements:)`** (`App/AppStores+Sample.swift`, solo Debug): datos de ejemplo para la app en Debug, `DebugScreen` y las vistas previas, con `inviteCode = "CRZ-4821"`. `MockData` reproduce el canvas: desde la vista de Joan, "Jesús te debe $20.000".
+- **`AuthService`** y **`AccountDirectory`** (`CruceCore/Data/AuthService.swift`): la frontera con Supabase Auth y con `profiles`/`ledger_members`. En la app los implementan `SupabaseAuthService` y `SupabaseAccountDirectory` (`ios/Cruce/Data/`), con un solo `SupabaseClient` creado en `AppStores.live()`; en pruebas y vistas previas, `InMemoryAuthService` (código `123456`) e `InMemoryAccountDirectory`. CruceCore no depende de supabase-swift.
 - **`LedgerRepository`** (`CruceCore/Data/`): es la frontera con el backend. Hoy la implementa `InMemoryLedgerRepository` (un actor); en el CP5 entra `SupabaseLedgerRepository` con la misma interfaz. `delete(id:)` es **borrado suave**: marca `Movement.deletedAt` (igual a `movements.deleted_at`) y conserva el movimiento; `BalanceCalculator` y las lecturas del `LedgerStore` ignoran los eliminados.
 
 ---
@@ -293,8 +303,8 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
   - `#Preview` que usan `let` y `return`.
   Corrígelos sin cambiar el comportamiento ni el diseño.
 - **Fuentes:** los `.ttf` se convirtieron desde los `woff2` de Fontsource y se les renombró la tabla de nombres. Los nombres PostScript esperados son `Archivo-Medium`, `Archivo-SemiBold`, `Archivo-Bold`, `Archivo-ExtraBold` y `Archivo-Black`. Verifica que carguen; si se ve la fuente del sistema, revisa `UIAppFonts` en `project.yml`.
-- **Sign in with Apple** requiere la membresía de Apple Developer (de pago), igual que las notificaciones push y TestFlight. Con una cuenta gratuita la app solo se puede instalar desde Xcode y deja de abrir a los 7 días.
-- **El botón "Continuar con Apple" es un mock.** Apple exige su botón oficial (`SignInWithAppleButton`).
+- **Sign in with Apple** requiere la membresía de Apple Developer (de pago), igual que las notificaciones push y TestFlight. Con una cuenta gratuita la app solo se puede instalar desde Xcode y deja de abrir a los 7 días. Por eso se entra por correo con un código; Sign in with Apple, con el botón oficial `SignInWithAppleButton`, es una función posterior.
+- **Correo en la nube:** el SMTP por defecto de Supabase solo envía a miembros de la organización y 2 correos por hora. Alcanza para Jesús y Joan en beta; con más personas hace falta SMTP propio. La plantilla del código (`supabase/templates/codigo.html`) hay que pegarla a mano en el panel (Auth → Emails); no se usa `supabase config push`.
 - **La migración ya está en la nube:** desde ahora no se edita `20261024000000_init.sql`; cualquier cambio va en una migración nueva.
 - **`redeem_invite` devuelve `jsonb`** (`ok`, `error`, `message`) en vez de lanzar errores, por el límite de 5 intentos fallidos por hora. La app debe mostrar `message`.
 - **No implementado todavía:** "Cambiar monto" (pago parcial), exportar CSV, desvincular, editar perfil, reparto por defecto, el ajuste del recordatorio y el deslizar para volver con la barra de navegación oculta.
@@ -313,4 +323,4 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - CLI: `npx @fission-ai/openspec@1.15.0 <comando>` (o instálalo con `npm i -g @fission-ai/openspec`). Usa `OPENSPEC_TELEMETRY=0` para no enviar estadísticas de uso.
 - Comandos útiles: `openspec list` (cambios), `openspec list --specs`, `openspec show <nombre>`, `openspec validate --all --strict`.
 - Las specs describen comportamiento observable, no clases ni librerías. Los encabezados y las palabras SHALL/MUST van en inglés; el resto, en español.
-- Historial: el CP0, el CP1 y el CP2 están archivados en `openspec/changes/archive/` (`2026-10-23-cerrar-cp0`, `2026-10-23-fidelidad-visual` y `2026-10-23-base-de-datos`). La migración de las pruebas a Swift Testing, fuera del orden del roadmap, está en `2026-10-25-migrar-pruebas-swift-testing`, y la base de calidad (CI, formato y respaldos) en `2026-10-26-base-de-calidad`. El segundo cambio de herramientas, `endurecer-rls` (políticas RLS solo para `authenticated`, `(select auth.uid())` e índices), está aplicado en la nube y archivado en `2026-10-26-endurecer-rls`. El tercero, `ordenar-app-ios` (tres stores en lugar de `AppState`, borrado suave y datos de ejemplo solo en Debug), está en `2026-10-26-ordenar-app-ios`. Con esos tres cambios terminó la preparación previa al CP3. El CP3 todavía no tiene cambio: créalo con `/opsx:propose` al arrancarlo.
+- Historial: el CP0, el CP1 y el CP2 están archivados en `openspec/changes/archive/` (`2026-10-23-cerrar-cp0`, `2026-10-23-fidelidad-visual` y `2026-10-23-base-de-datos`). La migración de las pruebas a Swift Testing, fuera del orden del roadmap, está en `2026-10-25-migrar-pruebas-swift-testing`, y la base de calidad (CI, formato y respaldos) en `2026-10-26-base-de-calidad`. El segundo cambio de herramientas, `endurecer-rls` (políticas RLS solo para `authenticated`, `(select auth.uid())` e índices), está aplicado en la nube y archivado en `2026-10-26-endurecer-rls`. El tercero, `ordenar-app-ios` (tres stores en lugar de `AppState`, borrado suave y datos de ejemplo solo en Debug), está en `2026-10-26-ordenar-app-ios`. Con esos tres cambios terminó la preparación previa al CP3. El CP3 se hizo en el cambio `inicio-sesion-correo` (entrar con un código por correo).
