@@ -1,0 +1,31 @@
+# Compilación de la app de iOS en macOS, solo a mano (gh workflow run ios.yml).
+# No corre en cada commit: un minuto de macOS cuesta mucho más que uno de Linux y la app
+# ya se compila en la Mac antes de cada commit que la toca (CLAUDE.md §7).
+name: iOS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+      - name: Generar el proyecto
+        working-directory: ios
+        run: xcodegen
+      - name: Compilar para el simulador
+        working-directory: ios
+        run: >-
+          xcodebuild -project Cruce.xcodeproj -scheme Cruce
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build

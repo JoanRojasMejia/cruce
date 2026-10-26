@@ -153,6 +153,7 @@ supabase test db       # 54 pruebas pgTAP de supabase/tests
   - `supabase` (`supabase/**`): `supabase start` solo con Postgres y Auth (excluye el resto, incluidos `postgrest` y `kong`) y `supabase test db` sobre una base vacía.
   - `core` (`ios/Packages/CruceCore/**` o `.swift-format`): en la imagen `swift:6.4`, `swift format lint --strict` y `swift test`.
 - Para verla: `gh run list --workflow ci.yml` y `gh run view <id>` (o `gh run watch`). Un commit en verde muestra los trabajos que corrieron; uno de solo documentación los deja en “skipped”.
+- La app de iOS se compila en la CI solo a mano: `gh workflow run ios.yml` (macOS, `xcodegen` y `xcodebuild … -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build`). Es manual porque un minuto de macOS cuesta unas 10 veces uno de Linux (si el repo deja de ser público) y es lento, y la app ya se compila en la Mac antes de cada commit que la toca (§7).
 
 ---
 
