@@ -80,7 +80,7 @@ struct SettingsView: View {
                     actionRow("Cerrar sesión", systemImage: "rectangle.portrait.and.arrow.right") {
                         // Cruza dos stores: primero se limpia la navegación y luego se cierra la sesión.
                         router.popToRoot()
-                        session.signOut()
+                        Task { await session.signOut() }
                     }
                 }
 
