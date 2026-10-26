@@ -19,7 +19,7 @@ struct SettingsView: View {
                         Avatar(member: session.me, size: 54)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(session.me.name).font(.archivo(18, .extraBold))
-                            Text("Cuenta de Apple conectada").textStyle(.secondary).foregroundStyle(
+                            Text("Entraste con tu correo").textStyle(.secondary).foregroundStyle(
                                 CruceColor.textSecondary)
                         }
                         Spacer()
