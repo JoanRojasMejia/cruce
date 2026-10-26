@@ -32,3 +32,7 @@ supabase/.env
 
 # Respaldos de la base de datos (scripts/backup-db.sh); tienen datos personales
 backups/
+
+# Volcados de memoria (core dumps) de procesos que se caen, p. ej. swift test en Docker
+core
+core.[0-9]*
