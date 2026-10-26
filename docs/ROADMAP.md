@@ -86,19 +86,19 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 - [ ] Mapeo de `SplitRule` ↔ `split_type` + `other_share_percent`, y de `Movement.Kind` ↔ `kind`.
 - [ ] El saldo se sigue calculando en la app; agregar una verificación en debug contra `ledger_balances`.
 - [ ] Pruebas del mapeo (Codable) con JSON de ejemplo.
-- [ ] Inyectar el repositorio real en `CruceApp`; los datos de ejemplo quedan solo para las vistas previas.
+- [ ] Inyectar el repositorio real en `AppStores.live()` (raíz de composición en `CruceApp`); los datos de ejemplo ya quedan solo para Debug y las vistas previas (`AppStores.sample`).
 
 **Hecho cuando:** lo que anota uno aparece en el otro al recargar, y el saldo coincide en los dos.
 
 ## CP6 · Tiempo real
 - [ ] Suscripción a `movements` del ledger (insert, update y delete suave).
-- [ ] `AppState` aplica los cambios sin recargar todo y sin duplicados.
+- [ ] `LedgerStore` aplica los cambios sin recargar todo y sin duplicados.
 - [ ] Reconexión cuando la app vuelve al primer plano.
 
 **Hecho cuando:** si Jesús anota un gasto, el inicio de Joan cambia en segundos sin tocar nada.
 
 ## CP7 · Modo sin conexión
-- [ ] Detectar la red con `NWPathMonitor`; `AppState.isOffline` refleja la realidad.
+- [ ] Detectar la red con `NWPathMonitor`; `LedgerStore.isOffline` refleja la realidad.
 - [ ] Persistencia local de los movimientos (según la decisión abierta) y cola de pendientes.
 - [ ] Reintentar automáticamente al volver la red; "Reintentar" en `OfflineView` fuerza el envío.
 - [ ] Conflictos: si se editó en los dos lados, gana el último `updated_at`.
@@ -142,8 +142,8 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 ## CP12 · Calidad
 - [ ] Pruebas de captura de las pantallas principales (si se aprueba la dependencia).
 - [ ] Recorrido completo con VoiceOver.
-- [ ] Pruebas de `AppState` (guardar, eliminar, saldar, cola sin conexión) con un repositorio falso.
-- [ ] CI en GitHub Actions: `go test`, pruebas SQL y `xcodebuild test`.
+- [ ] Pruebas de la cola sin conexión de `LedgerStore` con un repositorio falso (guardar, eliminar, saldar y fallo de sincronización ya tienen pruebas desde `ordenar-app-ios`).
+- [x] CI en GitHub Actions: `go test`, pruebas SQL y `swift test` en Linux; `xcodebuild` se corre a mano con `ios.yml` (hecho en `base-de-calidad`).
 
 **Hecho cuando:** cada PR corre las pruebas automáticamente y VoiceOver lee bien todo el flujo.
 
