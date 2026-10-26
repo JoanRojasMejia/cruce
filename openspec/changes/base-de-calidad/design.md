@@ -66,6 +66,8 @@ Ver `proposal.md` (Why). Estado actual comprobado:
 - `supabase start` con exclusiones: `-x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor,postgrest,kong`, y luego `supabase test db`. Las pruebas solo hablan SQL, así que no necesitan `postgrest` ni `kong`.
 - Si `supabase test db` falla sin `gotrue` o sin `kong` (por ejemplo, porque `auth.users` lo crean las migraciones de GoTrue o porque el CLI espera la API), se agregan de vuelta solo los servicios necesarios. La lista final se decide en la Mac, en la tarea 4.1, antes de escribirla en la CI.
 - `supabase start` ya aplica `supabase/migrations` sobre una base vacía; no hace falta `db reset`.
+- **Lista final (tarea 4.1, verificada en la Mac con el CLI 2.122.0):** la misma de arriba, `-x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor,postgrest,kong`. Solo quedan `supabase_db` y `supabase_auth` (GoTrue no se excluye), y `supabase test db` pasa las 54 pruebas (`Files=4, Tests=54`, `Result: PASS`). En la Mac la base arrancó desde el volumen guardado (“Starting database from backup”); en la CI la base siempre parte vacía.
+- `staticcheck` en la CI se instala con `go install honnef.co/go/tools/cmd/staticcheck@2026.2.2` (la misma versión que en la Mac, que ya soporta Go 1.27) en vez de `dominikh/staticcheck-action`: así la versión queda fijada en un solo lugar y no depende de otra acción.
 
 ### 5. Trabajo `core`: Swift en Linux con la imagen oficial
 

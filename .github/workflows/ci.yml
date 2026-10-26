@@ -1,0 +1,101 @@
+# Revisa backend, base de datos y lógica en cada cambio. Solo runners de Linux y sin secretos.
+# Cada trabajo corre solo si cambió su carpeta (o este archivo); si no, queda "skipped".
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      supabase: ${{ steps.filter.outputs.supabase }}
+      core: ${{ steps.filter.outputs.core }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            supabase:
+              - 'supabase/**'
+              - '.github/workflows/ci.yml'
+            core:
+              - 'ios/Packages/CruceCore/**'
+              - '.swift-format'
+              - '.github/workflows/ci.yml'
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          # Sin go.sum (solo librería estándar): no hay dependencias que cachear.
+          cache: false
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "Archivos sin formato:"
+            echo "$unformatted"
+            exit 1
+          fi
+      - name: go vet
+        run: go vet ./...
+      - name: staticcheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@2026.2.2
+          "$(go env GOPATH)/bin/staticcheck" ./...
+      - name: go test
+        run: go test ./...
+
+  supabase:
+    needs: changes
+    if: needs.changes.outputs.supabase == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+      # Solo Postgres y Auth: las pruebas pgTAP hablan SQL y no usan la API HTTP.
+      - name: supabase start
+        run: supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor,postgrest,kong
+      - name: supabase test db
+        run: supabase test db
+
+  core:
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    container: swift:6.4
+    defaults:
+      run:
+        working-directory: ios/Packages/CruceCore
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift format lint
+        run: swift format lint --strict --recursive Package.swift Sources Tests
+      - name: swift test
+        run: swift test

@@ -146,6 +146,14 @@ supabase db reset      # aplica supabase/migrations
 supabase test db       # 54 pruebas pgTAP de supabase/tests
 ```
 
+### Integración continua
+- `.github/workflows/ci.yml` corre en GitHub Actions (solo Linux, sin secretos) en cada `push` a `main`, en cada pull request y a mano (`gh workflow run ci.yml`).
+- Un trabajo `changes` mira qué carpetas cambiaron y solo corren los trabajos que tocan; los demás quedan en “skipped”. Un cambio en `ci.yml` vuelve a correr todo.
+  - `backend` (`backend/**`): `gofmt -l`, `go vet`, `staticcheck` y `go test`, con la versión de Go de `backend/go.mod`.
+  - `supabase` (`supabase/**`): `supabase start` solo con Postgres y Auth (excluye el resto, incluidos `postgrest` y `kong`) y `supabase test db` sobre una base vacía.
+  - `core` (`ios/Packages/CruceCore/**` o `.swift-format`): en la imagen `swift:6.4`, `swift format lint --strict` y `swift test`.
+- Para verla: `gh run list --workflow ci.yml` y `gh run view <id>` (o `gh run watch`). Un commit en verde muestra los trabajos que corrieron; uno de solo documentación los deja en “skipped”.
+
 ---
 
 ## 5. Diseño
