@@ -7,7 +7,7 @@ Modos de `CLAUDE.local.md`: las tareas 1.1, 2.3, 4.1 y 5.1 necesitan Colima (mod
 ## 1. Go alineado y con análisis estático
 
 - [x] 1.1 Cambiar `backend/go.mod` a `go 1.27.0` y `backend/Dockerfile` a `golang:1.27-alpine`; en `CLAUDE.md` §3, “Go 1.22+” pasa a “Go 1.27” (verificado: `cd backend && go vet ./... && go test ./...` pasan; `docker build -t cruce-api backend` termina bien con Colima prendido; `rg -n "1\.2[24]" backend CLAUDE.md` no encuentra versiones viejas). Commit: `build(backend): alinear Go a 1.27 en go.mod y Dockerfile`
-- [ ] 1.2 Instalar `staticcheck` con `go install honnef.co/go/tools/cmd/staticcheck@<versión que soporte Go 1.27>`, correrlo, corregir lo que reporte sin cambiar el comportamiento y documentar en `backend/README.md` (“Pruebas”) los comandos `gofmt -l .`, `go vet ./...` y `staticcheck ./...` (verificado: `test -z "$(gofmt -l .)"`, `go vet ./...` y `staticcheck ./...` sin salida y `go test ./...` en verde; si `staticcheck` aún no soporta Go 1.27, se anota en `design.md` y se sigue sin él). Commit: `chore(backend): agregar staticcheck y corregir sus avisos`
+- [x] 1.2 Instalar `staticcheck` con `go install honnef.co/go/tools/cmd/staticcheck@<versión que soporte Go 1.27>`, correrlo, corregir lo que reporte sin cambiar el comportamiento y documentar en `backend/README.md` (“Pruebas”) los comandos `gofmt -l .`, `go vet ./...` y `staticcheck ./...` (verificado: `test -z "$(gofmt -l .)"`, `go vet ./...` y `staticcheck ./...` sin salida y `go test ./...` en verde; si `staticcheck` aún no soporta Go 1.27, se anota en `design.md` y se sigue sin él). Commit: `chore(backend): agregar staticcheck y corregir sus avisos`
 
 ## 2. `CruceCore` en Swift 6
 

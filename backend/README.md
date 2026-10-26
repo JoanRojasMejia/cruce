@@ -25,8 +25,13 @@ curl localhost:8080/healthz
 ## Pruebas
 
 ```bash
+gofmt -l .          # no debe imprimir nada (lista los archivos sin formato)
+go vet ./...
+staticcheck ./...   # análisis estático; no es dependencia del módulo
 go test ./...
 ```
+
+`staticcheck` se instala una vez con `go install honnef.co/go/tools/cmd/staticcheck@2026.2.2` (queda en `$(go env GOPATH)/bin`). La CI corre los mismos cuatro comandos.
 
 ## Conectar con Supabase
 
