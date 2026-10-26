@@ -1,7 +1,7 @@
 import Foundation
 
 /// Categorías de gasto. Deben coincidir con el enum `category` de Supabase.
-public enum MovementCategory: String, Codable, CaseIterable, Identifiable, Hashable {
+public enum MovementCategory: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case comida
     case mercado
     case transporte
@@ -39,7 +39,7 @@ public enum MovementCategory: String, Codable, CaseIterable, Identifiable, Hasha
 }
 
 /// Cómo se reparte un gasto entre los dos.
-public enum SplitRule: Codable, Hashable {
+public enum SplitRule: Codable, Hashable, Sendable {
     /// 50/50.
     case equal
     /// Porcentaje que le corresponde a quien NO pagó (0–100).
@@ -66,8 +66,8 @@ public enum SplitRule: Codable, Hashable {
 }
 
 /// Un gasto o un pago para saldar.
-public struct Movement: Identifiable, Codable, Hashable {
-    public enum Kind: String, Codable, Hashable {
+public struct Movement: Identifiable, Codable, Hashable, Sendable {
+    public enum Kind: String, Codable, Hashable, Sendable {
         case expense
         case settlement
     }

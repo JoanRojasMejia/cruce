@@ -1,7 +1,7 @@
 import Foundation
 
 /// Saldo neto visto desde una persona.
-public enum BalanceState: Equatable {
+public enum BalanceState: Equatable, Sendable {
     /// El otro te debe este monto.
     case theyOweYou(Int)
     /// Tú le debes este monto al otro.

@@ -220,7 +220,7 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 ## 7. Convenciones
 
 - **iOS 17+, solo iPhone, modo claro forzado**, orientación vertical.
-- **Swift 5** (`SWIFT_VERSION 5.0` en project.yml). SwiftUI con `@Observable`/`@Environment(AppState.self)`. Sin Combine ni UIKit, salvo cuando no haya alternativa (por ejemplo `UIPasteboard`).
+- **Swift 5 en la app, Swift 6 en `CruceCore`:** la app sigue en `SWIFT_VERSION 5.0` (project.yml); el paquete `CruceCore` usa `swiftLanguageModes: [.v6]` (concurrencia estricta), así que sus tipos públicos de valor declaran `Sendable`. El modo de lenguaje es por módulo. SwiftUI con `@Observable`/`@Environment(AppState.self)`. Sin Combine ni UIKit, salvo cuando no haya alternativa (por ejemplo `UIPasteboard`).
 - **Vistas con parámetros y propiedades `private` necesitan un `init` explícito:** si no, el init memberwise queda privado.
 - **Cada pantalla tiene su `#Preview`.** Si agregas una pantalla, agrega su preview y su fila en la tabla de la sección 5.
 - **Textos de la interfaz en español**, con tuteo y tono cercano, sin jerga bancaria. Los comentarios del código también van en español.

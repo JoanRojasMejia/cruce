@@ -15,6 +15,7 @@ let package = Package(
         .target(name: "CruceCore"),
         .testTarget(name: "CruceCoreTests", dependencies: ["CruceCore"]),
     ],
-    // Mismo modo de lenguaje que la app (SWIFT_VERSION 5.0).
-    swiftLanguageModes: [.v5]
+    // Modo de lenguaje Swift 6 (concurrencia estricta). La app sigue en SWIFT_VERSION 5.0:
+    // el modo es por módulo y la app consume el paquete sin problema.
+    swiftLanguageModes: [.v6]
 )
