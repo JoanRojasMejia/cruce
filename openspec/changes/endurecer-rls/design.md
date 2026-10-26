@@ -90,7 +90,8 @@ Un archivo nuevo (sigue la numeración de `01` a `04`) en lugar de ampliar `04_r
 - `policy_roles_are('public', <tabla>, <política>, array['authenticated'], ...)` para las 10 políticas (rojo hoy: dicen `public`).
 - Una prueba sobre `pg_policies` que cuente las políticas de `public` cuyo `qual` o `with_check` todavía tengan `auth.uid()` fuera de `( SELECT auth.uid() AS uid)` (la forma en que Postgres guarda `(select auth.uid())`); espera 0 (rojo hoy: 5).
 - `has_index('public', 'ledger_members', 'ledger_members_user_id_idx', array['user_id'], ...)` y lo mismo para `invites_created_by_idx` (rojo hoy).
-- Como `anon` (`set local role anon` y `request.jwt.claims` con `"role":"anon"`): 0 filas en `ledgers`, `ledger_members`, `movements`, `ledger_balances`, `profiles` e `invites`, y `throws_ok` al insertar un movimiento. Estas 7 ya pasan hoy (por `auth.uid()` nulo) y quedan como regresión del requisito `Sin sesión no hay acceso`.
+- Como `anon` (`set local role anon` y `request.jwt.claims` con `"role":"anon"`): 0 filas en `ledgers`, `ledger_members`, `movements`, `ledger_balances`, `profiles` e `invites`, y `throws_ok` al insertar un movimiento. Quedan como regresión del requisito `Sin sesión no hay acceso`.
+  - *Corrección tras el RED:* se esperaba que estas 7 pasaran hoy por `auth.uid()` nulo, pero no es así. Con el esquema actual, `anon` sí evalúa las políticas, que llaman a `is_ledger_member`, y `anon` no tiene permiso de ejecutarla (`init.sql`, línea 327): la primera consulta (`ledgers`) lanza `permission denied for function is_ledger_member` y aborta el archivo. Sin sesión ya no se veía nada (falla con error en vez de 0 filas); con `to authenticated`, `anon` no evalúa ninguna política y recibe 0 filas. La intención no cambia.
 
 Total: 20 pruebas nuevas, 74 en la suite.
 
