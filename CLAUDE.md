@@ -51,7 +51,7 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
 | App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
 | Pruebas de Swift (saldo, formato de pesos y fechas) | 16 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador |
-| Base de datos (Supabase) | Migración aplicada en local y en la nube (proyecto `cruce`, Oregon) | Sí: 54 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS) y revisión de seguridad hecha |
+| Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) aplicada en local; en la nube, pendiente | Sí: 74 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión) y revisión de seguridad hecha |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
 | Integración continua (GitHub Actions) | `ci.yml`: backend, base de datos y lógica, cada uno solo si cambió su carpeta; `ios.yml` compila la app a mano | Local: cada paso corre en la Mac (Linux con `swift:6.4` en Docker) y `actionlint` no reporta errores. En GitHub: pendiente del primer push |
@@ -96,7 +96,8 @@ cruce/
 │   ├── cmd/api/main.go
 │   └── internal/{config,httpapi,notify}
 ├── supabase/
-│   └── migrations/20261024000000_init.sql
+│   ├── migrations/           20261024000000_init.sql y 20261026060520_endurecer_rls.sql
+│   └── tests/                Pruebas pgTAP (01_saldo a 05_rls_endurecido)
 ├── openspec/                 Registro de specs y cambios (OpenSpec, ver §9)
 │   ├── config.yaml           Esquema spec-driven, artefactos en español
 │   ├── specs/                Cómo se comporta la app hoy (fuente de verdad)
@@ -145,7 +146,7 @@ curl localhost:8080/healthz
 ```bash
 supabase start         # levanta Postgres, Auth y Realtime en Docker (config.toml ya está en el repo)
 supabase db reset      # aplica supabase/migrations
-supabase test db       # 54 pruebas pgTAP de supabase/tests
+supabase test db       # 74 pruebas pgTAP de supabase/tests
 ```
 
 ### Respaldo de la base de datos
@@ -287,4 +288,4 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - CLI: `npx @fission-ai/openspec@1.15.0 <comando>` (o instálalo con `npm i -g @fission-ai/openspec`). Usa `OPENSPEC_TELEMETRY=0` para no enviar estadísticas de uso.
 - Comandos útiles: `openspec list` (cambios), `openspec list --specs`, `openspec show <nombre>`, `openspec validate --all --strict`.
 - Las specs describen comportamiento observable, no clases ni librerías. Los encabezados y las palabras SHALL/MUST van en inglés; el resto, en español.
-- Historial: el CP0, el CP1 y el CP2 están archivados en `openspec/changes/archive/` (`2026-10-23-cerrar-cp0`, `2026-10-23-fidelidad-visual` y `2026-10-23-base-de-datos`). La migración de las pruebas a Swift Testing, fuera del orden del roadmap, está en `2026-10-25-migrar-pruebas-swift-testing`, y la base de calidad (CI, formato y respaldos) en `2026-10-26-base-de-calidad`. El CP3 todavía no tiene cambio: créalo con `/opsx:propose` al arrancarlo.
+- Historial: el CP0, el CP1 y el CP2 están archivados en `openspec/changes/archive/` (`2026-10-23-cerrar-cp0`, `2026-10-23-fidelidad-visual` y `2026-10-23-base-de-datos`). La migración de las pruebas a Swift Testing, fuera del orden del roadmap, está en `2026-10-25-migrar-pruebas-swift-testing`, y la base de calidad (CI, formato y respaldos) en `2026-10-26-base-de-calidad`. El segundo cambio de herramientas, `endurecer-rls` (políticas RLS solo para `authenticated`, `(select auth.uid())` e índices), está en `openspec/changes/endurecer-rls/` hasta que se aplique en la nube y se archive. El CP3 todavía no tiene cambio: créalo con `/opsx:propose` al arrancarlo.

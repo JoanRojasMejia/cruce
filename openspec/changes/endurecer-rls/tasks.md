@@ -11,7 +11,7 @@ Cada tarea termina en un commit (Conventional Commits, descripción en español)
 
 ## 2. Documentación
 
-- [ ] 2.1 Actualizar `CLAUDE.md`: en §2, la fila de base de datos pasa a “74 pruebas pgTAP” y menciona la migración nueva (en la nube: pendiente hasta la 3.1); en §4 (“Supabase (local)”), “54 pruebas” pasa a “74 pruebas”; en §9 (Historial), agregar `endurecer-rls` como el segundo cambio de herramientas. Verificado: `rg -n "54 pruebas" CLAUDE.md` no encuentra nada y `rg -n "74 pruebas|endurecer-rls" CLAUDE.md` encuentra las tres menciones. Commit: `docs: documentar el endurecimiento de RLS en CLAUDE.md`
+- [x] 2.1 Actualizar `CLAUDE.md`: en §2, la fila de base de datos pasa a “74 pruebas pgTAP” y menciona la migración nueva (en la nube: pendiente hasta la 3.1); en §4 (“Supabase (local)”), “54 pruebas” pasa a “74 pruebas”; en §9 (Historial), agregar `endurecer-rls` como el segundo cambio de herramientas. Verificado: `rg -n "54 pruebas" CLAUDE.md` no encuentra nada y `rg -n "74 pruebas|endurecer-rls" CLAUDE.md` encuentra las tres menciones. Commit: `docs: documentar el endurecimiento de RLS en CLAUDE.md`
 
 ## 3. Nube
 
