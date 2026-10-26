@@ -1,17 +1,6 @@
 import CruceCore
 import SwiftUI
 
-/// Pantallas que se apilan dentro del flujo principal.
-enum Route: Hashable {
-    case addMovement
-    case editMovement(UUID)
-    case history
-    case detail(UUID)
-    case settle
-    case settings
-    case offline
-}
-
 /// Estado global de la app. Las pantallas leen de aquí y llaman sus acciones.
 @MainActor
 @Observable

@@ -1,3 +1,4 @@
+import CruceCore
 import SwiftUI
 
 /// Decide qué flujo mostrar según la etapa de la sesión.
