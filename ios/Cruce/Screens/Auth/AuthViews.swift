@@ -81,8 +81,9 @@ struct SignUpView: View {
 /// Invitar al amigo con un código (pantalla 14, lo ve quien crea la cuenta).
 struct InviteView: View {
     @Environment(SessionStore.self) private var session
-    /// TODO punto 2: el código lo genera la función `create_ledger_with_invite` de Supabase.
-    private let code = "CRZ-4821"
+    /// El código viene de la sesión (en el CP4 lo genera `create_ledger_with_invite` de Supabase).
+    /// Mientras no exista se muestra un marcador con el mismo estilo.
+    private var code: String { session.inviteCode ?? "CRZ-····" }
     @State private var copied = false
 
     var body: some View {
@@ -177,6 +178,7 @@ struct InviteView: View {
 
 /// Unirse con un código (pantalla 15, lo ve quien recibe la invitación).
 struct JoinView: View {
+    /// Quien invita es el otro miembro de la sesión; en el CP4 sale de `redeem_invite`.
     @Environment(SessionStore.self) private var session
     @State private var digits = ""
     @FocusState private var focused: Bool
@@ -199,10 +201,10 @@ struct JoinView: View {
                 // TODO punto 2: validar con `redeem_invite` antes de mostrar la cuenta.
                 FolderCard(tab: "CÓDIGO VÁLIDO", tabColor: CruceColor.green, tabWidth: 160) {
                     HStack(spacing: 14) {
-                        Avatar(member: MockData.joan, size: 56)
+                        Avatar(member: session.partner, size: 56)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Cuenta de \(MockData.joan.name)").font(.archivo(18, .extraBold))
-                            Text("Vas a llevar las cuentas con \(MockData.joan.name).")
+                            Text("Cuenta de \(session.partner.name)").font(.archivo(18, .extraBold))
+                            Text("Vas a llevar las cuentas con \(session.partner.name).")
                                 .textStyle(.secondary)
                                 .foregroundStyle(CruceColor.textSecondary)
                         }
@@ -213,7 +215,7 @@ struct JoinView: View {
 
             Spacer(minLength: 0)
 
-            Button("Unirme a la cuenta de \(MockData.joan.name)") { session.phase = .connected }
+            Button("Unirme a la cuenta de \(session.partner.name)") { session.phase = .connected }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
                 .disabled(digits.count < 4)
         }

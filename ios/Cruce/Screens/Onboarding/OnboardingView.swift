@@ -133,6 +133,10 @@ private struct WelcomePage: View {
 
 /// Ejemplo de cómo dos gastos se cruzan en un solo saldo.
 private struct CrossingPage: View {
+    // Ilustración fija del producto, no datos de la cuenta: mismos nombres, colores y variantes del diseño.
+    private static let joan = Member(name: "Joan", avatarColor: .yellow, tikeVariant: .rosa)
+    private static let jesus = Member(name: "Jesús", avatarColor: .violet, tikeVariant: .verde)
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(spacing: 8) {
@@ -162,9 +166,9 @@ private struct CrossingPage: View {
                         }
                         Spacer()
                         HStack(spacing: 4) {
-                            Avatar(member: MockData.joan, size: 34)
+                            Avatar(member: Self.joan, size: 34)
                             Image(systemName: "arrow.right").font(.system(size: 14, weight: .black))
-                            Avatar(member: MockData.jesus, size: 34)
+                            Avatar(member: Self.jesus, size: 34)
                         }
                     }
                 }
