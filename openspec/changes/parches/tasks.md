@@ -6,7 +6,7 @@ Depende de `inicio-sesion-correo` (sesión real) para la sección 4.
 
 ## 1. Lógica en CruceCore
 
-- [ ] 1.1 RED + GREEN: `Allocation.split(total:weights:)` con mayor residuo (siempre suma el total, empates por orden, pesos en cero dan error) y los cuatro repartos (iguales, por consumo con ítems, por partes, por porcentaje) más la propina proporcional, con los escenarios de `reparto-parche`. Commit: `feat(ios): agregar el reparto de gastos de parches`
+- [x] 1.1 RED + GREEN: `Allocation.split(total:weights:)` con mayor residuo (siempre suma el total, empates por orden, pesos en cero dan error) y los cuatro repartos (iguales, por consumo con ítems, por partes, por porcentaje) más la propina proporcional, con los escenarios de `reparto-parche`. Commit: `feat(ios): agregar el reparto de gastos de parches` (verificado: RED por compilación sin `Allocation`; `swift test` 81 pruebas en verde, con 500 casos de propiedades que suman el total; `swift format lint --strict` sin salida)
 - [ ] 1.2 RED + GREEN: modelos `Parche`, `ParcheParticipant`, `ParcheExpense` (pagadores, partes resueltas, ítems, borrado suave), `ParchePayment` (pendiente/confirmado), `ParcheCruceTransfer`; `ParcheCalculator` con saldos, a paz y salvo, mínimo de transferencias, deuda directa entre dos y los escenarios de `saldar-parche`. Commit: `feat(ios): calcular saldos y transferencias de parches`
 - [ ] 1.3 RED + GREEN: `ParcheRepository`, `InMemoryParcheRepository`, `ParcheStore` (crear, unirse, agregar sin la app, reclamar lugar, anotar/editar/borrar gasto, anotar/confirmar pago, cerrar, pasar al cruce, aviso de duplicado, cola sin conexión con reintento idempotente, avisos sin ver) y datos de ejemplo `MockParches`. Commit: `feat(ios): agregar ParcheStore con cola sin conexión`
 
