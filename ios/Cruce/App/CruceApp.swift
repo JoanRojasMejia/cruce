@@ -9,7 +9,7 @@ struct CruceApp: App {
         // En el punto 2 esto se reemplaza por la sesión real de Supabase.
         var initial = AppState.preview(phase: .onboarding)
         #if DEBUG
-        if let screen = DebugScreen.current { initial = screen.makeState() }
+            if let screen = DebugScreen.current { initial = screen.makeState() }
         #endif
         _app = State(initialValue: initial)
     }
@@ -28,13 +28,13 @@ struct CruceApp: App {
     @ViewBuilder
     private var root: some View {
         #if DEBUG
-        if let screen = DebugScreen.current {
-            screen.rootOverride(for: app)
-        } else {
-            RootView()
-        }
+            if let screen = DebugScreen.current {
+                screen.rootOverride(for: app)
+            } else {
+                RootView()
+            }
         #else
-        RootView()
+            RootView()
         #endif
     }
 }

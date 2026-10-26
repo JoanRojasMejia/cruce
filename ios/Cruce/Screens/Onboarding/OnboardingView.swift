@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Onboarding de 3 pasos (pantallas 01, 11 y 12).
 struct OnboardingView: View {
@@ -93,7 +93,8 @@ struct OnboardingView: View {
                 Rectangle().fill(CruceColor.violet).frame(width: 190, height: 170)
                     .rotationEffect(.degrees(-12)).position(x: proxy.size.width + 10, y: 330)
             case 2:
-                Circle().fill(CruceColor.green).frame(width: 240, height: 240).position(x: proxy.size.width - 40, y: 250)
+                Circle().fill(CruceColor.green).frame(width: 240, height: 240).position(
+                    x: proxy.size.width - 40, y: 250)
                 Rectangle().fill(CruceColor.pink).frame(width: 150, height: 120)
                     .rotationEffect(.degrees(14)).position(x: 35, y: 380)
             default:
@@ -120,10 +121,12 @@ private struct WelcomePage: View {
         VStack(alignment: .leading, spacing: 16) {
             IllustrationView(illustration: .welcome, height: 320, minHeight: 160)
             Text("Cuentas claras\nentre dos.").textStyle(.title1).fixedSize(horizontal: false, vertical: true)
-            Text("Anoten lo que paga cada uno. Cruce cruza los gastos y les muestra un solo saldo: quién le debe a quién.")
-                .textStyle(.bodyLarge)
-                .fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(CruceColor.textBody)
+            Text(
+                "Anoten lo que paga cada uno. Cruce cruza los gastos y les muestra un solo saldo: quién le debe a quién."
+            )
+            .textStyle(.bodyLarge)
+            .fixedSize(horizontal: false, vertical: true)
+            .foregroundStyle(CruceColor.textBody)
         }
     }
 }
@@ -133,17 +136,25 @@ private struct CrossingPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(spacing: 8) {
-                exampleRow(category: .comida, title: "Joan pagó la cena", detail: "$60.000 a medias", who: "Jesús debe", amount: "$30.000")
-                    .rotationEffect(.degrees(-1.5))
-                exampleRow(category: .mercado, title: "Jesús pagó el mercado", detail: "$100.000 a medias", who: "Joan debe", amount: "$50.000")
-                    .rotationEffect(.degrees(1.5))
+                exampleRow(
+                    category: .comida, title: "Joan pagó la cena", detail: "$60.000 a medias", who: "Jesús debe",
+                    amount: "$30.000"
+                )
+                .rotationEffect(.degrees(-1.5))
+                exampleRow(
+                    category: .mercado, title: "Jesús pagó el mercado", detail: "$100.000 a medias", who: "Joan debe",
+                    amount: "$50.000"
+                )
+                .rotationEffect(.degrees(1.5))
                 VStack(spacing: 0) {
                     Rectangle().fill(CruceColor.ink).frame(width: 2.5, height: 10)
                     CruceLogoMark(size: 52).rotationEffect(.degrees(-6))
                     Rectangle().fill(CruceColor.ink).frame(width: 2.5, height: 10)
                 }
-                FolderCard(tab: "UN SOLO SALDO", tabColor: CruceColor.lime, tabWidth: 130,
-                           padding: EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)) {
+                FolderCard(
+                    tab: "UN SOLO SALDO", tabColor: CruceColor.lime, tabWidth: 130,
+                    padding: EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)
+                ) {
                     HStack {
                         VStack(alignment: .leading, spacing: 0) {
                             Text("Joan le debe a Jesús").font(.archivo(16, .extraBold))
@@ -168,7 +179,9 @@ private struct CrossingPage: View {
         }
     }
 
-    private func exampleRow(category: MovementCategory, title: String, detail: String, who: String, amount: String) -> some View {
+    private func exampleRow(category: MovementCategory, title: String, detail: String, who: String, amount: String)
+        -> some View
+    {
         HStack(spacing: 12) {
             CategoryIcon(category: category)
             VStack(alignment: .leading, spacing: 2) {
@@ -192,10 +205,12 @@ private struct SettlePage: View {
         VStack(alignment: .leading, spacing: 16) {
             IllustrationView(illustration: .allClear, height: 320, minHeight: 160)
             Text("Salden cuando\nquieran.").textStyle(.title1).fixedSize(horizontal: false, vertical: true)
-            Text("Cuando uno le paga al otro, lo registran con un toque y el saldo vuelve a $0. Sin cuentas pendientes ni malentendidos.")
-                .textStyle(.bodyLarge)
-                .fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(CruceColor.textBody)
+            Text(
+                "Cuando uno le paga al otro, lo registran con un toque y el saldo vuelve a $0. Sin cuentas pendientes ni malentendidos."
+            )
+            .textStyle(.bodyLarge)
+            .fixedSize(horizontal: false, vertical: true)
+            .foregroundStyle(CruceColor.textBody)
         }
     }
 }

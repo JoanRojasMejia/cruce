@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Pantallas que se apilan dentro del flujo principal.
 enum Route: Hashable {
@@ -142,13 +142,15 @@ final class AppState {
 
     /// Registra el pago que deja el saldo en $0.
     func settle(paymentMethod: String?) async {
-        guard let payment = BalanceCalculator.settlement(
-            movements: movements,
-            me: me.id,
-            other: partner.id,
-            createdBy: me.id,
-            paymentMethod: paymentMethod
-        ) else { return }
+        guard
+            let payment = BalanceCalculator.settlement(
+                movements: movements,
+                me: me.id,
+                other: partner.id,
+                createdBy: me.id,
+                paymentMethod: paymentMethod
+            )
+        else { return }
         movements.append(payment)
         try? await repository.save(payment)
         lastSettlement = payment
@@ -168,7 +170,9 @@ final class AppState {
 
 extension AppState {
     /// Estado con los datos de ejemplo del canvas, visto por Joan.
-    static func preview(phase: Phase = .main, viewer: Member = MockData.joan, movements: [Movement] = MockData.movements()) -> AppState {
+    static func preview(
+        phase: Phase = .main, viewer: Member = MockData.joan, movements: [Movement] = MockData.movements()
+    ) -> AppState {
         let other = viewer.id == MockData.joan.id ? MockData.jesus : MockData.joan
         let state = AppState(
             phase: phase,

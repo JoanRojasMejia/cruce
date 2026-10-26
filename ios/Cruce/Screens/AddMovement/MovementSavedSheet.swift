@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Hoja "¡Gasto guardado!" que sube sobre el inicio (pantalla 06).
 struct MovementSavedSheet: View {
@@ -66,8 +66,10 @@ struct SheetBackground: View {
         UnevenRoundedRectangle(topLeadingRadius: Radius.sheet, topTrailingRadius: Radius.sheet, style: .circular)
             .fill(CruceColor.cream)
             .overlay(
-                UnevenRoundedRectangle(topLeadingRadius: Radius.sheet, topTrailingRadius: Radius.sheet, style: .circular)
-                    .strokeBorder(CruceColor.ink, lineWidth: BorderWidth.thick)
+                UnevenRoundedRectangle(
+                    topLeadingRadius: Radius.sheet, topTrailingRadius: Radius.sheet, style: .circular
+                )
+                .strokeBorder(CruceColor.ink, lineWidth: BorderWidth.thick)
             )
             .ignoresSafeArea(edges: .bottom)
     }

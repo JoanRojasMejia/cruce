@@ -34,7 +34,8 @@ struct FolderCard<Content: View>: View {
     }
 
     private var tabShape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 14)
+        UnevenRoundedRectangle(
+            topLeadingRadius: 10, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 14)
     }
 }
 

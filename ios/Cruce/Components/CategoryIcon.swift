@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 extension MovementCategory {
     /// Color de la categoría en íconos y chips.

@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Saldar cuentas: confirma el pago que deja el saldo en $0 (pantalla 08).
 struct SettleView: View {
@@ -121,7 +121,9 @@ struct SettleView: View {
             Text(iOwe ? "¿Cómo le pagaste?" : "¿Cómo te pagó?").textStyle(.fieldLabel)
             HStack(spacing: 8) {
                 ForEach(Method.allCases, id: \.self) { item in
-                    Button { method = item } label: {
+                    Button {
+                        method = item
+                    } label: {
                         // Ancho según el texto, como en el diseño ("Transferencia" es más ancho).
                         Text(item.rawValue)
                             .font(.archivo(14, item == method ? .extraBold : .bold))
@@ -130,7 +132,9 @@ struct SettleView: View {
                             .foregroundStyle(item == method ? .white : CruceColor.ink)
                             .padding(.horizontal, 16)
                             .frame(minHeight: 44)
-                            .neoSurface(fill: item == method ? CruceColor.ink : CruceColor.surface, radius: Radius.input, border: BorderWidth.thin)
+                            .neoSurface(
+                                fill: item == method ? CruceColor.ink : CruceColor.surface, radius: Radius.input,
+                                border: BorderWidth.thin)
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(item == method ? .isSelected : [])

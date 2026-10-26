@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Historial agrupado por día, con filtros por persona y categoría (pantalla 07).
 struct HistoryView: View {
@@ -34,7 +34,9 @@ struct HistoryView: View {
                                 Text(DateText.groupHeader(group.day))
                                     .textStyle(.label)
                                 ForEach(group.movements) { movement in
-                                    Button { app.path.append(.detail(movement.id)) } label: {
+                                    Button {
+                                        app.path.append(.detail(movement.id))
+                                    } label: {
                                         MovementRow(
                                             movement: movement,
                                             impact: app.impact(of: movement),
@@ -68,17 +70,26 @@ struct HistoryView: View {
                 Chip(title: "Pagó \(app.me.name)", isSelected: personFilter == .member(app.me.id), member: app.me) {
                     personFilter = .member(app.me.id)
                 }
-                Chip(title: "Pagó \(app.partner.name)", isSelected: personFilter == .member(app.partner.id), member: app.partner) {
+                Chip(
+                    title: "Pagó \(app.partner.name)", isSelected: personFilter == .member(app.partner.id),
+                    member: app.partner
+                ) {
                     personFilter = .member(app.partner.id)
                 }
             }
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    Chip(title: "Todas", isSelected: categoryFilter == nil, selectedColor: CruceColor.yellow, showsCheck: false) {
+                    Chip(
+                        title: "Todas", isSelected: categoryFilter == nil, selectedColor: CruceColor.yellow,
+                        showsCheck: false
+                    ) {
                         categoryFilter = nil
                     }
                     ForEach(MovementCategory.allCases) { item in
-                        Chip(title: item.title, isSelected: categoryFilter == item, selectedColor: item.color, dotColor: item.color) {
+                        Chip(
+                            title: item.title, isSelected: categoryFilter == item, selectedColor: item.color,
+                            dotColor: item.color
+                        ) {
                             categoryFilter = item
                         }
                     }
@@ -112,7 +123,8 @@ struct HistoryView: View {
     private var groups: [DayGroup] {
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: filtered) { calendar.startOfDay(for: $0.date) }
-        return grouped
+        return
+            grouped
             .map { DayGroup(day: $0.key, movements: $0.value.sorted { $0.date > $1.date }) }
             .sorted { $0.day > $1.day }
     }

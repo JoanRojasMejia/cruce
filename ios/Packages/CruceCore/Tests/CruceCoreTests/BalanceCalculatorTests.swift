@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import CruceCore
 
 @Suite("Saldo neto entre los dos")
@@ -47,10 +48,12 @@ struct BalanceCalculatorTests {
         #expect(movement.payerShare == 24_000)
     }
 
-    @Test("Los montos impares se redondean al peso más cercano", arguments: [
-        (25_001, SplitRule.equal, 12_501),
-        (25_003, SplitRule.percentage(otherShare: 30), 7_501),
-    ])
+    @Test(
+        "Los montos impares se redondean al peso más cercano",
+        arguments: [
+            (25_001, SplitRule.equal, 12_501),
+            (25_003, SplitRule.percentage(otherShare: 30), 7_501),
+        ])
     func oddAmountsRoundToNearestPeso(amount: Int, split: SplitRule, owedByOther: Int) {
         #expect(expense(joan, amount, split).owedByOther == owedByOther)
     }
@@ -59,7 +62,8 @@ struct BalanceCalculatorTests {
     func settlementLeavesBalanceAtZero() throws {
         var movements = MockData.movements()
         let payment = try #require(
-            BalanceCalculator.settlement(movements: movements, me: joan, other: jesus, createdBy: joan, paymentMethod: "Nequi")
+            BalanceCalculator.settlement(
+                movements: movements, me: joan, other: jesus, createdBy: joan, paymentMethod: "Nequi")
         )
         #expect(payment.payerID == jesus, "Quien debe es quien paga")
         #expect(payment.amount == 20_000)
@@ -69,7 +73,9 @@ struct BalanceCalculatorTests {
 
     @Test("No hay pago para saldar si ya están a paz y salvo")
     func settlementIsNilWhenAlreadySettled() {
-        #expect(BalanceCalculator.settlement(movements: [], me: joan, other: jesus, createdBy: joan, paymentMethod: nil) == nil)
+        #expect(
+            BalanceCalculator.settlement(movements: [], me: joan, other: jesus, createdBy: joan, paymentMethod: nil)
+                == nil)
     }
 
     @Test("Movimientos desde el último pago para saldar")

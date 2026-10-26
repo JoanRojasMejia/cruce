@@ -9,7 +9,7 @@ let package = Package(
     // macOS hace falta para que `swift test` corra en la Mac.
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
-        .library(name: "CruceCore", targets: ["CruceCore"]),
+        .library(name: "CruceCore", targets: ["CruceCore"])
     ],
     targets: [
         .target(name: "CruceCore"),

@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Detalle de un movimiento con editar y eliminar (pantallas 17 y 18).
 struct MovementDetailView: View {
@@ -116,8 +116,10 @@ struct MovementDetailView: View {
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("En el saldo").font(.archivo(12, .bold))
-                    Text("\(Money.format(impact, showsSign: true)) \(impact >= 0 ? "a tu favor" : "a favor de \(app.partner.name)")")
-                        .font(.archivo(17, .black))
+                    Text(
+                        "\(Money.format(impact, showsSign: true)) \(impact >= 0 ? "a tu favor" : "a favor de \(app.partner.name)")"
+                    )
+                    .font(.archivo(17, .black))
                 }
                 Spacer(minLength: 0)
             }
@@ -134,12 +136,16 @@ struct MovementDetailView: View {
 
             HStack(spacing: 10) {
                 if movement.kind == .expense {
-                    Button { app.path.append(.editMovement(movement.id)) } label: {
+                    Button {
+                        app.path.append(.editMovement(movement.id))
+                    } label: {
                         Label("Editar", systemImage: "pencil")
                     }
                     .buttonStyle(.neoSecondary)
                 }
-                Button { confirmingDelete = true } label: {
+                Button {
+                    confirmingDelete = true
+                } label: {
                     Label("Eliminar", systemImage: "trash")
                 }
                 .buttonStyle(.neoDestructive)
@@ -177,13 +183,16 @@ struct SplitBar: View {
             HStack(spacing: 0) {
                 segment("\(leftName) · \(Money.format(leftAmount))", color: leftColor)
                     .frame(width: leftWidth)
-                Rectangle().fill(CruceColor.ink).frame(width: leftAmount > 0 && rightAmount > 0 ? BorderWidth.regular : 0)
+                Rectangle().fill(CruceColor.ink).frame(
+                    width: leftAmount > 0 && rightAmount > 0 ? BorderWidth.regular : 0)
                 segment("\(rightName) · \(Money.format(rightAmount))", color: rightColor)
             }
         }
         .frame(height: 38)
         .clipShape(RoundedRectangle(cornerRadius: Radius.input))
-        .overlay(RoundedRectangle(cornerRadius: Radius.input).strokeBorder(CruceColor.ink, lineWidth: BorderWidth.regular))
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.input).strokeBorder(CruceColor.ink, lineWidth: BorderWidth.regular)
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(leftName) \(Money.format(leftAmount)), \(rightName) \(Money.format(rightAmount))")
     }
@@ -228,9 +237,11 @@ struct DeleteConfirmation: View {
                 Text("¿Eliminar este movimiento?")
                     .font(.archivo(26, .black, relativeTo: .title))
                     .tracking(-0.8)
-                Text("\(movement.concept) · \(Money.format(movement.amount)). Se borra para los dos y \(app.partner.name) recibe un aviso.")
-                    .textStyle(.body)
-                    .foregroundStyle(CruceColor.textBody)
+                Text(
+                    "\(movement.concept) · \(Money.format(movement.amount)). Se borra para los dos y \(app.partner.name) recibe un aviso."
+                )
+                .textStyle(.body)
+                .foregroundStyle(CruceColor.textBody)
                 BeforeAfter(
                     beforeTitle: "AHORA",
                     before: app.phrase(forNet: app.net),
@@ -241,16 +252,21 @@ struct DeleteConfirmation: View {
                 )
                 HStack(spacing: 10) {
                     Button("Cancelar", action: onCancel)
-                        .buttonStyle(NeoButtonStyle(kind: .secondary, height: 50, shadow: ShadowOffset.s, radius: Radius.input))
+                        .buttonStyle(
+                            NeoButtonStyle(kind: .secondary, height: 50, shadow: ShadowOffset.s, radius: Radius.input))
                     Button("Eliminar", action: onDelete)
-                        .buttonStyle(NeoButtonStyle(kind: .destructive, height: 50, shadow: ShadowOffset.s, radius: Radius.input))
+                        .buttonStyle(
+                            NeoButtonStyle(kind: .destructive, height: 50, shadow: ShadowOffset.s, radius: Radius.input)
+                        )
                 }
                 .padding(.top, 4)
             }
             .foregroundStyle(CruceColor.ink)
             .padding(.horizontal, 20)
             .padding(.vertical, 22)
-            .neoSurface(fill: CruceColor.cream, radius: Radius.dialog, border: BorderWidth.thick, shadow: ShadowOffset.xxl)
+            .neoSurface(
+                fill: CruceColor.cream, radius: Radius.dialog, border: BorderWidth.thick, shadow: ShadowOffset.xxl
+            )
             .padding(.horizontal, 24)
             .accessibilityAddTraits(.isModal)
         }

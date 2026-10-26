@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Ilustraciones de la app. Los estados "te deben" y "debes" tienen dos versiones:
 /// el recibo rosa lo ve quien creó la cuenta (Joan) y el verde lo ve quien se unió (Jesús).

@@ -35,7 +35,9 @@ extension View {
         shadowColor: Color = CruceColor.ink,
         dashed: Bool = false
     ) -> some View {
-        modifier(NeoSurface(fill: fill, radius: radius, border: border, shadow: shadow, shadowColor: shadowColor, dashed: dashed))
+        modifier(
+            NeoSurface(
+                fill: fill, radius: radius, border: border, shadow: shadow, shadowColor: shadowColor, dashed: dashed))
     }
 
     /// Fondo crema de pantalla completa.

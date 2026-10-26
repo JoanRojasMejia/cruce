@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Inicio: el saldo neto es el protagonista.
 /// Pantallas del canvas: 02 Inicio vacío, 03 Te deben, 04 Debes, 20 Vista de Jesús.
@@ -36,7 +36,9 @@ struct HomeView: View {
             CruceLogo()
             Spacer()
             if app.isOffline {
-                Button { app.path.append(.offline) } label: {
+                Button {
+                    app.path.append(.offline)
+                } label: {
                     Badge(text: "Sin conexión", fill: CruceColor.pink)
                 }
                 .buttonStyle(.plain)
@@ -52,19 +54,39 @@ struct HomeView: View {
         HStack(spacing: 12) {
             switch app.balance {
             case .youOwe:
-                Button { app.path.append(.addMovement) } label: { Label("Agregar gasto", systemImage: "plus") }
-                    .buttonStyle(.neoSecondary)
-                Button { app.path.append(.settle) } label: { Label("Pagarle a \(app.partner.name)", systemImage: "checkmark") }
-                    .buttonStyle(NeoButtonStyle(kind: .primary, height: 54, text: .buttonSecondary))
+                Button {
+                    app.path.append(.addMovement)
+                } label: {
+                    Label("Agregar gasto", systemImage: "plus")
+                }
+                .buttonStyle(.neoSecondary)
+                Button {
+                    app.path.append(.settle)
+                } label: {
+                    Label("Pagarle a \(app.partner.name)", systemImage: "checkmark")
+                }
+                .buttonStyle(NeoButtonStyle(kind: .primary, height: 54, text: .buttonSecondary))
             case .theyOweYou:
-                Button { app.path.append(.addMovement) } label: { Label("Agregar gasto", systemImage: "plus") }
-                    .buttonStyle(.neoPrimary)
-                Button { app.path.append(.settle) } label: { Label("Saldar", systemImage: "checkmark") }
-                    .buttonStyle(NeoButtonStyle(kind: .secondary))
-                    .frame(width: 118)
+                Button {
+                    app.path.append(.addMovement)
+                } label: {
+                    Label("Agregar gasto", systemImage: "plus")
+                }
+                .buttonStyle(.neoPrimary)
+                Button {
+                    app.path.append(.settle)
+                } label: {
+                    Label("Saldar", systemImage: "checkmark")
+                }
+                .buttonStyle(NeoButtonStyle(kind: .secondary))
+                .frame(width: 118)
             case .settled:
-                Button { app.path.append(.addMovement) } label: { Label("Agregar gasto", systemImage: "plus") }
-                    .buttonStyle(.neoPrimary)
+                Button {
+                    app.path.append(.addMovement)
+                } label: {
+                    Label("Agregar gasto", systemImage: "plus")
+                }
+                .buttonStyle(.neoPrimary)
             }
         }
         .labelStyle(NeoLabelStyle())
@@ -76,13 +98,17 @@ struct HomeView: View {
                 Text("Últimos movimientos").textStyle(.sectionTitle)
                 Spacer()
                 // El subrayado va en el Text: aplicado al Button no llega a la etiqueta.
-                Button { app.path.append(.history) } label: {
+                Button {
+                    app.path.append(.history)
+                } label: {
                     Text("Ver todo").font(.archivo(14, .bold)).underline()
                 }
                 .foregroundStyle(CruceColor.ink)
             }
             ForEach(app.sortedMovements.prefix(3)) { movement in
-                Button { app.path.append(.detail(movement.id)) } label: {
+                Button {
+                    app.path.append(.detail(movement.id))
+                } label: {
                     MovementRow(
                         movement: movement,
                         impact: app.impact(of: movement),
@@ -114,7 +140,9 @@ struct BalanceCard: View {
     @Environment(AppState.self) private var app
 
     var body: some View {
-        FolderCard(tab: "SALDO NETO", tabColor: tabColor, padding: EdgeInsets(top: 14, leading: 18, bottom: 18, trailing: 18)) {
+        FolderCard(
+            tab: "SALDO NETO", tabColor: tabColor, padding: EdgeInsets(top: 14, leading: 18, bottom: 18, trailing: 18)
+        ) {
             VStack(alignment: .leading, spacing: 8) {
                 IllustrationView(illustration: app.balanceIllustration, height: 140)
                 VStack(alignment: .leading, spacing: 2) {
@@ -222,17 +250,21 @@ struct EmptyHomeContent: View {
                 Text("Aún no hay movimientos")
                     .font(.archivo(26, .black, relativeTo: .title))
                     .tracking(-0.6)
-                Text("Cuando uno de los dos pague algo, anótalo aquí. Cruce compensa cada gasto y les muestra un solo saldo.")
-                    .textStyle(.body)
-                    .foregroundStyle(CruceColor.textBody)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 300)
+                Text(
+                    "Cuando uno de los dos pague algo, anótalo aquí. Cruce compensa cada gasto y les muestra un solo saldo."
+                )
+                .textStyle(.body)
+                .foregroundStyle(CruceColor.textBody)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
             }
             .foregroundStyle(CruceColor.ink)
 
             Spacer(minLength: 20)
 
-            Button { app.path.append(.addMovement) } label: {
+            Button {
+                app.path.append(.addMovement)
+            } label: {
                 Label("Agregar el primer gasto", systemImage: "plus")
             }
             .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))

@@ -31,19 +31,24 @@ struct OfflineView: View {
                     .font(.archivo(28, .black, relativeTo: .title))
                     .tracking(-0.8)
                     .multilineTextAlignment(.center)
-                Text("Revisa tu internet. Lo que anotes mientras tanto queda guardado en tu celular y se cruza con \(app.partner.name) cuando vuelva la señal.")
-                    .textStyle(.body)
-                    .foregroundStyle(CruceColor.textBody)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 310)
+                Text(
+                    "Revisa tu internet. Lo que anotes mientras tanto queda guardado en tu celular y se cruza con \(app.partner.name) cuando vuelva la señal."
+                )
+                .textStyle(.body)
+                .foregroundStyle(CruceColor.textBody)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 310)
                 if app.pendingSyncCount > 0 {
                     HStack(spacing: 10) {
                         Text("\(app.pendingSyncCount)")
                             .font(.archivo(13, .black))
                             .frame(width: 26, height: 26)
                             .neoSurface(fill: CruceColor.peach, radius: 8, border: BorderWidth.thin)
-                        Text(app.pendingSyncCount == 1 ? "movimiento pendiente por sincronizar" : "movimientos pendientes por sincronizar")
-                            .font(.archivo(13, .bold))
+                        Text(
+                            app.pendingSyncCount == 1
+                                ? "movimiento pendiente por sincronizar" : "movimientos pendientes por sincronizar"
+                        )
+                        .font(.archivo(13, .bold))
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)

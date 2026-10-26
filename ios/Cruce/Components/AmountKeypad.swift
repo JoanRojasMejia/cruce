@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Teclado numérico propio de la pantalla "Nuevo movimiento".
 struct AmountKeypad: View {

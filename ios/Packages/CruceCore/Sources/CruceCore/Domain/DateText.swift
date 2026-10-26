@@ -32,7 +32,10 @@ public enum DateText {
     public static func relative(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> String {
         if calendar.isDate(date, inSameDayAs: now) { return "Hoy" }
         if let yesterday = calendar.date(byAdding: .day, value: -1, to: now),
-           calendar.isDate(date, inSameDayAs: yesterday) { return "Ayer" }
+            calendar.isDate(date, inSameDayAs: yesterday)
+        {
+            return "Ayer"
+        }
         return clean(shortDay.string(from: date))
     }
 

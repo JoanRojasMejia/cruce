@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 extension AvatarColor {
     var color: Color {
@@ -23,7 +23,9 @@ struct Avatar: View {
             .foregroundStyle(CruceColor.ink)
             .frame(width: size, height: size)
             .background(Circle().fill(member.avatarColor.color))
-            .overlay(Circle().strokeBorder(CruceColor.ink, lineWidth: size >= 40 ? BorderWidth.regular : BorderWidth.thin))
+            .overlay(
+                Circle().strokeBorder(CruceColor.ink, lineWidth: size >= 40 ? BorderWidth.regular : BorderWidth.thin)
+            )
             .background(Circle().fill(CruceColor.ink).offset(x: shadow, y: shadow))
             .accessibilityLabel(member.name)
     }

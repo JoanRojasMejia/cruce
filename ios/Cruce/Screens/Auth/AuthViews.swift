@@ -1,6 +1,6 @@
+import CruceCore
 import SwiftUI
 import UIKit
-import CruceCore
 
 /// Crear cuenta (pantalla 13).
 /// TODO punto 2: reemplazar el botón por `SignInWithAppleButton` y conectar con Supabase Auth.
@@ -31,7 +31,8 @@ struct SignUpView: View {
                                 .foregroundStyle(CruceColor.textSecondary)
                         }
                     }
-                    NeoTextField(label: "¿Cómo te llamas?", text: $name, placeholder: "Tu nombre", fill: CruceColor.cream)
+                    NeoTextField(
+                        label: "¿Cómo te llamas?", text: $name, placeholder: "Tu nombre", fill: CruceColor.cream)
                 }
             }
 
@@ -45,12 +46,14 @@ struct SignUpView: View {
                 } label: {
                     Text("Continuar con Apple")
                 }
-                .buttonStyle(NeoButtonStyle(kind: .dark, height: 56, shadow: ShadowOffset.m, shadowTint: CruceColor.yellow))
+                .buttonStyle(
+                    NeoButtonStyle(kind: .dark, height: 56, shadow: ShadowOffset.m, shadowTint: CruceColor.yellow))
 
                 (Text("Al continuar aceptas los ")
                     + Text("Términos").font(.archivo(12, .extraBold)).underline().foregroundColor(CruceColor.ink)
                     + Text(" y la ")
-                    + Text("Política de privacidad").font(.archivo(12, .extraBold)).underline().foregroundColor(CruceColor.ink)
+                    + Text("Política de privacidad").font(.archivo(12, .extraBold)).underline().foregroundColor(
+                        CruceColor.ink)
                     + Text(" de Cruce."))
                     .textStyle(.secondary)
                     .lineSpacing(4)
@@ -108,14 +111,18 @@ struct InviteView: View {
                         ShareLink(item: "Únete a mi cuenta en Cruce con el código \(code)") {
                             Label("Compartir", systemImage: "square.and.arrow.up")
                         }
-                        .buttonStyle(NeoButtonStyle(kind: .primary, height: 50, shadow: ShadowOffset.s, radius: Radius.input, text: .buttonSecondary))
+                        .buttonStyle(
+                            NeoButtonStyle(
+                                kind: .primary, height: 50, shadow: ShadowOffset.s, radius: Radius.input,
+                                text: .buttonSecondary))
                         Button {
                             UIPasteboard.general.string = code
                             copied = true
                         } label: {
                             Label(copied ? "Copiado" : "Copiar", systemImage: copied ? "checkmark" : "doc.on.doc")
                         }
-                        .buttonStyle(NeoButtonStyle(kind: .secondary, height: 50, shadow: ShadowOffset.s, radius: Radius.input))
+                        .buttonStyle(
+                            NeoButtonStyle(kind: .secondary, height: 50, shadow: ShadowOffset.s, radius: Radius.input))
                     }
                     .labelStyle(NeoLabelStyle())
                 }
@@ -123,7 +130,9 @@ struct InviteView: View {
             }
 
             // Simulación: en la app real esto cambia solo cuando el amigo canjea el código.
-            Button { app.phase = .connected } label: {
+            Button {
+                app.phase = .connected
+            } label: {
                 HStack(spacing: 12) {
                     HStack(spacing: 0) {
                         Avatar(member: app.me, size: 38)
@@ -137,11 +146,13 @@ struct InviteView: View {
                             .font(.archivo(16, .black))
                             .frame(width: 38, height: 38)
                             .background(Circle().fill(.white))
-                            .overlay(Circle().strokeBorder(CruceColor.ink, style: StrokeStyle(lineWidth: 2, dash: [4, 3])))
+                            .overlay(
+                                Circle().strokeBorder(CruceColor.ink, style: StrokeStyle(lineWidth: 2, dash: [4, 3])))
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Esperando a tu amigo…").font(.archivo(14, .extraBold))
-                        Text("Te avisamos apenas se una.").textStyle(.secondary).foregroundStyle(CruceColor.textSecondary)
+                        Text("Te avisamos apenas se una.").textStyle(.secondary).foregroundStyle(
+                            CruceColor.textSecondary)
                     }
                     Spacer()
                 }
@@ -231,8 +242,9 @@ struct JoinView: View {
                 Text(character(at: index))
                     .font(.archivo(28, .black))
                     .frame(width: 52, height: 64)
-                    .neoSurface(fill: index == digits.count && focused ? CruceColor.yellow : CruceColor.surface,
-                                radius: Radius.input, shadow: ShadowOffset.s)
+                    .neoSurface(
+                        fill: index == digits.count && focused ? CruceColor.yellow : CruceColor.surface,
+                        radius: Radius.input, shadow: ShadowOffset.s)
             }
         }
         .overlay {
@@ -265,7 +277,8 @@ struct ConnectedView: View {
             CruceColor.yellow.ignoresSafeArea()
             ZStack {
                 Circle().fill(CruceColor.violet).frame(width: 240).offset(x: 170, y: -260)
-                Rectangle().fill(CruceColor.green).frame(width: 280, height: 260).rotationEffect(.degrees(16)).offset(x: -150, y: 330)
+                Rectangle().fill(CruceColor.green).frame(width: 280, height: 260).rotationEffect(.degrees(16)).offset(
+                    x: -150, y: 330)
                 RoundedRectangle(cornerRadius: 2).fill(CruceColor.pink).frame(width: 16, height: 16)
                     .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(CruceColor.ink, lineWidth: 2.5))
                     .rotationEffect(.degrees(-20)).offset(x: -160, y: -330)
@@ -299,7 +312,9 @@ struct ConnectedView: View {
 
                     Spacer(minLength: 0)
 
-                    Button { app.phase = .main } label: {
+                    Button {
+                        app.phase = .main
+                    } label: {
                         Label("Ir al inicio", systemImage: "arrow.right").labelStyle(TrailingIconLabelStyle())
                     }
                     .buttonStyle(.neoDark)

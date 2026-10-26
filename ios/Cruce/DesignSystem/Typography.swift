@@ -2,11 +2,11 @@ import SwiftUI
 
 /// Pesos de Archivo incluidos en `Resources/Fonts` (nombres PostScript).
 enum ArchivoWeight: String {
-    case medium = "Archivo-Medium"       // 500
-    case semibold = "Archivo-SemiBold"   // 600
-    case bold = "Archivo-Bold"           // 700
-    case extraBold = "Archivo-ExtraBold" // 800
-    case black = "Archivo-Black"         // 900
+    case medium = "Archivo-Medium"  // 500
+    case semibold = "Archivo-SemiBold"  // 600
+    case bold = "Archivo-Bold"  // 700
+    case extraBold = "Archivo-ExtraBold"  // 800
+    case black = "Archivo-Black"  // 900
 }
 
 extension Font {

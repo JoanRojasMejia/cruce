@@ -8,10 +8,16 @@ struct CruceMark: Shape {
             CGPoint(x: rect.minX + x * unit, y: rect.minY + y * unit)
         }
         var path = Path()
-        path.move(to: point(4, 4)); path.addLine(to: point(20, 20))
-        path.move(to: point(20, 13)); path.addLine(to: point(20, 20)); path.addLine(to: point(13, 20))
-        path.move(to: point(4, 20)); path.addLine(to: point(20, 4))
-        path.move(to: point(13, 4)); path.addLine(to: point(20, 4)); path.addLine(to: point(20, 11))
+        path.move(to: point(4, 4))
+        path.addLine(to: point(20, 20))
+        path.move(to: point(20, 13))
+        path.addLine(to: point(20, 20))
+        path.addLine(to: point(13, 20))
+        path.move(to: point(4, 20))
+        path.addLine(to: point(20, 4))
+        path.move(to: point(13, 4))
+        path.addLine(to: point(20, 4))
+        path.addLine(to: point(20, 11))
         return path
     }
 }

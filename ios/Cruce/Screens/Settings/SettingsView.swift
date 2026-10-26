@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Ajustes (pantalla 19).
 struct SettingsView: View {
@@ -11,12 +11,14 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 ScreenHeader(title: "Ajustes")
 
-                Button {} label: {
+                Button {
+                } label: {
                     HStack(spacing: 14) {
                         Avatar(member: app.me, size: 54)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(app.me.name).font(.archivo(18, .extraBold))
-                            Text("Cuenta de Apple conectada").textStyle(.secondary).foregroundStyle(CruceColor.textSecondary)
+                            Text("Cuenta de Apple conectada").textStyle(.secondary).foregroundStyle(
+                                CruceColor.textSecondary)
                         }
                         Spacer()
                         Image(systemName: "chevron.right").font(.system(size: 15, weight: .heavy))
@@ -33,14 +35,16 @@ struct SettingsView: View {
                         Text("Con \(app.partner.name)").font(.archivo(15, .bold))
                         Spacer()
                         if let first = app.sortedMovements.last?.date {
-                            Text("desde \(DateText.relative(first))").textStyle(.secondary).foregroundStyle(CruceColor.textSecondary)
+                            Text("desde \(DateText.relative(first))").textStyle(.secondary).foregroundStyle(
+                                CruceColor.textSecondary)
                         }
                     }
                     divider
                     row {
                         Text("Moneda").font(.archivo(15, .bold))
                         Spacer()
-                        Text("Peso colombiano (COP)").font(.archivo(13, .bold)).foregroundStyle(CruceColor.textSecondary)
+                        Text("Peso colombiano (COP)").font(.archivo(13, .bold)).foregroundStyle(
+                            CruceColor.textSecondary)
                     }
                     divider
                     row {
@@ -114,7 +118,9 @@ struct SettingsView: View {
         HStack(spacing: 10, content: content).frame(minHeight: 48)
     }
 
-    private func actionRow(_ title: String, systemImage: String, tint: Color = CruceColor.ink, action: @escaping () -> Void) -> some View {
+    private func actionRow(
+        _ title: String, systemImage: String, tint: Color = CruceColor.ink, action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Group {
@@ -126,7 +132,9 @@ struct SettingsView: View {
                             .font(.system(size: 10, weight: .black))
                             .frame(width: 20, height: 20)
                             .background(RoundedRectangle(cornerRadius: 5).fill(tint))
-                            .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(CruceColor.ink, lineWidth: BorderWidth.thin))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5).strokeBorder(
+                                    CruceColor.ink, lineWidth: BorderWidth.thin))
                     }
                 }
                 // Ancho fijo para que los textos de las filas queden alineados.

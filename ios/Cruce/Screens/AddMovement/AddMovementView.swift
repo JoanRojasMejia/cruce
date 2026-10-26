@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Nuevo movimiento (pantalla 05) y edición de uno existente.
 struct AddMovementView: View {
@@ -35,9 +35,15 @@ struct AddMovementView: View {
         let mode: SplitMode
         let share: Int
         switch editing?.split {
-        case .percentage(let s)?: mode = .percentage; share = s
-        case .fullOther?: mode = .fullOther; share = 100
-        default: mode = .equal; share = 50
+        case .percentage(let s)?:
+            mode = .percentage
+            share = s
+        case .fullOther?:
+            mode = .fullOther
+            share = 100
+        default:
+            mode = .equal
+            share = 50
         }
         _splitMode = State(initialValue: mode)
         _otherShare = State(initialValue: Double(share))

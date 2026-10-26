@@ -1,5 +1,5 @@
-import SwiftUI
 import CruceCore
+import SwiftUI
 
 /// Botón cuadrado de ícono (volver, ajustes, editar).
 struct IconButton: View {
