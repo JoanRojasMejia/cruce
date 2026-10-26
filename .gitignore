@@ -29,3 +29,6 @@ supabase/.env
 # Secretos
 .env
 *.env.local
+
+# Respaldos de la base de datos (scripts/backup-db.sh); tienen datos personales
+backups/

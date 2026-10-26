@@ -146,6 +146,17 @@ supabase db reset      # aplica supabase/migrations
 supabase test db       # 54 pruebas pgTAP de supabase/tests
 ```
 
+### Respaldo de la base de datos
+El plan Free de Supabase no hace respaldos automáticos. Desde la raíz del repo:
+```bash
+supabase login && supabase link     # una sola vez: tu sesión y el proyecto de la nube
+scripts/backup-db.sh                # respalda la nube en backups/<AAAA-MM-DD_HHMMSS>/
+scripts/backup-db.sh --local        # respalda la base local (con supabase start)
+```
+- Deja `schema.sql` y `data.sql` en una carpeta nueva con fecha y hora; si un volcado falla, no deja nada a medias.
+- **Cuándo:** una vez por semana durante la beta y siempre antes de aplicar una migración en la nube.
+- `backups/` está en `.gitignore` porque tiene datos personales: nunca se sube ni va a la CI. La contraseña de la base la pide el CLI (o la lee de la variable de entorno `SUPABASE_DB_PASSWORD`); nunca se escribe en el repo.
+
 ### Integración continua
 - `.github/workflows/ci.yml` corre en GitHub Actions (solo Linux, sin secretos) en cada `push` a `main`, en cada pull request y a mano (`gh workflow run ci.yml`).
 - Un trabajo `changes` mira qué carpetas cambiaron y solo corren los trabajos que tocan; los demás quedan en “skipped”. Un cambio en `ci.yml` vuelve a correr todo.
