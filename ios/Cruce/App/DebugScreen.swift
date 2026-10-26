@@ -11,6 +11,7 @@
         case add, saved, history, detail, delete, settle, success, offline, settings
         case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
             parcheExpenseItems
+        case parcheTicket, parcheTicketSettled, parcheTicketGroup
         case parcheDelete, parchePayment, parcheClose, parcheCruce, parcheClosed, parcheOffline
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
@@ -54,6 +55,21 @@
             case .parcheExpenseItems, .parcheDelete:
                 return stores(path: [
                     .editParcheExpense(parcheID: MockParches.santaMartaID, expenseID: Self.lunchID)
+                ])
+            case .parcheTicket:
+                return stores(path: [
+                    .parche(MockParches.santaMartaID),
+                    .parcheTicket(parcheID: MockParches.santaMartaID, participantID: MockParches.carlos),
+                ])
+            case .parcheTicketSettled:
+                return stores(path: [
+                    .parche(MockParches.santaMartaID),
+                    .parcheTicket(parcheID: MockParches.santaMartaID, participantID: MockParches.ana),
+                ])
+            case .parcheTicketGroup:
+                return stores(path: [
+                    .parche(MockParches.santaMartaID),
+                    .parcheTicket(parcheID: MockParches.santaMartaID, participantID: nil),
                 ])
             case .parchePayment: return stores(path: [.parchePayment(parcheID: MockParches.santaMartaID)])
             case .parcheClose: return stores(path: [.closeParche(parcheID: MockParches.santaMartaID)])

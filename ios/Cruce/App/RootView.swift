@@ -114,6 +114,8 @@ struct RouteDestinations: ViewModifier {
         case .editParcheExpense(let parcheID, let expenseID): ParcheExpenseView(parcheID: parcheID, editing: expenseID)
         case .parchePayment(let parcheID): ParchePaymentView(parcheID: parcheID)
         case .closeParche(let parcheID): CloseParcheView(parcheID: parcheID)
+        case .parcheTicket(let parcheID, let participantID):
+            ParcheTicketView(parcheID: parcheID, participantID: participantID)
         case .enterCode: EnterCodeView()
         }
     }

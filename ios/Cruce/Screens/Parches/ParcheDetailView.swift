@@ -43,7 +43,11 @@ struct ParcheDetailView: View {
     private func content(_ detail: ParcheDetail) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                ScreenHeader(title: detail.parche.name)
+                ScreenHeader(title: detail.parche.name) {
+                    IconButton(systemName: "square.and.arrow.up", accessibilityLabel: "Ticket del parche", size: 44) {
+                        router.push(.parcheTicket(parcheID: parcheID, participantID: nil))
+                    }
+                }
                 HStack(spacing: 8) {
                     Badge(text: parches.statusLabel(for: detail), fill: statusColor(detail))
                     Badge(text: peopleText(detail))
@@ -239,25 +243,45 @@ struct ParcheDetailView: View {
             ForEach(Array(detail.balances.enumerated()), id: \.element.participantID) { index, balance in
                 if index > 0 { CardDivider() }
                 if let person = detail.participant(balance.participantID) {
-                    HStack(spacing: 10) {
-                        ParcheAvatar(participant: person, index: index, size: 32)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(name(person, in: detail)).textStyle(.rowTitle)
-                            Text(balanceLine(balance.net, person: person, in: detail))
-                                .textStyle(.secondary)
-                                .foregroundStyle(CruceColor.textSecondary)
-                        }
-                        Spacer(minLength: 8)
-                        Text(Money.format(balance.net, showsSign: true))
-                            .font(.archivo(16, .black))
-                            .lineLimit(1)
+                    Button {
+                        router.push(.parcheTicket(parcheID: parcheID, participantID: person.id))
+                    } label: {
+                        balanceRow(balance, person: person, index: index, in: detail)
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .accessibilityElement(children: .combine)
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Toca para ver y compartir su ticket")
                 }
             }
         }
+        Text("Toca a una persona para compartir su ticket.")
+            .textStyle(.secondary)
+            .foregroundStyle(CruceColor.textSecondary)
+    }
+
+    private func balanceRow(
+        _ balance: ParcheBalance, person: ParcheParticipant, index: Int, in detail: ParcheDetail
+    ) -> some View {
+        HStack(spacing: 10) {
+            ParcheAvatar(participant: person, index: index, size: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name(person, in: detail)).textStyle(.rowTitle)
+                Text(balanceLine(balance.net, person: person, in: detail))
+                    .textStyle(.secondary)
+                    .foregroundStyle(CruceColor.textSecondary)
+            }
+            Spacer(minLength: 8)
+            Text(Money.format(balance.net, showsSign: true))
+                .font(.archivo(16, .black))
+                .lineLimit(1)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .black))
+                .accessibilityHidden(true)
+        }
+        .foregroundStyle(CruceColor.ink)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder

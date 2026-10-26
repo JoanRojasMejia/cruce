@@ -21,6 +21,8 @@ public enum Route: Hashable, Sendable {
     case editParcheExpense(parcheID: UUID, expenseID: UUID)
     case parchePayment(parcheID: UUID)
     case closeParche(parcheID: UUID)
+    /// Ticket para compartir: el personal de `participantID` o, sin persona, el del parche.
+    case parcheTicket(parcheID: UUID, participantID: UUID?)
     /// "Tengo un código": `CRZ-`, `PCH-` o `SOY-`.
     case enterCode
 }
