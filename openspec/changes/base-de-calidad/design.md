@@ -127,4 +127,4 @@ El push a `main` (que activa la CI por primera vez) lo decide el usuario. Rollba
 
 ## Open Questions
 
-- Cada cuánto correr el respaldo de la nube en la práctica (semanal o antes de cada migración): se puede ajustar en `CLAUDE.md` sin cambiar el script.
+- ~~Cada cuánto correr el respaldo de la nube en la práctica~~. **Resuelta:** una vez por semana durante la beta y siempre antes de cada migración que vaya a la nube (decisión del dueño). Queda documentado en `CLAUDE.md` §4; se puede ajustar ahí sin cambiar el script.

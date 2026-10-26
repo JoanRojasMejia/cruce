@@ -54,6 +54,8 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 | Base de datos (Supabase) | Migración aplicada en local y en la nube (proyecto `cruce`, Oregon) | Sí: 54 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS) y revisión de seguridad hecha |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
+| Integración continua (GitHub Actions) | `ci.yml`: backend, base de datos y lógica, cada uno solo si cambió su carpeta; `ios.yml` compila la app a mano | Local: cada paso corre en la Mac (Linux con `swift:6.4` en Docker) y `actionlint` no reporta errores. En GitHub: pendiente del primer push |
+| Respaldos de la base de datos | `scripts/backup-db.sh` (nube) y `--local`; quedan en `backups/`, fuera de git | `--local` sí. El primer respaldo de la nube lo hace el dueño con su sesión |
 
 **CP0, CP1 y CP2 cerrados.** Lo siguiente es el CP3: inicio de sesión. Antes hay que decidir si se paga la membresía de Apple Developer (ver decisiones abiertas en el roadmap).
 
@@ -248,7 +250,11 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - **Dependencias:** no agregues paquetes sin preguntar. Las previstas son `supabase-swift` (CP3) y, como opción, `swift-snapshot-testing` (CP12). El backend usa solo la librería estándar mientras se pueda.
 - **Migraciones:** nunca edites una migración que ya se aplicó en la nube; crea una nueva en `supabase/migrations/`.
 - **Secretos:** nunca en el repo. `.env` está en `.gitignore`. La llave `service_role` vive solo en el backend.
-- **Commits:** pequeños, en español, uno por tarea del checkpoint. Antes de cada commit: `swift test` en `ios/Packages/CruceCore` y `go test ./...` en verde; si el commit toca la app, también `xcodebuild … build`.
+- **Commits:** pequeños, en español, uno por tarea del checkpoint. Antes de cada commit, en verde:
+  - `cd ios/Packages/CruceCore && swift test`;
+  - `cd backend && test -z "$(gofmt -l .)" && go vet ./... && staticcheck ./... && go test ./...` (`staticcheck` se instala con `go install honnef.co/go/tools/cmd/staticcheck@2026.2.2` y necesita `$(go env GOPATH)/bin` en el `PATH`);
+  - `swift format lint --strict --recursive ios/Cruce ios/Packages/CruceCore` desde la raíz;
+  - si el commit toca la app, también `xcodebuild … build`.
 
 ---
 

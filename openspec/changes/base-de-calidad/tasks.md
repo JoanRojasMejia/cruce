@@ -33,7 +33,7 @@ Modos de `CLAUDE.local.md`: las tareas 1.1, 2.3, 4.1 y 5.1 necesitan Colima (mod
 
 ## 6. Verificación final
 
-- [ ] 6.1 Actualizar `CLAUDE.md` §2 (fila de CI y de respaldos) y §7 (antes de cada commit, además: `gofmt -l`, `staticcheck` y `swift format lint --strict` en verde) (verificado: cada comando nuevo de §4 y §7 corre tal cual en la Mac y pasa). Commit: `docs: documentar la base de calidad en CLAUDE.md`
+- [x] 6.1 Actualizar `CLAUDE.md` §2 (fila de CI y de respaldos) y §7 (antes de cada commit, además: `gofmt -l`, `staticcheck` y `swift format lint --strict` en verde) (verificado: cada comando nuevo de §4 y §7 corre tal cual en la Mac y pasa). Commit: `docs: documentar la base de calidad en CLAUDE.md`
 - [ ] 6.2 Antes del push, `gh repo view cruce-app/cruce --json visibility` dice `PUBLIC`. El push lo decide el usuario; después del push, `gh run list --workflow ci.yml` muestra la corrida en verde con los trabajos `backend`, `supabase` y `core`, y un commit posterior que solo toque documentación deja esos tres trabajos en “skipped” (verificado: salida de `gh run view` de las dos corridas)
 
 ## Workflow follow-up
