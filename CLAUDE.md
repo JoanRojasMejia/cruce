@@ -50,7 +50,7 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 |---|---|---|
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
 | App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
-| Pruebas de Swift (saldo, formato de pesos y fechas) | 16 pruebas en verde | Sí: `xcodebuild … test` |
+| Pruebas de Swift (saldo, formato de pesos y fechas) | 16 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador |
 | Base de datos (Supabase) | Migración aplicada en local y en la nube (proyecto `cruce`, Oregon) | Sí: 54 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS) y revisión de seguridad hecha |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
@@ -79,14 +79,17 @@ cruce/
 │   │   ├── Components/       FolderCard, MovementRow, Controls (IconButton, Chip, NeoSegmented,
 │   │   │                     NeoTextField, NeoToggleStyle, PageDots, Badge, BeforeAfter),
 │   │   │                     AmountKeypad, Avatar, CategoryIcon, CruceLogo
-│   │   ├── Models/           Member, Movement, SplitRule, MovementCategory
-│   │   ├── Domain/           BalanceCalculator, Money, DateText (lógica pura y probada)
-│   │   ├── Data/             LedgerRepository (protocolo), InMemoryLedgerRepository, MockData
+│   │   ├── Data/             LedgerRepository (protocolo) e InMemoryLedgerRepository
 │   │   ├── Screens/          Onboarding, Auth, Home, AddMovement, History, Detail, Settle,
 │   │   │                     Offline, Settings
 │   │   └── Resources/        Fuentes Archivo (OFL), Assets.xcassets (ilustraciones @2x/@3x,
 │   │                         AppIcon, AccentColor, LaunchBackground)
-│   └── CruceTests/           BalanceCalculatorTests, MoneyTests
+│   └── Packages/CruceCore/   Paquete local con la lógica pura (la app lo usa con `import CruceCore`)
+│       ├── Sources/CruceCore/
+│       │   ├── Models/       Member, Movement, SplitRule, MovementCategory
+│       │   ├── Domain/       BalanceCalculator, Money, DateText
+│       │   └── Fixtures/     MockData (datos de ejemplo para previews y pruebas)
+│       └── Tests/CruceCoreTests/  BalanceCalculatorTests, DateTextTests, MoneyTests (Swift Testing)
 ├── backend/                  Go 1.22+, solo librería estándar
 │   ├── cmd/api/main.go
 │   └── internal/{config,httpapi,notify}
@@ -225,7 +228,7 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - **Dependencias:** no agregues paquetes sin preguntar. Las previstas son `supabase-swift` (CP3) y, como opción, `swift-snapshot-testing` (CP12). El backend usa solo la librería estándar mientras se pueda.
 - **Migraciones:** nunca edites una migración que ya se aplicó en la nube; crea una nueva en `supabase/migrations/`.
 - **Secretos:** nunca en el repo. `.env` está en `.gitignore`. La llave `service_role` vive solo en el backend.
-- **Commits:** pequeños, en español, uno por tarea del checkpoint. Antes de cada commit: `xcodebuild … test` y `go test ./...` en verde.
+- **Commits:** pequeños, en español, uno por tarea del checkpoint. Antes de cada commit: `swift test` en `ios/Packages/CruceCore` y `go test ./...` en verde; si el commit toca la app, también `xcodebuild … build`.
 
 ---
 

@@ -19,8 +19,8 @@ Cada tarea termina en un commit (Conventional Commits, descripción en español,
 
 ## 4. Proyecto de Xcode
 
-- [ ] 4.1 Compilar la app con Xcode: `cd ios && xcodegen && xcodebuild -project Cruce.xcodeproj -scheme Cruce -destination 'platform=iOS Simulator,name=iPhone 16' build` (verificado: `BUILD SUCCEEDED`; requiere Xcode instalado. Si falta un `public` o un `import`, se corrige aquí con su propio commit `fix(ios): …`)
-- [ ] 4.2 Actualizar `CLAUDE.md` §2 (fila de pruebas de Swift), §3 (estructura con `ios/Packages/CruceCore`, sin `CruceTests`) y §7 (antes de cada commit: `swift test` en el paquete y `go test ./...`; `xcodebuild build` cuando se toque la app), y la tabla de estructura de `ios/README.md` (verificado: `rg -n "CruceTests|⌘U" CLAUDE.md ios/README.md` no encuentra referencias viejas). Commit: `docs: actualizar estructura y reglas de pruebas`
+- [x] 4.1 Compilar la app con Xcode: `cd ios && xcodegen && xcodebuild -project Cruce.xcodeproj -scheme Cruce -destination 'platform=iOS Simulator,name=iPhone 16' build` (verificado: `BUILD SUCCEEDED`; requiere Xcode instalado. Si falta un `public` o un `import`, se corrige aquí con su propio commit `fix(ios): …`)
+- [x] 4.2 Actualizar `CLAUDE.md` §2 (fila de pruebas de Swift), §3 (estructura con `ios/Packages/CruceCore`, sin `CruceTests`) y §7 (antes de cada commit: `swift test` en el paquete y `go test ./...`; `xcodebuild build` cuando se toque la app), y la tabla de estructura de `ios/README.md` (verificado: `rg -n "CruceTests|⌘U" CLAUDE.md ios/README.md` no encuentra referencias viejas). Commit: `docs: actualizar estructura y reglas de pruebas`
 
 ## 5. Verificación final
 

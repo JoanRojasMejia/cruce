@@ -25,12 +25,13 @@ swift test                 # Swift Testing: saldo, formato de pesos y fechas
 |---|---|
 | `Cruce/DesignSystem` | Tokens de la guía de estilo: colores, tipografía Archivo, radios, bordes, sombras, espaciados, botones e ilustraciones. |
 | `Cruce/Components` | Piezas reutilizables: tarjeta carpeta, fila de movimiento, chips, segmentado, teclado, avatar, logo. |
-| `Cruce/Models` | `Member`, `Movement`, `SplitRule`, `MovementCategory`. |
-| `Cruce/Domain` | Lógica pura: saldo neto (`BalanceCalculator`), formato de pesos (`Money`), fechas en español. |
-| `Cruce/Data` | `LedgerRepository` (interfaz) + versión en memoria y datos de ejemplo. Aquí entra Supabase en el punto 2. |
+| `Cruce/Data` | `LedgerRepository` (interfaz) + versión en memoria. Aquí entra Supabase en el punto 2. |
 | `Cruce/Screens` | Las pantallas del canvas, cada una con su `#Preview`. |
 | `Cruce/Resources` | Fuentes Archivo (licencia OFL), ilustraciones @2x/@3x, ícono de la app. |
-| `CruceTests` | Pruebas del saldo y del formato de pesos. |
+| `Packages/CruceCore/Sources/CruceCore/Models` | `Member`, `Movement`, `SplitRule`, `MovementCategory`. |
+| `Packages/CruceCore/Sources/CruceCore/Domain` | Lógica pura: saldo neto (`BalanceCalculator`), formato de pesos (`Money`), fechas en español. |
+| `Packages/CruceCore/Sources/CruceCore/Fixtures` | `MockData`: datos de ejemplo para las previews y las pruebas. |
+| `Packages/CruceCore/Tests/CruceCoreTests` | Pruebas de Swift Testing del saldo, el formato de pesos y las fechas. |
 
 ## Pantallas del canvas → código
 
