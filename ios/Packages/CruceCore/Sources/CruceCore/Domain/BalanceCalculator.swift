@@ -36,8 +36,9 @@ public enum BalanceCalculator {
     }
 
     /// Saldo neto de `memberID`. Positivo: el otro le debe.
+    /// Solo suma los movimientos vigentes: los eliminados no cuentan.
     public static func net(of movements: [Movement], for memberID: UUID) -> Int {
-        movements.reduce(0) { $0 + impact(of: $1, for: memberID) }
+        movements.filter { !$0.isDeleted }.reduce(0) { $0 + impact(of: $1, for: memberID) }
     }
 
     static func state(of movements: [Movement], for memberID: UUID) -> BalanceState {
@@ -46,6 +47,7 @@ public enum BalanceCalculator {
 
     /// Movimiento que deja el saldo en $0, o `nil` si ya están a paz y salvo.
     /// Quien debe le paga todo al otro: es un pago con reparto "todo es del otro".
+    /// El monto sale de `net`, así que los movimientos eliminados no cuentan.
     public static func settlement(
         movements: [Movement],
         me: UUID,
@@ -69,9 +71,10 @@ public enum BalanceCalculator {
         )
     }
 
-    /// Movimientos registrados después del último pago para saldar.
+    /// Movimientos vigentes registrados después del último pago para saldar vigente.
+    /// Un pago eliminado no cuenta como el último pago.
     public static func movementsSinceLastSettlement(_ movements: [Movement]) -> [Movement] {
-        let sorted = movements.sorted { $0.date < $1.date }
+        let sorted = movements.filter { !$0.isDeleted }.sorted { $0.date < $1.date }
         guard let lastIndex = sorted.lastIndex(where: { $0.kind == .settlement }) else { return sorted }
         return Array(sorted[(lastIndex + 1)...])
     }

@@ -82,4 +82,70 @@ struct BalanceCalculatorTests {
     func movementsSinceLastSettlement() {
         #expect(BalanceCalculator.movementsSinceLastSettlement(MockData.movements()).count == 7)
     }
+
+    // MARK: - Borrado suave
+
+    /// Movimiento con fecha fija, para ordenar sin depender de la hora del reloj.
+    private func movement(
+        _ payer: UUID, _ amount: Int, day: Int, kind: Movement.Kind = .expense, deleted: Bool = false
+    ) -> Movement {
+        let date = Date(timeIntervalSince1970: TimeInterval(day) * 86_400)
+        return Movement(
+            kind: kind, payerID: payer, amount: amount, concept: "Prueba", category: .otro,
+            split: kind == .settlement ? .fullOther : .equal, date: date, createdBy: payer,
+            deletedAt: deleted ? date.addingTimeInterval(60) : nil)
+    }
+
+    @Test("Un gasto eliminado no cuenta en el saldo")
+    func deletedExpenseDoesNotCountInNet() {
+        let movements = [expense(joan, 60_000), expense(jesus, 100_000), movement(joan, 40_000, day: 1, deleted: true)]
+        #expect(BalanceCalculator.net(of: movements, for: joan) == -20_000)
+    }
+
+    @Test("Un gasto eliminado no cambia el pago para saldar")
+    func deletedExpenseDoesNotChangeSettlement() throws {
+        let movements = [expense(joan, 60_000), expense(jesus, 100_000), movement(joan, 40_000, day: 1, deleted: true)]
+        let payment = try #require(
+            BalanceCalculator.settlement(
+                movements: movements, me: joan, other: jesus, createdBy: joan, paymentMethod: "Nequi")
+        )
+        #expect(payment.amount == 20_000)
+        #expect(payment.payerID == joan)
+    }
+
+    @Test("Un gasto eliminado después de saldar no cuenta como movimiento nuevo")
+    func deletedExpenseDoesNotCountSinceLastSettlement() {
+        let movements = [
+            movement(joan, 10_000, day: 1),
+            movement(jesus, 5_000, day: 2, kind: .settlement),
+            movement(joan, 20_000, day: 3),
+            movement(jesus, 30_000, day: 4, deleted: true),
+        ]
+        let since = BalanceCalculator.movementsSinceLastSettlement(movements)
+        #expect(since.map(\.amount) == [20_000])
+    }
+
+    @Test("Un pago para saldar eliminado no es el último pago")
+    func deletedSettlementIsNotTheLastOne() {
+        let movements = [
+            movement(joan, 10_000, day: 1),
+            movement(jesus, 5_000, day: 2, kind: .settlement, deleted: true),
+            movement(joan, 20_000, day: 3),
+        ]
+        let since = BalanceCalculator.movementsSinceLastSettlement(movements)
+        #expect(since.map(\.amount) == [10_000, 20_000])
+    }
+
+    @Test("Un movimiento guardado sin la clave deletedAt se lee como vigente")
+    func decodesMovementWithoutDeletedAt() throws {
+        let original = movement(joan, 10_000, day: 1)
+        let data = try JSONEncoder().encode(original)
+        var object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object["deletedAt"] = nil
+        let legacy = try JSONSerialization.data(withJSONObject: object)
+        let decoded = try JSONDecoder().decode(Movement.self, from: legacy)
+        #expect(decoded.deletedAt == nil)
+        #expect(!decoded.isDeleted)
+        #expect(decoded.amount == 10_000)
+    }
 }

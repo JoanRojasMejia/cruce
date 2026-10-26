@@ -84,6 +84,8 @@ public struct Movement: Identifiable, Codable, Hashable, Sendable {
     public var date: Date
     public var createdBy: UUID
     public var paymentMethod: String?
+    /// Momento en que se eliminó (borrado suave, igual a `movements.deleted_at`). `nil` si sigue vigente.
+    public var deletedAt: Date?
 
     public init(
         id: UUID = UUID(),
@@ -95,7 +97,8 @@ public struct Movement: Identifiable, Codable, Hashable, Sendable {
         split: SplitRule = .equal,
         date: Date = .now,
         createdBy: UUID,
-        paymentMethod: String? = nil
+        paymentMethod: String? = nil,
+        deletedAt: Date? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -107,6 +110,12 @@ public struct Movement: Identifiable, Codable, Hashable, Sendable {
         self.date = date
         self.createdBy = createdBy
         self.paymentMethod = paymentMethod
+        self.deletedAt = deletedAt
+    }
+
+    /// Un movimiento eliminado se conserva, pero no cuenta en el saldo ni se muestra.
+    public var isDeleted: Bool {
+        deletedAt != nil
     }
 
     /// Lo que quien no pagó le debe a quien pagó por este movimiento.
