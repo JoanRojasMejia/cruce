@@ -3,7 +3,9 @@ import SwiftUI
 
 /// Detalle de un movimiento con editar y eliminar (pantallas 17 y 18).
 struct MovementDetailView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
+    @Environment(Router.self) private var router
     @Environment(\.dismiss) private var dismiss
     let movementID: UUID
     @State private var confirmingDelete: Bool
@@ -15,18 +17,18 @@ struct MovementDetailView: View {
 
     var body: some View {
         Group {
-            if let movement = app.movement(movementID) {
+            if let movement = ledger.movement(movementID) {
                 content(movement)
                     .overlay {
                         if confirmingDelete {
                             DeleteConfirmation(
                                 movement: movement,
-                                afterNet: app.net - app.impact(of: movement),
+                                afterNet: ledger.net - ledger.impact(of: movement),
                                 onCancel: { confirmingDelete = false },
                                 onDelete: {
                                     confirmingDelete = false
                                     Task {
-                                        await app.delete(movement.id)
+                                        await ledger.delete(movement.id)
                                         dismiss()
                                     }
                                 }
@@ -50,15 +52,15 @@ struct MovementDetailView: View {
     }
 
     private func content(_ movement: Movement) -> some View {
-        let payer = app.member(movement.payerID)
-        let other = app.member(movement.payerID == app.me.id ? app.partner.id : app.me.id)
-        let impact = app.impact(of: movement)
+        let payer = session.member(movement.payerID)
+        let other = session.member(movement.payerID == session.me.id ? session.partner.id : session.me.id)
+        let impact = ledger.impact(of: movement)
 
         return VStack(alignment: .leading, spacing: 16) {
             ScreenHeader(title: "Movimiento") {
                 if movement.kind == .expense {
                     IconButton(systemName: "pencil", accessibilityLabel: "Editar movimiento") {
-                        app.path.append(.editMovement(movement.id))
+                        router.push(.editMovement(movement.id))
                     }
                 }
             }
@@ -86,7 +88,7 @@ struct MovementDetailView: View {
                 infoRow("Pagó") {
                     HStack(spacing: 8) {
                         Avatar(member: payer, size: 26)
-                        Text(payer.id == app.me.id ? "\(payer.name) (tú)" : payer.name)
+                        Text(payer.id == session.me.id ? "\(payer.name) (tú)" : payer.name)
                     }
                 }
                 Rectangle().fill(CruceColor.line).frame(height: 1.5)
@@ -117,7 +119,7 @@ struct MovementDetailView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("En el saldo").font(.archivo(12, .bold))
                     Text(
-                        "\(Money.format(impact, showsSign: true)) \(impact >= 0 ? "a tu favor" : "a favor de \(app.partner.name)")"
+                        "\(Money.format(impact, showsSign: true)) \(impact >= 0 ? "a tu favor" : "a favor de \(session.partner.name)")"
                     )
                     .font(.archivo(17, .black))
                 }
@@ -128,7 +130,7 @@ struct MovementDetailView: View {
             .neoSurface(fill: impact >= 0 ? CruceColor.lime : CruceColor.peach, radius: Radius.button)
 
             // Usa la fecha del movimiento: todavía no se guarda cuándo se anotó (llega con Supabase en el CP5).
-            Text("Lo anotó \(app.member(movement.createdBy).name) \(DateText.moment(movement.date))")
+            Text("Lo anotó \(session.member(movement.createdBy).name) \(DateText.moment(movement.date))")
                 .textStyle(.secondary)
                 .foregroundStyle(CruceColor.textSecondary)
 
@@ -137,7 +139,7 @@ struct MovementDetailView: View {
             HStack(spacing: 10) {
                 if movement.kind == .expense {
                     Button {
-                        app.path.append(.editMovement(movement.id))
+                        router.push(.editMovement(movement.id))
                     } label: {
                         Label("Editar", systemImage: "pencil")
                     }
@@ -210,7 +212,8 @@ struct SplitBar: View {
 
 /// Diálogo "¿Eliminar este movimiento?".
 struct DeleteConfirmation: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
     let movement: Movement
     let afterNet: Int
     let onCancel: () -> Void
@@ -238,15 +241,15 @@ struct DeleteConfirmation: View {
                     .font(.archivo(26, .black, relativeTo: .title))
                     .tracking(-0.8)
                 Text(
-                    "\(movement.concept) · \(Money.format(movement.amount)). Se borra para los dos y \(app.partner.name) recibe un aviso."
+                    "\(movement.concept) · \(Money.format(movement.amount)). Se borra para los dos y \(session.partner.name) recibe un aviso."
                 )
                 .textStyle(.body)
                 .foregroundStyle(CruceColor.textBody)
                 BeforeAfter(
                     beforeTitle: "AHORA",
-                    before: app.phrase(forNet: app.net),
+                    before: ledger.phrase(forNet: ledger.net),
                     afterTitle: "SI LO ELIMINAS",
-                    after: app.phrase(forNet: afterNet),
+                    after: ledger.phrase(forNet: afterNet),
                     afterColor: CruceColor.peach,
                     beforeFill: CruceColor.surface
                 )
@@ -273,11 +276,13 @@ struct DeleteConfirmation: View {
     }
 }
 
-#Preview {
-    let state = AppState.preview()
-    return NavigationStack {
-        MovementDetailView(movementID: state.sortedMovements[0].id)
-            .toolbar(.hidden, for: .navigationBar)
+#if DEBUG
+    #Preview {
+        let stores = AppStores.sample()
+        return NavigationStack {
+            MovementDetailView(movementID: stores.ledger.visibleMovements[0].id)
+                .toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(stores)
     }
-    .environment(state)
-}
+#endif

@@ -8,7 +8,9 @@ struct HistoryView: View {
         case member(UUID)
     }
 
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
+    @Environment(Router.self) private var router
     @State private var personFilter: PersonFilter = .all
     @State private var categoryFilter: MovementCategory?
 
@@ -16,7 +18,7 @@ struct HistoryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ScreenHeader(title: "Historial") {
-                    Badge(text: app.phrase(forNet: app.net), fill: badgeColor)
+                    Badge(text: ledger.phrase(forNet: ledger.net), fill: badgeColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 }
@@ -35,16 +37,16 @@ struct HistoryView: View {
                                     .textStyle(.label)
                                 ForEach(group.movements) { movement in
                                     Button {
-                                        app.path.append(.detail(movement.id))
+                                        router.push(.detail(movement.id))
                                     } label: {
                                         MovementRow(
                                             movement: movement,
-                                            impact: app.impact(of: movement),
-                                            payerName: app.member(movement.payerID).name,
-                                            partnerName: app.partner.name,
-                                            isPayerMe: movement.payerID == app.me.id,
+                                            impact: ledger.impact(of: movement),
+                                            payerName: session.member(movement.payerID).name,
+                                            partnerName: session.partner.name,
+                                            isPayerMe: movement.payerID == session.me.id,
                                             compact: true,
-                                            viewerName: app.me.name
+                                            viewerName: session.me.name
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -67,14 +69,17 @@ struct HistoryView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Chip(title: "Todos", isSelected: personFilter == .all) { personFilter = .all }
-                Chip(title: "Pagó \(app.me.name)", isSelected: personFilter == .member(app.me.id), member: app.me) {
-                    personFilter = .member(app.me.id)
+                Chip(
+                    title: "Pagó \(session.me.name)", isSelected: personFilter == .member(session.me.id),
+                    member: session.me
+                ) {
+                    personFilter = .member(session.me.id)
                 }
                 Chip(
-                    title: "Pagó \(app.partner.name)", isSelected: personFilter == .member(app.partner.id),
-                    member: app.partner
+                    title: "Pagó \(session.partner.name)", isSelected: personFilter == .member(session.partner.id),
+                    member: session.partner
                 ) {
-                    personFilter = .member(app.partner.id)
+                    personFilter = .member(session.partner.id)
                 }
             }
             ScrollView(.horizontal) {
@@ -102,7 +107,7 @@ struct HistoryView: View {
     }
 
     private var badgeColor: Color {
-        switch app.balance {
+        switch ledger.balance {
         case .theyOweYou: return CruceColor.green
         case .youOwe: return CruceColor.pink
         case .settled: return CruceColor.neutral
@@ -110,7 +115,7 @@ struct HistoryView: View {
     }
 
     private var filtered: [Movement] {
-        app.sortedMovements.filter { movement in
+        ledger.visibleMovements.filter { movement in
             switch personFilter {
             case .all: break
             case .member(let id): if movement.payerID != id { return false }
@@ -135,9 +140,11 @@ private struct DayGroup {
     let movements: [Movement]
 }
 
-#Preview {
-    NavigationStack {
-        HistoryView().toolbar(.hidden, for: .navigationBar)
+#if DEBUG
+    #Preview {
+        NavigationStack {
+            HistoryView().toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(.sample())
     }
-    .environment(AppState.preview())
-}
+#endif

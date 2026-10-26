@@ -1,8 +1,10 @@
+import CruceCore
 import SwiftUI
 
 /// Sin conexión: los movimientos quedan pendientes en el celular (pantalla 10).
 struct OfflineView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -32,20 +34,20 @@ struct OfflineView: View {
                     .tracking(-0.8)
                     .multilineTextAlignment(.center)
                 Text(
-                    "Revisa tu internet. Lo que anotes mientras tanto queda guardado en tu celular y se cruza con \(app.partner.name) cuando vuelva la señal."
+                    "Revisa tu internet. Lo que anotes mientras tanto queda guardado en tu celular y se cruza con \(session.partner.name) cuando vuelva la señal."
                 )
                 .textStyle(.body)
                 .foregroundStyle(CruceColor.textBody)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 310)
-                if app.pendingSyncCount > 0 {
+                if ledger.pendingSyncCount > 0 {
                     HStack(spacing: 10) {
-                        Text("\(app.pendingSyncCount)")
+                        Text("\(ledger.pendingSyncCount)")
                             .font(.archivo(13, .black))
                             .frame(width: 26, height: 26)
                             .neoSurface(fill: CruceColor.peach, radius: 8, border: BorderWidth.thin)
                         Text(
-                            app.pendingSyncCount == 1
+                            ledger.pendingSyncCount == 1
                                 ? "movimiento pendiente por sincronizar" : "movimientos pendientes por sincronizar"
                         )
                         .font(.archivo(13, .bold))
@@ -61,8 +63,8 @@ struct OfflineView: View {
             VStack(spacing: 8) {
                 Button {
                     Task {
-                        await app.retrySync()
-                        if !app.isOffline { dismiss() }
+                        await ledger.retrySync()
+                        if !ledger.isOffline { dismiss() }
                     }
                 } label: {
                     Label("Reintentar", systemImage: "arrow.clockwise")
@@ -80,9 +82,11 @@ struct OfflineView: View {
     }
 }
 
-#Preview {
-    let state = AppState.preview()
-    state.pendingSyncCount = 1
-    state.isOffline = true
-    return NavigationStack { OfflineView().toolbar(.hidden, for: .navigationBar) }.environment(state)
-}
+#if DEBUG
+    #Preview {
+        let stores = AppStores.sample()
+        stores.ledger.pendingSyncCount = 1
+        stores.ledger.isOffline = true
+        return NavigationStack { OfflineView().toolbar(.hidden, for: .navigationBar) }.cruceStores(stores)
+    }
+#endif

@@ -4,14 +4,16 @@ import SwiftUI
 /// Inicio: el saldo neto es el protagonista.
 /// Pantallas del canvas: 02 Inicio vacío, 03 Te deben, 04 Debes, 20 Vista de Jesús.
 struct HomeView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
+    @Environment(Router.self) private var router
 
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header
-                    if app.movements.isEmpty {
+                    if ledger.isEmpty {
                         EmptyHomeContent()
                             .frame(maxHeight: .infinity)
                     } else {
@@ -35,16 +37,16 @@ struct HomeView: View {
         HStack {
             CruceLogo()
             Spacer()
-            if app.isOffline {
+            if ledger.isOffline {
                 Button {
-                    app.path.append(.offline)
+                    router.push(.offline)
                 } label: {
                     Badge(text: "Sin conexión", fill: CruceColor.pink)
                 }
                 .buttonStyle(.plain)
             }
             IconButton(systemName: "gearshape", accessibilityLabel: "Ajustes", size: 44) {
-                app.path.append(.settings)
+                router.push(.settings)
             }
         }
     }
@@ -52,29 +54,29 @@ struct HomeView: View {
     @ViewBuilder
     private var actions: some View {
         HStack(spacing: 12) {
-            switch app.balance {
+            switch ledger.balance {
             case .youOwe:
                 Button {
-                    app.path.append(.addMovement)
+                    router.push(.addMovement)
                 } label: {
                     Label("Agregar gasto", systemImage: "plus")
                 }
                 .buttonStyle(.neoSecondary)
                 Button {
-                    app.path.append(.settle)
+                    router.push(.settle)
                 } label: {
-                    Label("Pagarle a \(app.partner.name)", systemImage: "checkmark")
+                    Label("Pagarle a \(session.partner.name)", systemImage: "checkmark")
                 }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 54, text: .buttonSecondary))
             case .theyOweYou:
                 Button {
-                    app.path.append(.addMovement)
+                    router.push(.addMovement)
                 } label: {
                     Label("Agregar gasto", systemImage: "plus")
                 }
                 .buttonStyle(.neoPrimary)
                 Button {
-                    app.path.append(.settle)
+                    router.push(.settle)
                 } label: {
                     Label("Saldar", systemImage: "checkmark")
                 }
@@ -82,7 +84,7 @@ struct HomeView: View {
                 .frame(width: 118)
             case .settled:
                 Button {
-                    app.path.append(.addMovement)
+                    router.push(.addMovement)
                 } label: {
                     Label("Agregar gasto", systemImage: "plus")
                 }
@@ -99,22 +101,22 @@ struct HomeView: View {
                 Spacer()
                 // El subrayado va en el Text: aplicado al Button no llega a la etiqueta.
                 Button {
-                    app.path.append(.history)
+                    router.push(.history)
                 } label: {
                     Text("Ver todo").font(.archivo(14, .bold)).underline()
                 }
                 .foregroundStyle(CruceColor.ink)
             }
-            ForEach(app.sortedMovements.prefix(3)) { movement in
+            ForEach(ledger.visibleMovements.prefix(3)) { movement in
                 Button {
-                    app.path.append(.detail(movement.id))
+                    router.push(.detail(movement.id))
                 } label: {
                     MovementRow(
                         movement: movement,
-                        impact: app.impact(of: movement),
-                        payerName: app.member(movement.payerID).name,
-                        partnerName: app.partner.name,
-                        isPayerMe: movement.payerID == app.me.id,
+                        impact: ledger.impact(of: movement),
+                        payerName: session.member(movement.payerID).name,
+                        partnerName: session.partner.name,
+                        isPayerMe: movement.payerID == session.me.id,
                         dateText: DateText.relative(movement.date)
                     )
                 }
@@ -137,17 +139,19 @@ struct NeoLabelStyle: LabelStyle {
 
 /// Tarjeta del saldo neto con la ilustración del estado.
 struct BalanceCard: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
 
     var body: some View {
         FolderCard(
             tab: "SALDO NETO", tabColor: tabColor, padding: EdgeInsets(top: 14, leading: 18, bottom: 18, trailing: 18)
         ) {
             VStack(alignment: .leading, spacing: 8) {
-                IllustrationView(illustration: app.balanceIllustration, height: 140)
+                IllustrationView(
+                    illustration: Illustration.balance(ledger.balance, variant: session.me.tikeVariant), height: 140)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(phrase).textStyle(.balancePhrase)
-                    Text(Money.format(app.balance.amount))
+                    Text(Money.format(ledger.balance.amount))
                         .textStyle(.amount)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -161,7 +165,7 @@ struct BalanceCard: View {
     }
 
     private var tabColor: Color {
-        switch app.balance {
+        switch ledger.balance {
         case .theyOweYou: return CruceColor.green
         case .youOwe: return CruceColor.pink
         case .settled: return CruceColor.neutral
@@ -169,9 +173,9 @@ struct BalanceCard: View {
     }
 
     private var phrase: String {
-        switch app.balance {
-        case .theyOweYou: return "\(app.partner.name) te debe"
-        case .youOwe: return "Le debes a \(app.partner.name)"
+        switch ledger.balance {
+        case .theyOweYou: return "\(session.partner.name) te debe"
+        case .youOwe: return "Le debes a \(session.partner.name)"
         case .settled: return "Están a paz y salvo"
         }
     }
@@ -179,11 +183,11 @@ struct BalanceCard: View {
     @ViewBuilder
     private var caption: some View {
         HStack(spacing: 6) {
-            switch app.balance {
+            switch ledger.balance {
             case .theyOweYou:
-                DirectionLabel(from: app.partner.name, to: "tú")
+                DirectionLabel(from: session.partner.name, to: "tú")
             case .youOwe:
-                DirectionLabel(from: "Tú", to: app.partner.name)
+                DirectionLabel(from: "Tú", to: session.partner.name)
             case .settled:
                 EmptyView()
             }
@@ -194,12 +198,12 @@ struct BalanceCard: View {
     }
 
     private var summary: String {
-        let count = app.movementsSinceLastSettlement
+        let count = ledger.movementsSinceLastSettlement
         let noun = count == 1 ? "movimiento" : "movimientos"
-        guard let last = app.lastSettlementDate else { return "· \(count) \(noun)" }
+        guard let last = ledger.lastSettlementDate else { return "· \(count) \(noun)" }
         let relative = DateText.relative(last)
         let when = (relative == "Hoy" || relative == "Ayer") ? relative.lowercased() : "el \(relative)"
-        if app.balance == .settled { return "Saldaron \(when)" }
+        if ledger.balance == .settled { return "Saldaron \(when)" }
         return "· \(count) \(noun) desde \(when)"
     }
 }
@@ -224,7 +228,8 @@ struct DirectionLabel: View {
 
 /// Inicio sin movimientos (primera vez).
 struct EmptyHomeContent: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(Router.self) private var router
 
     var body: some View {
         VStack(spacing: 20) {
@@ -236,8 +241,8 @@ struct EmptyHomeContent: View {
                     }
                     Spacer()
                     HStack(spacing: -10) {
-                        Avatar(member: app.me)
-                        Avatar(member: app.partner)
+                        Avatar(member: session.me)
+                        Avatar(member: session.partner)
                     }
                 }
                 .foregroundStyle(CruceColor.ink)
@@ -263,7 +268,7 @@ struct EmptyHomeContent: View {
             Spacer(minLength: 20)
 
             Button {
-                app.path.append(.addMovement)
+                router.push(.addMovement)
             } label: {
                 Label("Agregar el primer gasto", systemImage: "plus")
             }
@@ -273,14 +278,16 @@ struct EmptyHomeContent: View {
     }
 }
 
-#Preview("Te deben") {
-    MainView().environment(AppState.preview())
-}
+#if DEBUG
+    #Preview("Te deben") {
+        MainView().cruceStores(.sample())
+    }
 
-#Preview("Vista de Jesús") {
-    MainView().environment(AppState.preview(viewer: MockData.jesus))
-}
+    #Preview("Vista de Jesús") {
+        MainView().cruceStores(.sample(viewer: MockData.jesus))
+    }
 
-#Preview("Vacío") {
-    MainView().environment(AppState.preview(movements: []))
-}
+    #Preview("Vacío") {
+        MainView().cruceStores(.sample(movements: []))
+    }
+#endif

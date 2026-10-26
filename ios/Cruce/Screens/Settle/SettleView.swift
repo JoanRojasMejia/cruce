@@ -9,7 +9,8 @@ struct SettleView: View {
         case transferencia = "Transferencia"
     }
 
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
     @State private var method: Method = .nequi
 
     var body: some View {
@@ -24,7 +25,7 @@ struct SettleView: View {
         VStack(alignment: .leading, spacing: 16) {
             ScreenHeader(title: "Saldar cuentas")
 
-            if app.balance == .settled {
+            if ledger.balance == .settled {
                 Spacer()
                 VStack(spacing: 12) {
                     IllustrationView(illustration: .allClear, height: 220)
@@ -51,10 +52,10 @@ struct SettleView: View {
                 VStack(spacing: 10) {
                     Button {
                         Task {
-                            await app.settle(paymentMethod: method.rawValue)
+                            await ledger.settle(paymentMethod: method.rawValue)
                         }
                     } label: {
-                        Label("Confirmar pago de \(Money.format(app.balance.amount))", systemImage: "checkmark")
+                        Label("Confirmar pago de \(Money.format(ledger.balance.amount))", systemImage: "checkmark")
                     }
                     .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
                     .labelStyle(NeoLabelStyle())
@@ -71,15 +72,15 @@ struct SettleView: View {
 
     /// Quién paga y quién recibe, con el antes y el después.
     private var paymentCard: some View {
-        let payer = iOwe ? app.me : app.partner
-        let receiver = iOwe ? app.partner : app.me
+        let payer = iOwe ? session.me : session.partner
+        let receiver = iOwe ? session.partner : session.me
 
         return FolderCard(tab: "PAGO PARA SALDAR", tabColor: CruceColor.pink, tabWidth: 160) {
             VStack(spacing: 14) {
                 HStack(spacing: 12) {
                     person(payer, caption: iOwe ? "Tú pagas" : "\(payer.name) paga")
                     VStack(spacing: 2) {
-                        Text(Money.format(app.balance.amount))
+                        Text(Money.format(ledger.balance.amount))
                             .font(.archivo(30, .black))
                             .tracking(-1)
                             .lineLimit(1)
@@ -94,7 +95,7 @@ struct SettleView: View {
                 }
                 BeforeAfter(
                     beforeTitle: "ANTES",
-                    before: app.phrase(forNet: app.net),
+                    before: ledger.phrase(forNet: ledger.net),
                     afterTitle: "DESPUÉS",
                     after: "$0 · a paz y salvo"
                 )
@@ -112,7 +113,7 @@ struct SettleView: View {
 
     /// Quien usa la app es quien debe y, por tanto, quien paga.
     private var iOwe: Bool {
-        if case .youOwe = app.balance { return true }
+        if case .youOwe = ledger.balance { return true }
         return false
     }
 
@@ -144,9 +145,11 @@ struct SettleView: View {
     }
 }
 
-#Preview {
-    NavigationStack {
-        SettleView().toolbar(.hidden, for: .navigationBar)
+#if DEBUG
+    #Preview {
+        NavigationStack {
+            SettleView().toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(.sample())
     }
-    .environment(AppState.preview())
-}
+#endif

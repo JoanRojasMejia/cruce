@@ -6,12 +6,12 @@ import UIKit
 /// TODO punto 2: reemplazar el botón por `SignInWithAppleButton` y conectar con Supabase Auth.
 /// Apple exige su botón oficial; este solo simula el paso.
 struct SignUpView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
     @State private var name = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            BackButton { app.phase = .onboarding }
+            BackButton { session.phase = .onboarding }
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Crea tu cuenta").textStyle(.title1Compact)
@@ -41,8 +41,8 @@ struct SignUpView: View {
             VStack(spacing: 12) {
                 Button {
                     let trimmed = name.trimmingCharacters(in: .whitespaces)
-                    if !trimmed.isEmpty { app.me.name = trimmed }
-                    app.phase = .invite
+                    if !trimmed.isEmpty { session.me.name = trimmed }
+                    session.phase = .invite
                 } label: {
                     Text("Continuar con Apple")
                 }
@@ -67,11 +67,11 @@ struct SignUpView: View {
         .padding(.top, 8)
         .padding(.bottom, 16)
         .screenBackground()
-        .onAppear { if name.isEmpty { name = app.me.name } }
+        .onAppear { if name.isEmpty { name = session.me.name } }
     }
 
     private var previewMember: Member {
-        var member = app.me
+        var member = session.me
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty { member.name = trimmed }
         return member
@@ -80,14 +80,14 @@ struct SignUpView: View {
 
 /// Invitar al amigo con un código (pantalla 14, lo ve quien crea la cuenta).
 struct InviteView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
     /// TODO punto 2: el código lo genera la función `create_ledger_with_invite` de Supabase.
     private let code = "CRZ-4821"
     @State private var copied = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            BackButton { app.phase = .signUp }
+            BackButton { session.phase = .signUp }
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Invita a tu amigo").textStyle(.title1Compact)
@@ -131,11 +131,11 @@ struct InviteView: View {
 
             // Simulación: en la app real esto cambia solo cuando el amigo canjea el código.
             Button {
-                app.phase = .connected
+                session.phase = .connected
             } label: {
                 HStack(spacing: 12) {
                     HStack(spacing: 0) {
-                        Avatar(member: app.me, size: 38)
+                        Avatar(member: session.me, size: 38)
                         Path { path in
                             path.move(to: CGPoint(x: 0, y: 1.25))
                             path.addLine(to: CGPoint(x: 22, y: 1.25))
@@ -164,7 +164,7 @@ struct InviteView: View {
 
             Spacer(minLength: 0)
 
-            Button("¿Te invitaron a ti? Ingresa un código") { app.phase = .join }
+            Button("¿Te invitaron a ti? Ingresa un código") { session.phase = .join }
                 .buttonStyle(NeoButtonStyle(kind: .secondary, height: 52))
         }
         .foregroundStyle(CruceColor.ink)
@@ -177,13 +177,13 @@ struct InviteView: View {
 
 /// Unirse con un código (pantalla 15, lo ve quien recibe la invitación).
 struct JoinView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
     @State private var digits = ""
     @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            BackButton { app.phase = .invite }
+            BackButton { session.phase = .invite }
 
             VStack(alignment: .leading, spacing: 10) {
                 // Salto explícito: iOS 17 reparte las líneas distinto ("Únete con / un código").
@@ -213,7 +213,7 @@ struct JoinView: View {
 
             Spacer(minLength: 0)
 
-            Button("Unirme a la cuenta de \(MockData.joan.name)") { app.phase = .connected }
+            Button("Unirme a la cuenta de \(MockData.joan.name)") { session.phase = .connected }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
                 .disabled(digits.count < 4)
         }
@@ -270,7 +270,7 @@ struct JoinView: View {
 
 /// Conectados (pantalla 16).
 struct ConnectedView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
 
     var body: some View {
         ZStack {
@@ -290,11 +290,11 @@ struct ConnectedView: View {
                     VStack(spacing: 14) {
                         IllustrationView(illustration: .welcome, height: 250, minHeight: 160)
                         HStack(spacing: 6) {
-                            Avatar(member: app.me, size: 40)
+                            Avatar(member: session.me, size: 40)
                             CruceLogoMark(size: 30, fill: CruceColor.ink, stroke: CruceColor.yellow)
-                            Avatar(member: app.partner, size: 40)
+                            Avatar(member: session.partner, size: 40)
                         }
-                        Text("¡\(app.me.name) y \(app.partner.name) ya están conectados!")
+                        Text("¡\(session.me.name) y \(session.partner.name) ya están conectados!")
                             .font(.archivo(32, .black, relativeTo: .largeTitle))
                             .tracking(-1.2)
                             .multilineTextAlignment(.center)
@@ -313,7 +313,7 @@ struct ConnectedView: View {
                     Spacer(minLength: 0)
 
                     Button {
-                        app.phase = .main
+                        session.phase = .main
                     } label: {
                         Label("Ir al inicio", systemImage: "arrow.right").labelStyle(TrailingIconLabelStyle())
                     }
@@ -328,7 +328,9 @@ struct ConnectedView: View {
     }
 }
 
-#Preview("Crear cuenta") { SignUpView().environment(AppState.preview(phase: .signUp)) }
-#Preview("Invitar") { InviteView().environment(AppState.preview(phase: .invite)) }
-#Preview("Unirse") { JoinView().environment(AppState.preview(phase: .join, viewer: MockData.jesus)) }
-#Preview("Conectados") { ConnectedView().environment(AppState.preview(phase: .connected)) }
+#if DEBUG
+    #Preview("Crear cuenta") { SignUpView().cruceStores(.sample(phase: .signUp)) }
+    #Preview("Invitar") { InviteView().cruceStores(.sample(phase: .invite)) }
+    #Preview("Unirse") { JoinView().cruceStores(.sample(phase: .join, viewer: MockData.jesus)) }
+    #Preview("Conectados") { ConnectedView().cruceStores(.sample(phase: .connected)) }
+#endif

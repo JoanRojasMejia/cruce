@@ -40,6 +40,18 @@ enum Illustration {
     }
 }
 
+extension Illustration {
+    /// Ilustración del saldo según el estado y la variante del recibo de quien usa la app
+    /// (regla rosa o verde, `Member.tikeVariant`). En $0 es "a paz y salvo".
+    static func balance(_ state: BalanceState, variant: TikeVariant) -> Illustration {
+        switch state {
+        case .theyOweYou: return .theyOweYou(variant)
+        case .youOwe: return .youOwe(variant)
+        case .settled: return .allClear
+        }
+    }
+}
+
 struct IllustrationView: View {
     let illustration: Illustration
     var height: CGFloat

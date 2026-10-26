@@ -20,6 +20,13 @@ public struct Member: Identifiable, Codable, Hashable, Sendable {
     public var avatarColor: AvatarColor
     public var tikeVariant: TikeVariant
 
+    public init(id: UUID = UUID(), name: String, avatarColor: AvatarColor, tikeVariant: TikeVariant) {
+        self.id = id
+        self.name = name
+        self.avatarColor = avatarColor
+        self.tikeVariant = tikeVariant
+    }
+
     /// Dos primeras letras del nombre ("Jo", "Je").
     public var initials: String {
         String(name.trimmingCharacters(in: .whitespaces).prefix(2))

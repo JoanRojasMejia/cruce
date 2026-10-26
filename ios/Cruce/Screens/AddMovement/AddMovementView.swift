@@ -15,7 +15,9 @@ struct AddMovementView: View {
         }
     }
 
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
+    @Environment(Router.self) private var router
 
     private let editing: Movement?
     @State private var digits: String
@@ -116,8 +118,8 @@ struct AddMovementView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("¿Quién pagó?").textStyle(.fieldLabel)
             HStack(spacing: 10) {
-                payerButton(app.me, title: "\(app.me.name) (tú)")
-                payerButton(app.partner, title: app.partner.name)
+                payerButton(session.me, title: "\(session.me.name) (tú)")
+                payerButton(session.partner, title: session.partner.name)
             }
         }
     }
@@ -180,9 +182,9 @@ struct AddMovementView: View {
     private var previewCard: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Ahora: \(app.phrase(forNet: baseNet))")
+                Text("Ahora: \(ledger.phrase(forNet: baseNet))")
                     .font(.archivo(12, .bold))
-                Text("Después de esto: \(app.phrase(forNet: baseNet + newImpact))")
+                Text("Después de esto: \(ledger.phrase(forNet: baseNet + newImpact))")
                     .font(.archivo(16, .black))
                     .tracking(-0.2)
             }
@@ -203,10 +205,10 @@ struct AddMovementView: View {
 
     private var amount: Int { Money.parse(digits: digits) }
 
-    private var currentPayerID: UUID { payerID ?? app.me.id }
+    private var currentPayerID: UUID { payerID ?? session.me.id }
 
     private var otherMember: Member {
-        currentPayerID == app.me.id ? app.partner : app.me
+        currentPayerID == session.me.id ? session.partner : session.me
     }
 
     private var split: SplitRule {
@@ -227,30 +229,32 @@ struct AddMovementView: View {
             category: category,
             split: split,
             date: editing?.date ?? .now,
-            createdBy: editing?.createdBy ?? app.me.id
+            createdBy: editing?.createdBy ?? session.me.id
         )
     }
 
     /// Saldo actual sin el movimiento que se está editando.
     private var baseNet: Int {
-        guard let editing else { return app.net }
-        return app.net - app.impact(of: editing)
+        guard let editing else { return ledger.net }
+        return ledger.net - ledger.impact(of: editing)
     }
 
-    private var newImpact: Int { app.impact(of: draft) }
+    private var newImpact: Int { ledger.impact(of: draft) }
 
     private func save() async {
         guard amount > 0 else { return }
         let movement = draft
-        if !app.path.isEmpty { app.path.removeLast() }
-        await app.save(movement)
+        router.pop()
+        await ledger.save(movement)
     }
 }
 
-#Preview {
-    NavigationStack {
-        AddMovementView()
-            .toolbar(.hidden, for: .navigationBar)
+#if DEBUG
+    #Preview {
+        NavigationStack {
+            AddMovementView()
+                .toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(.sample())
     }
-    .environment(AppState.preview())
-}
+#endif

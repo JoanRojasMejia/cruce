@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Onboarding de 3 pasos (pantallas 01, 11 y 12).
 struct OnboardingView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
     @State private var page: Int
 
     init(page: Int = 0) {
@@ -44,7 +44,7 @@ struct OnboardingView: View {
                     if page < 2 {
                         withAnimation(.easeInOut(duration: 0.25)) { page += 1 }
                     } else {
-                        app.phase = .signUp
+                        session.phase = .signUp
                     }
                 } label: {
                     Label(primaryTitle, systemImage: "arrow.right")
@@ -54,8 +54,8 @@ struct OnboardingView: View {
 
                 Button(secondaryTitle) {
                     switch page {
-                    case 0: app.phase = .signUp
-                    case 1: app.phase = .signUp
+                    case 0: session.phase = .signUp
+                    case 1: session.phase = .signUp
                     default: withAnimation { page = 1 }
                     }
                 }
@@ -215,6 +215,8 @@ private struct SettlePage: View {
     }
 }
 
-#Preview {
-    OnboardingView().environment(AppState.preview(phase: .onboarding))
-}
+#if DEBUG
+    #Preview {
+        OnboardingView().cruceStores(.sample(phase: .onboarding))
+    }
+#endif

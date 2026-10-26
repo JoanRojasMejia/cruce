@@ -3,7 +3,9 @@ import SwiftUI
 
 /// Hoja "¡Gasto guardado!" que sube sobre el inicio (pantalla 06).
 struct MovementSavedSheet: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
+    @Environment(Router.self) private var router
     @Environment(\.dismiss) private var dismiss
     let movement: Movement
 
@@ -25,25 +27,25 @@ struct MovementSavedSheet: View {
 
             MovementRow(
                 movement: movement,
-                impact: app.impact(of: movement),
-                payerName: app.member(movement.payerID).name,
-                partnerName: app.partner.name,
-                isPayerMe: movement.payerID == app.me.id,
+                impact: ledger.impact(of: movement),
+                payerName: session.member(movement.payerID).name,
+                partnerName: session.partner.name,
+                isPayerMe: movement.payerID == session.me.id,
                 dateText: movement.category.title
             )
 
             BeforeAfter(
                 beforeTitle: "ANTES",
-                before: app.phrase(forNet: app.net - app.impact(of: movement)),
+                before: ledger.phrase(forNet: ledger.net - ledger.impact(of: movement)),
                 afterTitle: "AHORA",
-                after: app.phrase(forNet: app.net),
-                afterColor: app.net >= 0 ? CruceColor.green : CruceColor.pink
+                after: ledger.phrase(forNet: ledger.net),
+                afterColor: ledger.net >= 0 ? CruceColor.green : CruceColor.pink
             )
 
             HStack(spacing: 10) {
                 Button("Agregar otro") {
                     dismiss()
-                    app.path.append(.addMovement)
+                    router.push(.addMovement)
                 }
                 .buttonStyle(.neoSecondary)
 
@@ -75,13 +77,15 @@ struct SheetBackground: View {
     }
 }
 
-#Preview {
-    let state = AppState.preview()
-    return Color.clear
-        .sheet(isPresented: .constant(true)) {
-            MovementSavedSheet(movement: state.sortedMovements[0])
-                .presentationDetents([.height(620)])
-                .presentationBackground(CruceColor.cream)
-        }
-        .environment(state)
-}
+#if DEBUG
+    #Preview {
+        let stores = AppStores.sample()
+        return Color.clear
+            .sheet(isPresented: .constant(true)) {
+                MovementSavedSheet(movement: stores.ledger.visibleMovements[0])
+                    .presentationDetents([.height(620)])
+                    .presentationBackground(CruceColor.cream)
+            }
+            .cruceStores(stores)
+    }
+#endif

@@ -3,7 +3,9 @@ import SwiftUI
 
 /// Ajustes (pantalla 19).
 struct SettingsView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
+    @Environment(Router.self) private var router
     @State private var notifyNewExpense = true
 
     var body: some View {
@@ -14,9 +16,9 @@ struct SettingsView: View {
                 Button {
                 } label: {
                     HStack(spacing: 14) {
-                        Avatar(member: app.me, size: 54)
+                        Avatar(member: session.me, size: 54)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(app.me.name).font(.archivo(18, .extraBold))
+                            Text(session.me.name).font(.archivo(18, .extraBold))
                             Text("Cuenta de Apple conectada").textStyle(.secondary).foregroundStyle(
                                 CruceColor.textSecondary)
                         }
@@ -31,10 +33,10 @@ struct SettingsView: View {
 
                 section("CUENTA COMPARTIDA") {
                     row {
-                        Avatar(member: app.partner, size: 24)
-                        Text("Con \(app.partner.name)").font(.archivo(15, .bold))
+                        Avatar(member: session.partner, size: 24)
+                        Text("Con \(session.partner.name)").font(.archivo(15, .bold))
                         Spacer()
-                        if let first = app.sortedMovements.last?.date {
+                        if let first = ledger.visibleMovements.last?.date {
                             Text("desde \(DateText.relative(first))").textStyle(.secondary).foregroundStyle(
                                 CruceColor.textSecondary)
                         }
@@ -57,7 +59,7 @@ struct SettingsView: View {
 
                 section("NOTIFICACIONES") {
                     Toggle(isOn: $notifyNewExpense) {
-                        Text("Cuando \(app.partner.name) anote un gasto").font(.archivo(15, .bold))
+                        Text("Cuando \(session.partner.name) anote un gasto").font(.archivo(15, .bold))
                     }
                     .toggleStyle(NeoToggleStyle())
                     .frame(minHeight: 52)
@@ -73,10 +75,12 @@ struct SettingsView: View {
                 section("DATOS") {
                     actionRow("Exportar historial (CSV)", systemImage: "arrow.down.to.line") {}
                     divider
-                    actionRow("Desvincular a \(app.partner.name)", systemImage: "xmark", tint: CruceColor.pink) {}
+                    actionRow("Desvincular a \(session.partner.name)", systemImage: "xmark", tint: CruceColor.pink) {}
                     divider
                     actionRow("Cerrar sesión", systemImage: "rectangle.portrait.and.arrow.right") {
-                        app.signOut()
+                        // Cruza dos stores: primero se limpia la navegación y luego se cierra la sesión.
+                        router.popToRoot()
+                        session.signOut()
                     }
                 }
 
@@ -150,9 +154,11 @@ struct SettingsView: View {
     }
 }
 
-#Preview {
-    NavigationStack {
-        SettingsView().toolbar(.hidden, for: .navigationBar)
+#if DEBUG
+    #Preview {
+        NavigationStack {
+            SettingsView().toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(.sample())
     }
-    .environment(AppState.preview())
-}
+#endif

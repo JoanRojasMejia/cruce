@@ -3,11 +3,11 @@ import SwiftUI
 
 /// Decide qué flujo mostrar según la etapa de la sesión.
 struct RootView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
 
     var body: some View {
         Group {
-            switch app.phase {
+            switch session.phase {
             case .onboarding: OnboardingView()
             case .signUp: SignUpView()
             case .invite: InviteView()
@@ -16,17 +16,19 @@ struct RootView: View {
             case .main: MainView()
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: app.phase)
+        .animation(.easeInOut(duration: 0.25), value: session.phase)
     }
 }
 
 /// Flujo principal con navegación por pila.
 struct MainView: View {
-    @Environment(AppState.self) private var app
+    @Environment(LedgerStore.self) private var ledger
+    @Environment(Router.self) private var router
 
     var body: some View {
-        @Bindable var app = app
-        NavigationStack(path: $app.path) {
+        @Bindable var ledger = ledger
+        @Bindable var router = router
+        NavigationStack(path: $router.path) {
             HomeView()
                 .toolbar(.hidden, for: .navigationBar)
                 .swipeBackEnabled()
@@ -38,19 +40,19 @@ struct MainView: View {
         }
         // Oscurece el inicio detrás de "Gasto guardado" más que la atenuación del sistema.
         .overlay {
-            if app.lastSaved != nil {
+            if ledger.lastSaved != nil {
                 CruceColor.scrim.ignoresSafeArea().transition(.opacity).allowsHitTesting(false)
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: app.lastSaved != nil)
-        .sheet(item: $app.lastSaved) { movement in
+        .animation(.easeInOut(duration: 0.25), value: ledger.lastSaved != nil)
+        .sheet(item: $ledger.lastSaved) { movement in
             MovementSavedSheet(movement: movement)
                 .presentationDetents([.height(520), .large])
                 .presentationCornerRadius(Radius.sheet)
                 .presentationBackground { SheetBackground() }
                 .presentationDragIndicator(.hidden)
         }
-        .fullScreenCover(item: $app.lastSettlement) { payment in
+        .fullScreenCover(item: $ledger.lastSettlement) { payment in
             SettleSuccessView(payment: payment)
         }
     }
@@ -59,7 +61,7 @@ struct MainView: View {
     private func destination(for route: Route) -> some View {
         switch route {
         case .addMovement: AddMovementView()
-        case .editMovement(let id): AddMovementView(editing: app.movement(id))
+        case .editMovement(let id): AddMovementView(editing: ledger.movement(id))
         case .history: HistoryView()
         case .detail(let id): MovementDetailView(movementID: id)
         case .settle: SettleView()
@@ -69,10 +71,12 @@ struct MainView: View {
     }
 }
 
-#Preview("Inicio") {
-    RootView().environment(AppState.preview())
-}
+#if DEBUG
+    #Preview("Inicio") {
+        RootView().cruceStores(.sample())
+    }
 
-#Preview("Onboarding") {
-    RootView().environment(AppState.preview(phase: .onboarding))
-}
+    #Preview("Onboarding") {
+        RootView().cruceStores(.sample(phase: .onboarding))
+    }
+#endif

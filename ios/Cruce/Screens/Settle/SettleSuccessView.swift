@@ -3,7 +3,8 @@ import SwiftUI
 
 /// "¡A paz y salvo!" después de saldar (pantalla 09).
 struct SettleSuccessView: View {
-    @Environment(AppState.self) private var app
+    @Environment(SessionStore.self) private var session
+    @Environment(Router.self) private var router
     @Environment(\.dismiss) private var dismiss
     let payment: Movement
 
@@ -36,13 +37,13 @@ struct SettleSuccessView: View {
 
                 VStack(spacing: 12) {
                     Button("Volver al inicio") {
-                        app.path = []
+                        router.popToRoot()
                         dismiss()
                     }
                     .buttonStyle(.neoDark)
 
                     ShareLink(item: shareText) {
-                        Label("Compartir con \(app.partner.name)", systemImage: "square.and.arrow.up")
+                        Label("Compartir con \(session.partner.name)", systemImage: "square.and.arrow.up")
                     }
                     .buttonStyle(.neoSecondary)
                     .labelStyle(NeoLabelStyle())
@@ -58,10 +59,10 @@ struct SettleSuccessView: View {
     private var message: String {
         let amount = Money.format(payment.amount)
         let method = payment.paymentMethod.map { " por \($0)" } ?? ""
-        if payment.payerID == app.me.id {
-            return "Le pagaste \(amount) a \(app.partner.name)\(method).\nEl saldo quedó en $0."
+        if payment.payerID == session.me.id {
+            return "Le pagaste \(amount) a \(session.partner.name)\(method).\nEl saldo quedó en $0."
         }
-        return "\(app.partner.name) te pagó \(amount)\(method).\nEl saldo quedó en $0."
+        return "\(session.partner.name) te pagó \(amount)\(method).\nEl saldo quedó en $0."
     }
 
     private var shareText: String {
@@ -84,11 +85,13 @@ struct SettleSuccessView: View {
     }
 }
 
-#Preview {
-    let state = AppState.preview()
-    let payment = BalanceCalculator.settlement(
-        movements: state.sortedMovements, me: MockData.joan.id, other: MockData.jesus.id,
-        createdBy: MockData.joan.id, paymentMethod: "Nequi"
-    )!
-    return SettleSuccessView(payment: payment).environment(state)
-}
+#if DEBUG
+    #Preview {
+        let stores = AppStores.sample()
+        let payment = BalanceCalculator.settlement(
+            movements: stores.ledger.visibleMovements, me: MockData.joan.id, other: MockData.jesus.id,
+            createdBy: MockData.joan.id, paymentMethod: "Nequi"
+        )!
+        return SettleSuccessView(payment: payment).cruceStores(stores)
+    }
+#endif
