@@ -6,10 +6,13 @@ struct ParcheDetailView: View {
     @Environment(SessionStore.self) private var session
     @Environment(ParcheStore.self) private var parches
     @Environment(Router.self) private var router
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private let parcheID: UUID
     /// Avisos sin ver al entrar; al abrir el parche el contador vuelve a cero, pero se resaltan estos.
     @State private var unseenOnOpen: Int?
+    /// Última vez que habías abierto el parche antes de ahora: lo de otros después de eso se marca "nuevo".
+    @State private var lastSeenOnOpen: Date?
     @State private var newPerson = ""
     @State private var confirming: ParchePayment?
     @State private var copied = false
@@ -35,6 +38,7 @@ struct ParcheDetailView: View {
             if unseenOnOpen == nil {
                 if parches.parche(parcheID) == nil { await parches.refresh(parcheID) }
                 unseenOnOpen = parches.parche(parcheID)?.unseenCount ?? 0
+                lastSeenOnOpen = parches.parche(parcheID)?.me?.lastSeenAt ?? .distantPast
             }
             await parches.open(parcheID)
         }
@@ -136,9 +140,11 @@ struct ParcheDetailView: View {
         .accessibilityElement(children: .combine)
     }
 
-    @ViewBuilder
     private func actions(_ detail: ParcheDetail) -> some View {
-        HStack(spacing: 12) {
+        // Con texto grande los dos botones no caben lado a lado: van uno debajo del otro.
+        let layout =
+            dynamicTypeSize >= .xxLarge ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
             if detail.parche.isOpen {
                 Button {
                     router.push(.addParcheExpense(parcheID: parcheID))
@@ -405,18 +411,21 @@ struct ParcheDetailView: View {
                 if index > 0 { CardDivider() }
                 HStack(alignment: .top, spacing: 10) {
                     Circle()
-                        .fill(index < unseen ? CruceColor.pink : CruceColor.neutral)
+                        .fill(isNew(item, in: detail) ? CruceColor.pink : CruceColor.neutral)
                         .overlay(Circle().strokeBorder(CruceColor.ink, lineWidth: 1.5))
                         .frame(width: 10, height: 10)
                         .padding(.top, 4)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(parches.phrase(for: item, in: detail))
-                            .font(.archivo(14, index < unseen ? .extraBold : .bold))
+                            .font(.archivo(14, isNew(item, in: detail) ? .extraBold : .bold))
                             .fixedSize(horizontal: false, vertical: true)
-                        Text(DateText.moment(item.createdAt).capitalizedFirst + (index < unseen ? " · nuevo" : ""))
-                            .textStyle(.secondary)
-                            .foregroundStyle(CruceColor.textSecondary)
+                        Text(
+                            DateText.moment(item.createdAt).capitalizedFirst
+                                + (isNew(item, in: detail) ? " · nuevo" : "")
+                        )
+                        .textStyle(.secondary)
+                        .foregroundStyle(CruceColor.textSecondary)
                     }
                     Spacer(minLength: 0)
                 }
@@ -472,6 +481,12 @@ struct ParcheDetailView: View {
         let amount = Money.format(payment.amount)
         if payment.fromID == detail.myParticipantID { return "Le pagaste \(amount) a \(to)" }
         return "\(from) le pagó \(amount) a \(to)"
+    }
+
+    /// Un aviso de otra persona que llegó después de la última vez que abriste el parche.
+    private func isNew(_ item: ParcheActivity, in detail: ParcheDetail) -> Bool {
+        guard let lastSeenOnOpen, (unseenOnOpen ?? 0) > 0 else { return false }
+        return item.actorID != detail.myParticipantID && item.createdAt > lastSeenOnOpen
     }
 
     private func dismissConfirmation() {

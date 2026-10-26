@@ -45,9 +45,13 @@ struct ParcheListView: View {
 /// "Nuevo parche" y "Tengo un código", lado a lado.
 struct ParcheEntryButtons: View {
     @Environment(Router.self) private var router
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: 12) {
+        // Con texto grande van uno debajo del otro.
+        let layout =
+            dynamicTypeSize >= .xxLarge ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
             Button {
                 router.push(.newParche)
             } label: {
@@ -108,7 +112,7 @@ struct ParcheRow: View {
                     .foregroundStyle(CruceColor.textSecondary)
             }
             Spacer(minLength: 8)
-            HStack(spacing: -10) {
+            HStack(spacing: -6) {
                 ForEach(Array(detail.participants.prefix(3).enumerated()), id: \.element.id) { index, person in
                     ParcheAvatar(participant: person, index: detail.index(of: person.id), size: 30)
                         .zIndex(Double(-index))
@@ -133,7 +137,7 @@ struct ParcheRow: View {
     }
 
     private var unseenText: String {
-        detail.unseenCount == 1 ? "1 aviso nuevo" : "\(detail.unseenCount) avisos nuevos"
+        detail.unseenCount == 1 ? "1 nuevo" : "\(detail.unseenCount) nuevos"
     }
 
     private var myBalance: String {
