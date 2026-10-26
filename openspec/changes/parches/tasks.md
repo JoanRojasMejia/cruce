@@ -12,8 +12,8 @@ Depende de `inicio-sesion-correo` (sesión real) para la sección 4.
 
 ## 2. Base de datos
 
-- [ ] 2.1 RED: `supabase/tests/06_parches.sql` (pgTAP): crear y unirse con código, agregar sin la app, reclamar lugar (y no si ya está), RLS (fuera del parche no ve nada; `anon` nada), gastos solo con el parche abierto, pagos y confirmación, cerrar sin reabrir, validación de sumas, pasar la deuda al cruce (movimiento en `movements`, una sola vez, solo si comparten cruce), actividad. Sin commit propio
-- [ ] 2.2 GREEN: migración nueva `supabase/migrations/<timestamp>_parches.sql` con tablas, tipos, triggers de validación y actividad, RLS y funciones de `design.md` §8. `supabase test db` en verde (74 + las nuevas). Commit: `feat(supabase): agregar parches`
+- [x] 2.1 RED: `supabase/tests/06_parches.sql` (pgTAP): crear y unirse con código, agregar sin la app, reclamar lugar (y no si ya está), RLS (fuera del parche no ve nada; `anon` nada), gastos solo con el parche abierto, pagos y confirmación, cerrar sin reabrir, validación de sumas, pasar la deuda al cruce (movimiento en `movements`, una sola vez, solo si comparten cruce), actividad. Sin commit propio (verificado: RED con `supabase test db`, que falló porque no existían las tablas ni las funciones)
+- [x] 2.2 GREEN: migración nueva `supabase/migrations/<timestamp>_parches.sql` con tablas, tipos, triggers de validación y actividad, RLS y funciones de `design.md` §8. `supabase test db` en verde (74 + las nuevas). Commit: `feat(supabase): agregar parches` (verificado: migración `20261026095551_parches.sql`; `supabase db reset` la aplica y `supabase test db` da 163 pruebas en verde, 74 + 89 de `06_parches.sql`; `supabase db lint --level warning` sin errores)
 
 ## 3. Pantallas y tickets
 
