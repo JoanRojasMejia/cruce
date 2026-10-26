@@ -27,7 +27,7 @@ struct RootView: View {
             switch session.phase {
             case .onboarding: OnboardingView()
             case .signUp: SignUpView()
-            case .invite: InviteView()
+            case .invite: InviteFlow()
             case .join: JoinView()
             case .connected: ConnectedView()
             case .main: MainView()
@@ -48,11 +48,7 @@ struct MainView: View {
             HomeView()
                 .toolbar(.hidden, for: .navigationBar)
                 .swipeBackEnabled()
-                .navigationDestination(for: Route.self) { route in
-                    destination(for: route)
-                        .toolbar(.hidden, for: .navigationBar)
-                        .swipeBackEnabled()
-                }
+                .routeDestinations()
         }
         // Oscurece el inicio detrás de "Gasto guardado" más que la atenuación del sistema.
         .overlay {
@@ -72,6 +68,34 @@ struct MainView: View {
             SettleSuccessView(payment: payment)
         }
     }
+}
+
+/// Invitar con su propia pila: quien todavía no tiene cruce llega desde aquí a "Tengo un código" y a sus parches.
+struct InviteFlow: View {
+    @Environment(Router.self) private var router
+
+    var body: some View {
+        @Bindable var router = router
+        NavigationStack(path: $router.path) {
+            InviteView()
+                .toolbar(.hidden, for: .navigationBar)
+                .swipeBackEnabled()
+                .routeDestinations()
+        }
+    }
+}
+
+/// Las pantallas de cada `Route`. Lo comparten el flujo principal e invitar.
+struct RouteDestinations: ViewModifier {
+    @Environment(LedgerStore.self) private var ledger
+
+    func body(content: Content) -> some View {
+        content.navigationDestination(for: Route.self) { route in
+            destination(for: route)
+                .toolbar(.hidden, for: .navigationBar)
+                .swipeBackEnabled()
+        }
+    }
 
     @ViewBuilder
     private func destination(for route: Route) -> some View {
@@ -83,7 +107,22 @@ struct MainView: View {
         case .settle: SettleView()
         case .settings: SettingsView()
         case .offline: OfflineView()
+        case .parches: ParcheListView()
+        case .parche(let id): ParcheDetailView(parcheID: id)
+        case .newParche: NewParcheView()
+        case .addParcheExpense(let parcheID): ParcheExpenseView(parcheID: parcheID)
+        case .editParcheExpense(let parcheID, let expenseID): ParcheExpenseView(parcheID: parcheID, editing: expenseID)
+        case .parchePayment(let parcheID): ParchePaymentView(parcheID: parcheID)
+        case .closeParche(let parcheID): CloseParcheView(parcheID: parcheID)
+        case .enterCode: EnterCodeView()
         }
+    }
+}
+
+extension View {
+    /// Abre las pantallas de `Route` dentro de un `NavigationStack`.
+    func routeDestinations() -> some View {
+        modifier(RouteDestinations())
     }
 }
 

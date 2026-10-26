@@ -9,6 +9,9 @@
         case signUp, signUpCode, signUpName, invite, join, connected
         case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus
         case add, saved, history, detail, delete, settle, success, offline, settings
+        case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
+            parcheExpenseItems
+        case parcheDelete, parchePayment, parcheClose, parcheCruce, parcheClosed, parcheOffline
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
         static var current: DebugScreen? {
@@ -41,6 +44,23 @@
                 stores.ledger.pendingSyncCount = 1
                 return stores
             case .settings: return stores(path: [.settings])
+            case .parches: return stores(path: [.parches])
+            case .parchesEmpty: return stores(path: [.parches], parcheBackend: InMemoryParcheBackend())
+            case .parcheNew: return stores(path: [.newParche])
+            case .parcheCode: return stores(path: [.enterCode])
+            case .parcheDetail, .parcheDetailEnd, .parcheOffline:
+                return stores(path: [.parche(MockParches.santaMartaID)])
+            case .parcheExpense: return stores(path: [.addParcheExpense(parcheID: MockParches.santaMartaID)])
+            case .parcheExpenseItems, .parcheDelete:
+                return stores(path: [
+                    .editParcheExpense(parcheID: MockParches.santaMartaID, expenseID: Self.lunchID)
+                ])
+            case .parchePayment: return stores(path: [.parchePayment(parcheID: MockParches.santaMartaID)])
+            case .parcheClose: return stores(path: [.closeParche(parcheID: MockParches.santaMartaID)])
+            case .parcheCruce:
+                return stores(path: [.closeParche(parcheID: MockParches.santaMartaID)], parcheBackend: closedBackend())
+            case .parcheClosed:
+                return stores(path: [.parche(MockParches.santaMartaID)], parcheBackend: closedBackend())
             case .saved:
                 let stores = AppStores.sample()
                 stores.ledger.lastSaved = stores.ledger.visibleMovements.first
@@ -68,15 +88,62 @@
                     )
                     .toolbar(.hidden, for: .navigationBar)
                 }
+            case .parcheDetailEnd:
+                NavigationStack {
+                    ParcheDetailView(parcheID: MockParches.santaMartaID, startsAtBottom: true)
+                        .toolbar(.hidden, for: .navigationBar)
+                }
+            case .parcheCruce:
+                NavigationStack {
+                    CloseParcheView(parcheID: MockParches.santaMartaID, closed: true)
+                        .toolbar(.hidden, for: .navigationBar)
+                }
+            case .parcheDelete:
+                NavigationStack {
+                    ParcheExpenseView(
+                        parcheID: MockParches.santaMartaID, editing: Self.lunchID, confirmingDelete: true
+                    )
+                    .toolbar(.hidden, for: .navigationBar)
+                }
+            case .parcheOffline:
+                RootView()
+                    .task {
+                        // Se va la señal y un pago queda en la cola del teléfono.
+                        await stores.parches.load()
+                        await Self.offlineBackend.setOffline(true)
+                        await stores.parches.recordPayment(
+                            in: MockParches.santaMartaID, from: MockParches.carlos, to: MockParches.jesus,
+                            amount: 20_000)
+                    }
             default: RootView()
             }
         }
 
+        /// El almuerzo de "Santa Marta" (reparto por consumo con propina).
+        private static let lunchID = UUID(uuidString: "00000000-0000-0000-0000-00000000E001")!
+
+        /// Backend que `parcheOffline` deja sin conexión después de cargar.
+        private static let offlineBackend = MockParches.backend()
+
         @MainActor
-        private func stores(path: [Route]) -> AppStores {
-            let stores = AppStores.sample()
+        private func stores(path: [Route], parcheBackend: InMemoryParcheBackend? = nil) -> AppStores {
+            let backend = parcheBackend ?? (self == .parcheOffline ? Self.offlineBackend : nil)
+            let stores = AppStores.sample(parcheBackend: backend)
             stores.router.path = path
             return stores
+        }
+
+        /// "Santa Marta" ya cerrado: Joan y Jesús comparten un cruce y se deben algo, así que aparece la pregunta.
+        private func closedBackend() -> InMemoryParcheBackend {
+            let parches = MockParches.parches().map { detail in
+                var detail = detail
+                if detail.id == MockParches.santaMartaID {
+                    detail.parche.status = .closed
+                    detail.parche.closedAt = .now
+                }
+                return detail
+            }
+            return InMemoryParcheBackend(parches: parches, cruces: [[MockData.joan.id, MockData.jesus.id]])
         }
     }
 #endif

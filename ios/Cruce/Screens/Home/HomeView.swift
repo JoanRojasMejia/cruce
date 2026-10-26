@@ -21,6 +21,8 @@ struct HomeView: View {
                         actions
                         recent
                     }
+                    HomeParchesSection()
+                        .padding(.top, 4)
                 }
                 .padding(.horizontal, Spacing.screen)
                 .padding(.top, 8)

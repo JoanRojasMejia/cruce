@@ -2,11 +2,12 @@ import CruceCore
 import Supabase
 import SwiftUI
 
-/// Los tres stores de la app, juntos solo para llevarlos de la raíz a las vistas. No tiene lógica.
+/// Los stores de la app, juntos solo para llevarlos de la raíz a las vistas. No tiene lógica.
 struct AppStores {
     let session: SessionStore
     let ledger: LedgerStore
     let router: Router
+    let parches: ParcheStore
 
     /// Arranque real: la sesión con Supabase Auth (local en Debug, la nube en Release), un solo `SupabaseClient`
     /// para la autenticación y los datos, y sin movimientos hasta el CP5. La etapa sale de `session.refresh()`.
@@ -28,16 +29,22 @@ struct AppStores {
             isReady: false
         )
         let ledger = LedgerStore(session: session, repository: InMemoryLedgerRepository())
-        return AppStores(session: session, ledger: ledger, router: Router())
+        // TODO(4.1): reemplazar por `SupabaseParcheRepository` con la cola guardada en disco. Mientras tanto los
+        // parches viven solo en memoria, con un usuario fijo, y se pierden al cerrar la app.
+        let parches = ParcheStore(
+            session: session,
+            repository: InMemoryParcheRepository(backend: InMemoryParcheBackend(), userID: UUID()))
+        return AppStores(session: session, ledger: ledger, router: Router(), parches: parches)
     }
 }
 
 extension View {
-    /// Inyecta los tres stores en el `Environment`. Toda raíz (la app, `DebugScreen` y las vistas previas)
+    /// Inyecta los stores en el `Environment`. Toda raíz (la app, `DebugScreen` y las vistas previas)
     /// usa este modificador, así ninguna se queda sin uno.
     func cruceStores(_ stores: AppStores) -> some View {
         environment(stores.session)
             .environment(stores.ledger)
             .environment(stores.router)
+            .environment(stores.parches)
     }
 }

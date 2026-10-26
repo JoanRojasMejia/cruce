@@ -279,6 +279,7 @@ private struct TermsText: View {
 /// Invitar al amigo con un código (pantalla 14, lo ve quien crea la cuenta).
 struct InviteView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(Router.self) private var router
     /// El código viene de la sesión (en el CP4 lo genera `create_ledger_with_invite` de Supabase).
     /// Mientras no exista se muestra un marcador con el mismo estilo.
     private var code: String { session.inviteCode ?? "CRZ-····" }
@@ -366,8 +367,21 @@ struct InviteView: View {
 
             Spacer(minLength: 0)
 
-            Button("¿Te invitaron a ti? Ingresa un código") { session.phase = .join }
-                .buttonStyle(NeoButtonStyle(kind: .secondary, height: 52))
+            // "Tengo un código" acepta el del cruce (va a unirse) y los de parches; los parches no necesitan cruce.
+            HStack(spacing: 12) {
+                Button {
+                    router.push(.enterCode)
+                } label: {
+                    Label("Tengo un código", systemImage: "number")
+                }
+                Button {
+                    router.push(.parches)
+                } label: {
+                    Label("Mis parches", systemImage: "person.3")
+                }
+            }
+            .buttonStyle(NeoButtonStyle(kind: .secondary, height: 52))
+            .labelStyle(NeoLabelStyle())
 
             // Mientras no haya cuenta compartida (CP4), los ajustes no existen: cerrar sesión va aquí.
             if session.userID != nil {

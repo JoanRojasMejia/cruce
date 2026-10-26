@@ -11,7 +11,8 @@
             viewer: Member = MockData.joan,
             movements: [Movement] = MockData.movements(),
             userID: UUID? = nil,
-            pendingEmail: String? = nil
+            pendingEmail: String? = nil,
+            parcheBackend: InMemoryParcheBackend? = nil
         ) -> AppStores {
             let other = viewer.id == MockData.joan.id ? MockData.jesus : MockData.joan
             // Sesión con dobles en memoria: cualquier correo recibe el código 123456, sin red.
@@ -26,7 +27,12 @@
                 repository: InMemoryLedgerRepository(movements: movements),
                 movements: movements
             )
-            return AppStores(session: session, ledger: ledger, router: Router())
+            // Los parches de `MockParches` vistos por quien usa la app; se leen con `parches.load()` al arrancar.
+            let parches = ParcheStore(
+                session: session,
+                repository: InMemoryParcheRepository(backend: parcheBackend ?? MockParches.backend(), userID: viewer.id)
+            )
+            return AppStores(session: session, ledger: ledger, router: Router(), parches: parches)
         }
     }
 #endif

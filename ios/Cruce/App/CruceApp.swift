@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Raíz de composición: arma los tres stores y los inyecta en el `Environment`.
+/// Raíz de composición: arma los stores y los inyecta en el `Environment`.
 @main
 struct CruceApp: App {
     @State private var stores: AppStores
@@ -22,7 +22,10 @@ struct CruceApp: App {
                 .preferredColorScheme(.light)
                 // El texto crece con el sistema hasta accessibility1; más allá rompe el diseño.
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                .task { await stores.ledger.load() }
+                .task {
+                    await stores.ledger.load()
+                    await stores.parches.load()
+                }
         }
     }
 
