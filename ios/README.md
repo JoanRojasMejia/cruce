@@ -19,6 +19,17 @@ cd ios/Packages/CruceCore
 swift test                 # Swift Testing: saldo, formato de pesos y fechas
 ```
 
+## Formato
+
+El formato de Swift lo define `.swift-format` en la raíz del repo (sangría de 4 espacios, líneas de hasta 120). Desde la raíz:
+
+```bash
+swift format lint --strict --recursive ios/Cruce ios/Packages/CruceCore     # revisa; no debe reportar nada
+swift format --in-place --recursive ios/Cruce ios/Packages/CruceCore        # corrige el formato
+```
+
+Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcode genera en `ios/build/` (por ejemplo `GeneratedAssetSymbols.swift`). La CI revisa con `--strict` solo `ios/Packages/CruceCore`.
+
 ## Estructura
 
 | Carpeta | Qué hay |
