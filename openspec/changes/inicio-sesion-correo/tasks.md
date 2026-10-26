@@ -6,18 +6,18 @@ Modos de `CLAUDE.local.md`: las tareas 1 a 3 son “Lógica pura” o compilaci�
 
 ## 1. Lógica en CruceCore
 
-- [ ] 1.1 RED: pruebas de `SessionStore` con dobles de `AuthService` y `AccountDirectory`: etapa sin sesión, sin perfil, sin cuenta y con cuenta; pedir y verificar código (correcto, incorrecto); validación del correo; nombre de 1 a 40 caracteres; cerrar sesión vuelve a onboarding. Sin commit propio
-- [ ] 1.2 GREEN: protocolos `AuthService` y `AccountDirectory`, dobles en memoria para pruebas y vistas previas, y `SessionStore.refresh()`, `sendCode`, `verify`, `createProfile` y `signOut`. Commit: `feat(ios): agregar la sesión con código por correo a CruceCore`
+- [x] 1.1 RED: pruebas de `SessionStore` con dobles de `AuthService` y `AccountDirectory`: etapa sin sesión, sin perfil, sin cuenta y con cuenta; pedir y verificar código (correcto, incorrecto); validación del correo; nombre de 1 a 40 caracteres; cerrar sesión vuelve a onboarding (verificado: `swift test` no compila porque faltan `InMemoryAuthService` e `InMemoryAccountDirectory`). Sin commit propio
+- [x] 1.2 GREEN: protocolos `AuthService` y `AccountDirectory`, dobles en memoria para pruebas y vistas previas, y `SessionStore.refresh()`, `sendCode`, `verify`, `createProfile` y `signOut` (verificado: 55 pruebas de Swift Testing en verde, 17 más que antes; `swift format lint --strict` limpio; la app compila con `signOut()` asíncrono en ajustes). Commit: `feat(ios): agregar la sesión con código por correo a CruceCore`
 
 ## 2. Supabase en la app
 
-- [ ] 2.1 Agregar supabase-swift por SPM al target de la app en `project.yml` (versión fija), `Config.example.xcconfig`, `Config.xcconfig` en `.gitignore`, las claves en `Info.plist` y su lectura al arrancar con error claro si faltan. Commit: `build(ios): agregar supabase-swift y la configuración por xcconfig`
-- [ ] 2.2 `SupabaseAuthService` y `SupabaseAccountDirectory` en `ios/Cruce/Data/` con un solo `SupabaseClient`, conectados en `AppStores.live()`; `AppStores.sample()` sigue con los dobles. Commit: `feat(ios): conectar la sesión con Supabase Auth`
-- [ ] 2.3 Plantilla `supabase/templates/codigo.html` con `{{ .Token }}` y su referencia en `config.toml` para enlace mágico y confirmación. Commit: `feat(supabase): enviar el código de 6 dígitos en el correo`
+- [x] 2.1 Agregar supabase-swift por SPM al target de la app en `project.yml` (versión fija), `Config.example.xcconfig`, `Config.xcconfig` en `.gitignore`, las claves en `Info.plist` y su lectura al arrancar con error claro si faltan (verificado: supabase-swift fijo en 2.55.4; `Config.xcconfig` entra con `#include?` desde `ios/Cruce/Config/Cruce.xcconfig`, así la app compila aunque falte; `xcodebuild -showBuildSettings` muestra `SUPABASE_URL = http://127.0.0.1:54321` en Debug; `git status` no lista `Config.xcconfig`). Commit: `build(ios): agregar supabase-swift y la configuración por xcconfig`
+- [x] 2.2 `SupabaseAuthService` y `SupabaseAccountDirectory` en `ios/Cruce/Data/` con un solo `SupabaseClient`, conectados en `AppStores.live()`; `AppStores.sample()` sigue con los dobles (verificado: `BUILD SUCCEEDED`; CruceCore no importa Supabase: `rg -n "import Supabase" ios/Packages` no encuentra nada). Commit: `feat(ios): conectar la sesión con Supabase Auth`
+- [x] 2.3 Plantilla `supabase/templates/codigo.html` con `{{ .Token }}` y su referencia en `config.toml` para enlace mágico y confirmación. Commit: `feat(supabase): enviar el código de 6 dígitos en el correo`
 
 ## 3. Pantallas
 
-- [ ] 3.1 Antes de esta tarea, Joan aprueba el cambio de la pantalla de entrada. `SignUpView` sin el botón simulado de Apple: campo de correo, pantalla del código (6 dígitos, reenviar, mensajes en español) y pantalla del nombre; `RootView` llama a `session.refresh()` al arrancar; cerrar sesión desde ajustes. `DebugScreen` agrega las pantallas nuevas. Commit: `feat(ios): pantallas de inicio de sesión con código por correo`
+- [x] 3.1 Cambio de la pantalla de entrada dado por aprobado la noche del 26 oct 2026 (el dueño dejó aprobada toda la implementación; Joan puede pedir ajustes de diseño después). `SignUpView` sin el botón simulado de Apple: campo de correo, pantalla del código (6 dígitos, reenviar, mensajes en español) y pantalla del nombre; `RootView` llama a `session.refresh()` al arrancar; cerrar sesión desde ajustes. `DebugScreen` agrega las pantallas nuevas (verificado: capturas de `-screen signUp`, `signUpCode` y `signUpName` en el iPhone 17; de paso, un botón `.dark` deshabilitado ya no queda con el texto blanco sobre blanco). Commit: `feat(ios): pantallas de inicio de sesión con código por correo`
 
 ## 4. Verificación
 

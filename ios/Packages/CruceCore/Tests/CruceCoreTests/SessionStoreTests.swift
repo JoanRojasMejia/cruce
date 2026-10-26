@@ -32,6 +32,15 @@ struct SessionStoreTests {
         #expect(session.inviteCode == nil)
     }
 
+    @Test("Puede arrancar esperando el código de un correo, para las vistas previas")
+    func initRestoresPendingEmail() {
+        let session = SessionStore(
+            phase: .signUp, me: MockData.joan, partner: MockData.jesus, pendingEmail: email)
+        #expect(session.pendingEmail == email)
+        #expect(session.userID == nil)
+        #expect(session.isReady)
+    }
+
     // MARK: - Etapa de entrada
 
     @Test("Sin sesión, la etapa es el onboarding")

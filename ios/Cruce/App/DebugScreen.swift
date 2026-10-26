@@ -6,7 +6,7 @@
     /// Solo existe en Debug. Uso: `xcrun simctl launch <udid> com.joanrojas.cruce -screen history`.
     enum DebugScreen: String, CaseIterable {
         case onboarding1, onboarding2, onboarding3
-        case signUp, invite, join, connected
+        case signUp, signUpCode, signUpName, invite, join, connected
         case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus
         case add, saved, history, detail, delete, settle, success, offline, settings
 
@@ -20,6 +20,8 @@
             switch self {
             case .onboarding1, .onboarding2, .onboarding3: return .sample(phase: .onboarding)
             case .signUp: return .sample(phase: .signUp)
+            case .signUpCode: return .sample(phase: .signUp, pendingEmail: "joan@correo.com")
+            case .signUpName: return .sample(phase: .signUp, userID: MockData.joan.id)
             case .invite: return .sample(phase: .invite)
             case .join: return .sample(phase: .join, viewer: MockData.jesus)
             case .connected: return .sample(phase: .connected)

@@ -2,20 +2,196 @@ import CruceCore
 import SwiftUI
 import UIKit
 
-/// Crear cuenta (pantalla 13).
-/// TODO punto 2: reemplazar el botón por `SignInWithAppleButton` y conectar con Supabase Auth.
-/// Apple exige su botón oficial; este solo simula el paso.
+/// Crear cuenta o volver a entrar (pantalla 13), en tres pasos que salen de la sesión:
+/// el correo, el código de 6 dígitos que llega a ese correo y, la primera vez, el nombre.
+/// Sin contraseña ni enlace mágico: el mismo flujo crea la cuenta y vuelve a entrar.
 struct SignUpView: View {
     @Environment(SessionStore.self) private var session
-    @State private var name = ""
+
+    var body: some View {
+        Group {
+            if session.userID != nil {
+                NameStep()
+            } else if let email = session.pendingEmail {
+                CodeStep(email: email)
+            } else {
+                EmailStep()
+            }
+        }
+        .foregroundStyle(CruceColor.ink)
+        .padding(.horizontal, Spacing.screen)
+        .padding(.top, 8)
+        .padding(.bottom, 16)
+        .screenBackground()
+        .animation(.easeInOut(duration: 0.25), value: session.pendingEmail)
+        .animation(.easeInOut(duration: 0.25), value: session.userID)
+    }
+}
+
+/// Paso 1: el correo al que llega el código.
+private struct EmailStep: View {
+    @Environment(SessionStore.self) private var session
+    @State private var email = ""
+    @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             BackButton { session.phase = .onboarding }
 
             VStack(alignment: .leading, spacing: 10) {
-                Text("Crea tu cuenta").textStyle(.title1Compact)
-                Text("Entras con tu cuenta de Apple, así no tienes que recordar otra contraseña.")
+                Text("Entra con tu correo").textStyle(.title1Compact)
+                Text("Te enviamos un código de 6 dígitos. Sirve para crear tu cuenta o para volver a entrar.")
+                    .textStyle(.bodyLarge)
+                    .foregroundStyle(CruceColor.textBody)
+            }
+
+            FolderCard(tab: "TU CORREO", tabColor: CruceColor.yellow) {
+                VStack(alignment: .leading, spacing: 12) {
+                    NeoTextField(
+                        label: "¿Cuál es tu correo?", text: $email, placeholder: "tu@correo.com",
+                        fill: CruceColor.cream, focus: $focused
+                    )
+                    .keyboardType(.emailAddress)
+                    .textContentType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.send)
+                    .onSubmit(send)
+                    if let problem = session.error { ProblemText(problem: problem) }
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(spacing: 12) {
+                Button(action: send) {
+                    Text(session.isWorking ? "Enviando…" : "Enviarme el código")
+                }
+                .buttonStyle(
+                    NeoButtonStyle(kind: .dark, height: 56, shadow: ShadowOffset.m, shadowTint: CruceColor.yellow)
+                )
+                .disabled(session.isWorking || email.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                TermsText()
+            }
+        }
+        .onAppear { focused = true }
+    }
+
+    private func send() {
+        Task { await session.sendCode(to: email) }
+    }
+}
+
+/// Paso 2: el código de 6 dígitos. Se verifica solo al completar los seis.
+private struct CodeStep: View {
+    @Environment(SessionStore.self) private var session
+    let email: String
+    @State private var digits = ""
+    @State private var resent = false
+    @FocusState private var focused: Bool
+
+    init(email: String) {
+        self.email = email
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            BackButton { session.cancelCode() }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Escribe el código").textStyle(.title1Compact)
+                (Text("Te lo enviamos a ") + Text(email).font(.archivo(17, .extraBold)) + Text("."))
+                    .textStyle(.bodyLarge)
+                    .foregroundStyle(CruceColor.textBody)
+            }
+
+            codeField
+
+            if let problem = session.error {
+                ProblemText(problem: problem)
+            } else if resent {
+                Text("Te enviamos un código nuevo.")
+                    .textStyle(.secondary)
+                    .foregroundStyle(CruceColor.textSecondary)
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(spacing: 8) {
+                Button(action: verify) {
+                    Text(session.isWorking ? "Revisando…" : "Entrar")
+                }
+                .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
+                .disabled(session.isWorking || digits.count < SessionStore.codeLength)
+
+                Button("Pedir otro código") {
+                    digits = ""
+                    Task { resent = await session.resendCode() }
+                }
+                .buttonStyle(.neoLink)
+                .disabled(session.isWorking)
+
+                Button("Cambiar el correo") { session.cancelCode() }
+                    .buttonStyle(.neoLink)
+            }
+        }
+        .onAppear { focused = true }
+    }
+
+    private func verify() {
+        resent = false
+        Task {
+            if !(await session.verify(code: digits)) { digits = "" }
+        }
+    }
+
+    /// Seis cajas alimentadas por un campo oculto (el teclado ofrece el código del correo).
+    private var codeField: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<SessionStore.codeLength, id: \.self) { index in
+                Text(character(at: index))
+                    .font(.archivo(28, .black))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 64)
+                    .neoSurface(
+                        fill: index == digits.count && focused ? CruceColor.yellow : CruceColor.surface,
+                        radius: Radius.input, shadow: ShadowOffset.s)
+            }
+        }
+        .overlay {
+            TextField("", text: $digits)
+                .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
+                .focused($focused)
+                .foregroundStyle(.clear)
+                .tint(.clear)
+                .onChange(of: digits) { _, newValue in
+                    let clean = String(newValue.filter(\.isNumber).prefix(SessionStore.codeLength))
+                    if clean != newValue { digits = clean }
+                    if clean.count == SessionStore.codeLength, !session.isWorking { verify() }
+                }
+                .accessibilityLabel("Código de 6 dígitos")
+        }
+        .onTapGesture { focused = true }
+    }
+
+    private func character(at index: Int) -> String {
+        guard index < digits.count else { return "" }
+        return String(digits[digits.index(digits.startIndex, offsetBy: index)])
+    }
+}
+
+/// Paso 3 (solo la primera vez): el nombre con el que te verá tu amigo.
+private struct NameStep: View {
+    @Environment(SessionStore.self) private var session
+    @State private var name = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Crea tu perfil").textStyle(.title1Compact)
+                Text("Ya entraste. Falta tu nombre para que tu amigo sepa que eres tú.")
                     .textStyle(.bodyLarge)
                     .foregroundStyle(CruceColor.textBody)
             }
@@ -32,42 +208,30 @@ struct SignUpView: View {
                         }
                     }
                     NeoTextField(
-                        label: "¿Cómo te llamas?", text: $name, placeholder: "Tu nombre", fill: CruceColor.cream)
+                        label: "¿Cómo te llamas?", text: $name, placeholder: "Tu nombre", fill: CruceColor.cream
+                    )
+                    .textContentType(.givenName)
+                    .onChange(of: name) { _, newValue in
+                        if newValue.count > SessionStore.maxNameLength {
+                            name = String(newValue.prefix(SessionStore.maxNameLength))
+                        }
+                    }
+                    if let problem = session.error { ProblemText(problem: problem) }
                 }
             }
 
             Spacer(minLength: 0)
 
-            VStack(spacing: 12) {
-                Button {
-                    let trimmed = name.trimmingCharacters(in: .whitespaces)
-                    if !trimmed.isEmpty { session.me.name = trimmed }
-                    session.phase = .invite
-                } label: {
-                    Text("Continuar con Apple")
-                }
-                .buttonStyle(
-                    NeoButtonStyle(kind: .dark, height: 56, shadow: ShadowOffset.m, shadowTint: CruceColor.yellow))
-
-                (Text("Al continuar aceptas los ")
-                    + Text("Términos").font(.archivo(12, .extraBold)).underline().foregroundColor(CruceColor.ink)
-                    + Text(" y la ")
-                    + Text("Política de privacidad").font(.archivo(12, .extraBold)).underline().foregroundColor(
-                        CruceColor.ink)
-                    + Text(" de Cruce."))
-                    .textStyle(.secondary)
-                    .lineSpacing(4)
-                    .foregroundStyle(CruceColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
+            Button {
+                Task { await session.createProfile(name: name) }
+            } label: {
+                Text(session.isWorking ? "Guardando…" : "Continuar")
             }
+            .buttonStyle(
+                NeoButtonStyle(kind: .dark, height: 56, shadow: ShadowOffset.m, shadowTint: CruceColor.yellow)
+            )
+            .disabled(session.isWorking || name.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        .foregroundStyle(CruceColor.ink)
-        .padding(.horizontal, Spacing.screen)
-        .padding(.top, 8)
-        .padding(.bottom, 16)
-        .screenBackground()
-        .onAppear { if name.isEmpty { name = session.me.name } }
     }
 
     private var previewMember: Member {
@@ -75,6 +239,40 @@ struct SignUpView: View {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty { member.name = trimmed }
         return member
+    }
+}
+
+/// El mensaje del problema del último paso, con ícono para que no dependa solo del color.
+private struct ProblemText: View {
+    let problem: SessionStore.Problem
+
+    init(problem: SessionStore.Problem) {
+        self.problem = problem
+    }
+
+    var body: some View {
+        Label(problem.message, systemImage: "exclamationmark.triangle.fill")
+            .font(.archivo(14, .bold))
+            .foregroundStyle(CruceColor.ink)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.updatesFrequently)
+    }
+}
+
+/// "Al continuar aceptas los Términos y la Política de privacidad de Cruce."
+private struct TermsText: View {
+    var body: some View {
+        (Text("Al continuar aceptas los ")
+            + Text("Términos").font(.archivo(12, .extraBold)).underline().foregroundColor(CruceColor.ink)
+            + Text(" y la ")
+            + Text("Política de privacidad").font(.archivo(12, .extraBold)).underline().foregroundColor(
+                CruceColor.ink)
+            + Text(" de Cruce."))
+            .textStyle(.secondary)
+            .lineSpacing(4)
+            .foregroundStyle(CruceColor.textSecondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
     }
 }
 
@@ -88,7 +286,10 @@ struct InviteView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            BackButton { session.phase = .signUp }
+            // Con sesión real no hay a dónde volver: el perfil ya existe.
+            if session.userID == nil {
+                BackButton { session.phase = .signUp }
+            }
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Invita a tu amigo").textStyle(.title1Compact)
@@ -167,6 +368,13 @@ struct InviteView: View {
 
             Button("¿Te invitaron a ti? Ingresa un código") { session.phase = .join }
                 .buttonStyle(NeoButtonStyle(kind: .secondary, height: 52))
+
+            // Mientras no haya cuenta compartida (CP4), los ajustes no existen: cerrar sesión va aquí.
+            if session.userID != nil {
+                Button("Cerrar sesión") { Task { await session.signOut() } }
+                    .buttonStyle(.neoLink)
+                    .frame(maxWidth: .infinity)
+            }
         }
         .foregroundStyle(CruceColor.ink)
         .padding(.horizontal, Spacing.screen)
@@ -331,7 +539,11 @@ struct ConnectedView: View {
 }
 
 #if DEBUG
-    #Preview("Crear cuenta") { SignUpView().cruceStores(.sample(phase: .signUp)) }
+    #Preview("Entrar: correo") { SignUpView().cruceStores(.sample(phase: .signUp)) }
+    #Preview("Entrar: código") {
+        SignUpView().cruceStores(.sample(phase: .signUp, pendingEmail: "joan@correo.com"))
+    }
+    #Preview("Entrar: nombre") { SignUpView().cruceStores(.sample(phase: .signUp, userID: MockData.joan.id)) }
     #Preview("Invitar") { InviteView().cruceStores(.sample(phase: .invite)) }
     #Preview("Unirse") { JoinView().cruceStores(.sample(phase: .join, viewer: MockData.jesus)) }
     #Preview("Conectados") { ConnectedView().cruceStores(.sample(phase: .connected)) }

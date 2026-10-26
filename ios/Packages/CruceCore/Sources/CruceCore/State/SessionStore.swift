@@ -54,7 +54,8 @@ public final class SessionStore {
     public private(set) var error: Problem?
     /// Hay una llamada en curso (para desactivar los botones).
     public private(set) var isWorking = false
-    /// Ya se sabe la etapa real. La app en Release arranca en `false` hasta el primer `refresh()`.
+    /// Ya se sabe la etapa real. `AppStores.live()` arranca en `false` hasta el primer `refresh()`;
+    /// los datos de ejemplo arrancan en `true` y `RootView` no los refresca.
     public private(set) var isReady: Bool
 
     private let auth: any AuthService
@@ -67,7 +68,9 @@ public final class SessionStore {
         inviteCode: String? = nil,
         auth: any AuthService = InMemoryAuthService(),
         directory: any AccountDirectory = InMemoryAccountDirectory(),
-        isReady: Bool = true
+        isReady: Bool = true,
+        userID: UUID? = nil,
+        pendingEmail: String? = nil
     ) {
         self.phase = phase
         self.me = me
@@ -76,6 +79,8 @@ public final class SessionStore {
         self.auth = auth
         self.directory = directory
         self.isReady = isReady
+        self.userID = userID
+        self.pendingEmail = pendingEmail
     }
 
     /// El miembro con ese `id`: quien usa la app o el otro.

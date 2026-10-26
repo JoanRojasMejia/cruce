@@ -37,8 +37,9 @@ struct NeoButtonStyle: ButtonStyle {
             .textStyle(text ?? (kind == .primary || kind == .dark ? .button : .buttonSecondary))
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-            // Deshabilitado: se apagan el relleno y el texto, pero el borde y la sombra siguen en tinta.
-            .foregroundStyle(foreground.opacity(isEnabled ? 1 : 0.45))
+            // Deshabilitado: el relleno pasa a blanco y el texto a tinta apagada (si no, el de `.dark` no se ve);
+            // el borde y la sombra siguen en tinta.
+            .foregroundStyle(isEnabled ? foreground : CruceColor.ink.opacity(0.45))
             .frame(maxWidth: .infinity, minHeight: height)
             .background(shape.fill(isEnabled ? background : CruceColor.surface))
             .overlay(shape.strokeBorder(CruceColor.ink, lineWidth: BorderWidth.regular))

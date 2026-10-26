@@ -1,11 +1,28 @@
 import CruceCore
 import SwiftUI
 
-/// Decide qué flujo mostrar según la etapa de la sesión.
+/// Decide qué flujo mostrar según la etapa de la sesión. Al arrancar con la sesión real
+/// (`AppStores.live()`), primero la calcula con `session.refresh()`; los datos de ejemplo ya vienen listos.
 struct RootView: View {
     @Environment(SessionStore.self) private var session
 
     var body: some View {
+        Group {
+            if !session.isReady {
+                // Mientras se lee la sesión guardada: el mismo fondo del arranque, sin parpadear el onboarding.
+                CruceColor.cream.ignoresSafeArea()
+            } else {
+                phaseView
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: session.phase)
+        .task {
+            if !session.isReady { await session.refresh() }
+        }
+    }
+
+    @ViewBuilder
+    private var phaseView: some View {
         Group {
             switch session.phase {
             case .onboarding: OnboardingView()
@@ -16,7 +33,6 @@ struct RootView: View {
             case .main: MainView()
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: session.phase)
     }
 }
 

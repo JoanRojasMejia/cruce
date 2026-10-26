@@ -7,9 +7,9 @@ struct CruceApp: App {
 
     init() {
         #if DEBUG
-            // En Debug la app arranca con los datos de ejemplo vistos por Joan,
-            // o con la pantalla pedida con `-screen`.
-            _stores = State(initialValue: DebugScreen.current?.makeStores() ?? .sample(phase: .onboarding))
+            // En Debug la app arranca con Supabase local, o con los datos de ejemplo de la pantalla
+            // pedida con `-screen`.
+            _stores = State(initialValue: DebugScreen.current?.makeStores() ?? .live())
         #else
             _stores = State(initialValue: .live())
         #endif
