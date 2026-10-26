@@ -24,7 +24,7 @@ Cada tarea termina en un commit (Conventional Commits, descripción en español,
 
 ## 5. Verificación final
 
-- [ ] 5.1 Correr `cd ios/Packages/CruceCore && swift test` en una Mac sin abrir Xcode ni simulador (verificado: pasan 16 casos o más, sin fallos, y la lista de pruebas cubre todos los casos de las pruebas originales)
+- [x] 5.1 Correr `cd ios/Packages/CruceCore && swift test` en una Mac sin abrir Xcode ni simulador (verificado: pasan 16 casos o más, sin fallos, y la lista de pruebas cubre todos los casos de las pruebas originales)
 
 ## Workflow follow-up
 
