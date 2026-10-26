@@ -12,8 +12,25 @@ Una app de iPhone para que **dos amigos, Joan y Jesús**, lleven sus cuentas com
 
 - **Problema:** hoy anotan las deudas por separado ("él me debe 30.000", "yo le debo 60.000") y no las pueden cruzar.
 - **Solución:** cada gasto se compensa automáticamente contra lo que el otro debe, y la app muestra siempre **un único saldo neto**: quién le debe a quién y cuánto.
-- **Solo dos personas por cuenta.** No es una app de grupos.
+- **El cruce es entre dos personas.** La cuenta permanente (el "cruce") es siempre de dos; no se le agregan más personas.
+- **Parches (función futura, sin implementar):** grupos de varias personas con inicio y fin (un viaje, una cena), donde también se cruzan cuentas y al final se salda todo. Son aparte del cruce y no lo cambian.
 - **Todo el texto en español (Colombia).** Moneda: pesos colombianos, formato `$30.000`.
+
+### Vocabulario
+
+Todas las pantallas usan estas palabras; no se mezclan sinónimos ("grupo", "viaje", "plan").
+
+| Concepto | Palabra | Ejemplo |
+|---|---|---|
+| La app, la marca | **Cruce** | "Cruce · Parche Santa Marta" |
+| La cuenta permanente de dos | **tu cruce con Joan** | "Pasar a tu cruce con Joan" |
+| El grupo con inicio y fin | **parche** | "Nuevo parche", "Parche Santa Marta", "Cerrar el parche", "Parche cerrado" |
+| Las personas de un parche | **los del parche** | "4 personas en el parche" |
+| Quien no tiene la app | **sin la app** | "Carlos (sin la app)". No se dice "invitado": "invitar" ya es mandar el código del cruce |
+| Registrar un gasto o pago | **anotar** | "Anotar un gasto", "Anotado por Ana" |
+| Terminar de pagar | **saldar**, **a paz y salvo** | "Ya están a paz y salvo" |
+
+Se trata de **tú** en toda la app ("Le debes $87.500 a Jesús").
 
 ### Movimiento
 
