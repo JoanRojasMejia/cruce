@@ -32,7 +32,7 @@ Las ~400 líneas por tarea son solo una guía; la tarea 4.3 puede pasarlas porqu
 ## 5. Sin datos de ejemplo en las vistas de producción
 
 - [x] 5.1 `InviteView` muestra `session.inviteCode` (y `CRZ-····` si es `nil`), `JoinView` muestra a `session.partner` como quien invita y `OnboardingView` usa dos miembros decorativos privados en vez de `MockData` (decisión 4); envolver en `#if DEBUG` los `#Preview` que lo necesiten para que Release compile (verificado: `rg -n "CRZ-4821" ios/Cruce` solo aparece en `AppStores+Sample.swift`; cada línea de `rg -n "MockData" ios/Cruce` está dentro de `#if DEBUG` o de un `#Preview`; `xcodebuild … build` y `xcodebuild … -configuration Release build` dan `BUILD SUCCEEDED`). Commit: `refactor(ios): quitar los datos de ejemplo de las vistas de producción`
-- [ ] 5.2 En el simulador, repetir la comparación de la 4.4 para `onboarding1`, `invite` y `join` contra `/private/tmp/claude-501/-Users-yi-Dev--Yi-Projects/234c915b-116c-4f51-bacf-4c2201cafa4b/scratchpad/cruce-antes/` (verificado: iguales, o la diferencia explicada). Sin commit si pasa
+- [x] 5.2 En el simulador, repetir la comparación de la 4.4 para `onboarding1`, `invite` y `join` contra `/private/tmp/claude-501/-Users-yi-Dev--Yi-Projects/234c915b-116c-4f51-bacf-4c2201cafa4b/scratchpad/cruce-antes/` (verificado: iguales, o la diferencia explicada). Sin commit si pasa
 
 ## 6. Documentación y cierre
 

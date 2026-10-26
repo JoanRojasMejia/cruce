@@ -50,7 +50,7 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 |---|---|---|
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
 | App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
-| Pruebas de Swift (saldo, formato de pesos y fechas) | 16 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador |
+| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores y navegación) | 38 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
 | Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) aplicada en local y en la nube (26 oct 2026) | Sí: 74 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión) y revisión de seguridad hecha |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
@@ -76,12 +76,12 @@ cruce/
 ├── ios/
 │   ├── project.yml           Proyecto de XcodeGen (el .xcodeproj NO se sube al repo)
 │   ├── Cruce/
-│   │   ├── App/              CruceApp, RootView + MainView (navegación), AppState
+│   │   ├── App/              CruceApp (raíz de composición), AppStores + .cruceStores, AppStores+Sample
+│   │   │                     (solo Debug), RootView + MainView (navegación), DebugScreen
 │   │   ├── DesignSystem/     Colors, Typography, Metrics, NeoSurface, NeoButtonStyle, Illustration
 │   │   ├── Components/       FolderCard, MovementRow, Controls (IconButton, Chip, NeoSegmented,
 │   │   │                     NeoTextField, NeoToggleStyle, PageDots, Badge, BeforeAfter),
 │   │   │                     AmountKeypad, Avatar, CategoryIcon, CruceLogo
-│   │   ├── Data/             LedgerRepository (protocolo) e InMemoryLedgerRepository
 │   │   ├── Screens/          Onboarding, Auth, Home, AddMovement, History, Detail, Settle,
 │   │   │                     Offline, Settings
 │   │   └── Resources/        Fuentes Archivo (OFL), Assets.xcassets (ilustraciones @2x/@3x,
@@ -90,8 +90,11 @@ cruce/
 │       ├── Sources/CruceCore/
 │       │   ├── Models/       Member, Movement, SplitRule, MovementCategory
 │       │   ├── Domain/       BalanceCalculator, Money, DateText
-│       │   └── Fixtures/     MockData (datos de ejemplo para previews y pruebas)
-│       └── Tests/CruceCoreTests/  BalanceCalculatorTests, DateTextTests, MoneyTests (Swift Testing)
+│       │   ├── Data/         LedgerRepository (protocolo) e InMemoryLedgerRepository (borrado suave)
+│       │   ├── State/        SessionStore, LedgerStore, Router y Route (estado de la app)
+│       │   └── Fixtures/     MockData (datos de ejemplo para Debug, previews y pruebas)
+│       └── Tests/CruceCoreTests/  BalanceCalculator, DateText, Money, InMemoryLedgerRepository,
+│                                  SessionStore, LedgerStore y Router (Swift Testing)
 ├── backend/                  Go 1.27, solo librería estándar
 │   ├── cmd/api/main.go
 │   └── internal/{config,httpapi,notify}
@@ -115,9 +118,9 @@ cruce/
 
 ### Pruebas de la lógica (sin Xcode ni simulador)
 ```bash
-cd ios/Packages/CruceCore && swift test   # Swift Testing: saldo, formato de pesos y fechas
+cd ios/Packages/CruceCore && swift test   # Swift Testing: saldo, pesos, fechas, repositorio, stores y navegación
 ```
-- La lógica pura (`Models`, `Domain` y los datos de ejemplo `MockData`) vive en el paquete local `ios/Packages/CruceCore`; la app lo importa con `import CruceCore`.
+- La lógica pura (`Models`, `Domain` y los datos de ejemplo `MockData`), el repositorio (`Data`) y el estado de la app (`State`: `SessionStore`, `LedgerStore`, `Router`) viven en el paquete local `ios/Packages/CruceCore`; la app lo importa con `import CruceCore`. Por eso el estado se prueba con `swift test`, también en Linux.
 - Basta con las Command Line Tools. No hace falta prender Colima, Supabase ni un simulador.
 
 ### App iOS
@@ -189,7 +192,7 @@ scripts/backup-db.sh --local        # respalda la base local (con supabase start
 | 16 | Conectados | `ConnectedView` |
 | 02 | Inicio vacío | `HomeView` → `EmptyHomeContent` |
 | 03 / 04 | Inicio: te deben / debes (Joan, recibo rosa) | `HomeView` + `BalanceCard` |
-| 20 | Inicio desde la vista de Jesús (recibo verde) | `HomeView` con `viewer: MockData.jesus` |
+| 20 | Inicio desde la vista de Jesús (recibo verde) | `HomeView` con `.cruceStores(.sample(viewer: MockData.jesus))` |
 | 05 | Agregar movimiento (también editar) | `AddMovementView(editing:)` |
 | 06 | Gasto guardado (hoja inferior) | `MovementSavedSheet` |
 | 07 | Historial | `HistoryView` |
@@ -201,7 +204,7 @@ scripts/backup-db.sh --local        # respalda la base local (con supabase start
 | 19 | Ajustes | `SettingsView` |
 
 ### Ilustraciones
-`Assets.xcassets/Illustrations/il-0X-*.imageset`. El enum `Illustration` las mapea; `AppState.balanceIllustration` aplica la regla rosa o verde. Los originales están en `~/Downloads/new-idea-proyect/ilustrations/`.
+`Assets.xcassets/Illustrations/il-0X-*.imageset`. El enum `Illustration` las mapea; `Illustration.balance(_:variant:)` aplica la regla rosa o verde. Los originales están en `~/Downloads/new-idea-proyect/ilustrations/`.
 
 ---
 
@@ -234,18 +237,24 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 | `MovementCategory` | enum `movement_category` (comida, mercado, transporte, hogar, ocio, prestamo, otro) |
 
 ### Piezas clave de la app
-- **`AppState`** (`@Observable`, `@MainActor`): la sesión (`me` y `partner`), los movimientos, la navegación (`path: [Route]`), `lastSaved` (abre la hoja "Gasto guardado") y `lastSettlement` (abre "A paz y salvo"). Las acciones son `save`, `delete`, `settle`, `retrySync` y `signOut`.
-- **`LedgerRepository`**: es la frontera con el backend. Hoy la implementa `InMemoryLedgerRepository` (un actor); en el CP5 entra `SupabaseLedgerRepository` con la misma interfaz.
-- **`AppState.preview(phase:viewer:movements:)`**: datos de ejemplo para las vistas previas y para la app mientras no haya backend. `MockData` reproduce el canvas: desde la vista de Joan, "Jesús te debe $20.000".
+- **Tres stores** (`@MainActor @Observable`, en `CruceCore/State/`), sin ViewModels por pantalla ni coordinador:
+  - **`SessionStore`**: `phase` (etapa del flujo de entrada), `me`, `partner`, `inviteCode`, `member(_:)` y `signOut()`.
+  - **`LedgerStore`**: todos los movimientos (también los eliminados) y las lecturas de los vigentes (`visibleMovements`, `movement(_:)`, `isEmpty`, `net`, `balance`, `phrase(forNet:)`…), `lastSaved` (abre la hoja "Gasto guardado"), `lastSettlement` (abre "A paz y salvo"), `isOffline`, `pendingSyncCount` y las acciones `load`, `save`, `delete`, `settle` y `retrySync`. Lee `me`/`partner` del `SessionStore` en el momento.
+  - **`Router`**: `path: [Route]`, `push`, `pop` y `popToRoot`.
+  - Las acciones que cruzan stores quedan explícitas en la vista: "Cerrar sesión" (`router.popToRoot()` y `session.signOut()`), guardar un movimiento (`router.pop()` y `ledger.save`) y "Volver al inicio" en "A paz y salvo" (`router.popToRoot()`).
+- **`AppStores`** y **`.cruceStores(_:)`** (`App/AppStores.swift`): agrupa los tres stores y los inyecta en el `Environment` con un solo modificador; lo usan `CruceApp` (la raíz de composición), `DebugScreen` y cada `#Preview`. `AppStores.live()` es el arranque de Release (onboarding, sin movimientos, miembros provisionales y sin código hasta el CP3/CP4).
+- **`AppStores.sample(phase:viewer:movements:)`** (`App/AppStores+Sample.swift`, solo Debug): datos de ejemplo para la app en Debug, `DebugScreen` y las vistas previas, con `inviteCode = "CRZ-4821"`. `MockData` reproduce el canvas: desde la vista de Joan, "Jesús te debe $20.000".
+- **`LedgerRepository`** (`CruceCore/Data/`): es la frontera con el backend. Hoy la implementa `InMemoryLedgerRepository` (un actor); en el CP5 entra `SupabaseLedgerRepository` con la misma interfaz. `delete(id:)` es **borrado suave**: marca `Movement.deletedAt` (igual a `movements.deleted_at`) y conserva el movimiento; `BalanceCalculator` y las lecturas del `LedgerStore` ignoran los eliminados.
 
 ---
 
 ## 7. Convenciones
 
 - **iOS 17+, solo iPhone, modo claro forzado**, orientación vertical.
-- **Swift 5 en la app, Swift 6 en `CruceCore`:** la app sigue en `SWIFT_VERSION 5.0` (project.yml); el paquete `CruceCore` usa `swiftLanguageModes: [.v6]` (concurrencia estricta), así que sus tipos públicos de valor declaran `Sendable`. El modo de lenguaje es por módulo. SwiftUI con `@Observable`/`@Environment(AppState.self)`. Sin Combine ni UIKit, salvo cuando no haya alternativa (por ejemplo `UIPasteboard`).
+- **Swift 5 en la app, Swift 6 en `CruceCore`:** la app sigue en `SWIFT_VERSION 5.0` (project.yml); el paquete `CruceCore` usa `swiftLanguageModes: [.v6]` (concurrencia estricta), así que sus tipos públicos de valor declaran `Sendable`. El modo de lenguaje es por módulo. SwiftUI con `@Observable` y `@Environment(SessionStore.self)`, `@Environment(LedgerStore.self)` o `@Environment(Router.self)`: cada vista lee solo lo que usa. Sin Combine ni UIKit, salvo cuando no haya alternativa (por ejemplo `UIPasteboard`).
 - **Vistas con parámetros y propiedades `private` necesitan un `init` explícito:** si no, el init memberwise queda privado.
-- **Cada pantalla tiene su `#Preview`.** Si agregas una pantalla, agrega su preview y su fila en la tabla de la sección 5.
+- **Cada pantalla tiene su `#Preview`**, con `.cruceStores(.sample(...))` y dentro de `#if DEBUG` (para que Release compile). Si agregas una pantalla, agrega su preview y su fila en la tabla de la sección 5.
+- **`MockData` solo en Debug, vistas previas y pruebas.** Ninguna vista de producción lee `MockData` ni datos fijos como el código de invitación: `rg -n "MockData" ios/Cruce` solo debe encontrar líneas dentro de `#if DEBUG` o de un `#Preview`.
 - **Textos de la interfaz en español**, con tuteo y tono cercano, sin jerga bancaria. Los comentarios del código también van en español.
 - **Accesibilidad:** área táctil mínima de 44 pt, `accessibilityLabel` en los botones de solo ícono, las ilustraciones con su label y la dirección de la deuda siempre en texto.
 - **Dependencias:** no agregues paquetes sin preguntar. Las previstas son `supabase-swift` (CP3) y, como opción, `swift-snapshot-testing` (CP12). El backend usa solo la librería estándar mientras se pueda.
@@ -264,8 +273,7 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - **La app de Swift nunca se ha compilado.** Errores probables:
   - inits memberwise privados;
   - inferencia de tipos en ternarios con `.white`;
-  - `#Preview` que usan `let` y `return`;
-  - aislamiento de `@MainActor` en `AppState.preview`.
+  - `#Preview` que usan `let` y `return`.
   Corrígelos sin cambiar el comportamiento ni el diseño.
 - **Fuentes:** los `.ttf` se convirtieron desde los `woff2` de Fontsource y se les renombró la tabla de nombres. Los nombres PostScript esperados son `Archivo-Medium`, `Archivo-SemiBold`, `Archivo-Bold`, `Archivo-ExtraBold` y `Archivo-Black`. Verifica que carguen; si se ve la fuente del sistema, revisa `UIAppFonts` en `project.yml`.
 - **Sign in with Apple** requiere la membresía de Apple Developer (de pago), igual que las notificaciones push y TestFlight. Con una cuenta gratuita la app solo se puede instalar desde Xcode y deja de abrir a los 7 días.

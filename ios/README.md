@@ -1,6 +1,6 @@
 # Cruce · app iOS (SwiftUI)
 
-iOS 17+, solo iPhone, modo claro. Hoy funciona con **datos de ejemplo**: todo el flujo se puede recorrer sin backend.
+iOS 17+, solo iPhone, modo claro. En Debug funciona con **datos de ejemplo** (`AppStores.sample`): todo el flujo se puede recorrer sin backend. Release arranca vacío, con miembros provisionales (`AppStores.live()`), hasta que el CP3/CP4 traigan la sesión real.
 
 ## Abrir el proyecto
 
@@ -12,11 +12,11 @@ open Cruce.xcodeproj
 ```
 
 En Xcode: **Signing & Capabilities → Team**, elige tu cuenta y corre en el simulador o en tu iPhone.
-Las pruebas de la lógica no necesitan Xcode ni simulador:
+Las pruebas de la lógica y del estado de la app no necesitan Xcode ni simulador (corren también en Linux, en la CI):
 
 ```bash
 cd ios/Packages/CruceCore
-swift test                 # Swift Testing: saldo, formato de pesos y fechas
+swift test                 # Swift Testing: saldo, pesos, fechas, repositorio, stores y navegación
 ```
 
 ## Formato
@@ -36,13 +36,15 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 |---|---|
 | `Cruce/DesignSystem` | Tokens de la guía de estilo: colores, tipografía Archivo, radios, bordes, sombras, espaciados, botones e ilustraciones. |
 | `Cruce/Components` | Piezas reutilizables: tarjeta carpeta, fila de movimiento, chips, segmentado, teclado, avatar, logo. |
-| `Cruce/Data` | `LedgerRepository` (interfaz) + versión en memoria. Aquí entra Supabase en el punto 2. |
+| `Cruce/App` | `CruceApp` (raíz de composición), `AppStores` y `.cruceStores(_:)`, `AppStores.sample` (solo Debug), `RootView`/`MainView` y `DebugScreen`. |
 | `Cruce/Screens` | Las pantallas del canvas, cada una con su `#Preview`. |
 | `Cruce/Resources` | Fuentes Archivo (licencia OFL), ilustraciones @2x/@3x, ícono de la app. |
 | `Packages/CruceCore/Sources/CruceCore/Models` | `Member`, `Movement`, `SplitRule`, `MovementCategory`. |
 | `Packages/CruceCore/Sources/CruceCore/Domain` | Lógica pura: saldo neto (`BalanceCalculator`), formato de pesos (`Money`), fechas en español. |
-| `Packages/CruceCore/Sources/CruceCore/Fixtures` | `MockData`: datos de ejemplo para las previews y las pruebas. |
-| `Packages/CruceCore/Tests/CruceCoreTests` | Pruebas de Swift Testing del saldo, el formato de pesos y las fechas. |
+| `Packages/CruceCore/Sources/CruceCore/Data` | `LedgerRepository` (interfaz, `delete` es borrado suave) e `InMemoryLedgerRepository`. En el CP5 entra `SupabaseLedgerRepository`. |
+| `Packages/CruceCore/Sources/CruceCore/State` | Estado de la app, `@MainActor @Observable`: `SessionStore` (sesión y etapa), `LedgerStore` (movimientos, saldo y acciones), `Router` (pila de navegación) y `Route`. |
+| `Packages/CruceCore/Sources/CruceCore/Fixtures` | `MockData`: datos de ejemplo; en la app solo se usan en Debug y en las vistas previas. |
+| `Packages/CruceCore/Tests/CruceCoreTests` | Pruebas de Swift Testing del saldo (con borrado suave), los pesos, las fechas, el repositorio en memoria, los stores y el `Router`. `FailingLedgerRepository` simula el almacenamiento sin conexión. |
 
 ## Pantallas del canvas → código
 
@@ -61,7 +63,9 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 
 ## Reglas que el código respeta
 
-- **Recibo rosa o verde:** sale de `Member.tikeVariant` (rosa para quien creó la cuenta, verde para quien se unió). Ver `AppState.balanceIllustration`.
+- **Recibo rosa o verde:** sale de `Member.tikeVariant` (rosa para quien creó la cuenta, verde para quien se unió). Ver `Illustration.balance(_:variant:)`.
+- **Estado:** cada vista lee solo el store que usa (`@Environment(SessionStore.self)`, `LedgerStore` o `Router`); los tres entran por `.cruceStores(_:)` en la app, `DebugScreen` y cada `#Preview`.
+- **Eliminar es borrado suave:** el movimiento se marca con `deletedAt` y deja de contar y de verse.
 - **Dinero:** `Int` en pesos, nunca `Double`. Formato `$30.000` con `Money.format`.
 - **Saldo:** nunca se guarda; se calcula con `BalanceCalculator.net`.
 - **Quién le debe a quién:** siempre con texto, signo y flecha, no solo color.
