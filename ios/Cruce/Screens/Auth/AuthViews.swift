@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import CruceCore
 
 /// Crear cuenta (pantalla 13).
 /// TODO punto 2: reemplazar el botón por `SignInWithAppleButton` y conectar con Supabase Auth.

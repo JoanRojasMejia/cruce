@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Hoja "¡Gasto guardado!" que sube sobre el inicio (pantalla 06).
 struct MovementSavedSheet: View {

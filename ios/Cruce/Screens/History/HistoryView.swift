@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Historial agrupado por día, con filtros por persona y categoría (pantalla 07).
 struct HistoryView: View {

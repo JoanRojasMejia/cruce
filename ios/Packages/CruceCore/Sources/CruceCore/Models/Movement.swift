@@ -1,7 +1,7 @@
 import Foundation
 
 /// Categorías de gasto. Deben coincidir con el enum `category` de Supabase.
-enum MovementCategory: String, Codable, CaseIterable, Identifiable, Hashable {
+public enum MovementCategory: String, Codable, CaseIterable, Identifiable, Hashable {
     case comida
     case mercado
     case transporte
@@ -10,9 +10,9 @@ enum MovementCategory: String, Codable, CaseIterable, Identifiable, Hashable {
     case prestamo
     case otro
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .comida: return "Comida"
         case .mercado: return "Mercado"
@@ -25,7 +25,7 @@ enum MovementCategory: String, Codable, CaseIterable, Identifiable, Hashable {
     }
 
     /// SF Symbol equivalente al ícono del diseño.
-    var symbol: String {
+    public var symbol: String {
         switch self {
         case .comida: return "fork.knife"
         case .mercado: return "cart"
@@ -39,7 +39,7 @@ enum MovementCategory: String, Codable, CaseIterable, Identifiable, Hashable {
 }
 
 /// Cómo se reparte un gasto entre los dos.
-enum SplitRule: Codable, Hashable {
+public enum SplitRule: Codable, Hashable {
     /// 50/50.
     case equal
     /// Porcentaje que le corresponde a quien NO pagó (0–100).
@@ -56,7 +56,7 @@ enum SplitRule: Codable, Hashable {
         }
     }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .equal: return "50/50"
         case .percentage(let share): return "\(100 - share)/\(share)"
@@ -66,26 +66,26 @@ enum SplitRule: Codable, Hashable {
 }
 
 /// Un gasto o un pago para saldar.
-struct Movement: Identifiable, Codable, Hashable {
-    enum Kind: String, Codable, Hashable {
+public struct Movement: Identifiable, Codable, Hashable {
+    public enum Kind: String, Codable, Hashable {
         case expense
         case settlement
     }
 
-    let id: UUID
-    var kind: Kind
+    public let id: UUID
+    public var kind: Kind
     /// Quién puso la plata.
-    var payerID: UUID
+    public var payerID: UUID
     /// Monto en pesos colombianos enteros.
-    var amount: Int
-    var concept: String
-    var category: MovementCategory
-    var split: SplitRule
-    var date: Date
-    var createdBy: UUID
-    var paymentMethod: String?
+    public var amount: Int
+    public var concept: String
+    public var category: MovementCategory
+    public var split: SplitRule
+    public var date: Date
+    public var createdBy: UUID
+    public var paymentMethod: String?
 
-    init(
+    public init(
         id: UUID = UUID(),
         kind: Kind = .expense,
         payerID: UUID,
@@ -110,12 +110,12 @@ struct Movement: Identifiable, Codable, Hashable {
     }
 
     /// Lo que quien no pagó le debe a quien pagó por este movimiento.
-    var owedByOther: Int {
+    public var owedByOther: Int {
         Money.share(of: amount, percent: split.otherSharePercent)
     }
 
     /// Lo que le corresponde pagar a quien pagó (su propia parte).
-    var payerShare: Int {
+    public var payerShare: Int {
         amount - owedByOther
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Detalle de un movimiento con editar y eliminar (pantallas 17 y 18).
 struct MovementDetailView: View {

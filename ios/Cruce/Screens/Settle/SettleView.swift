@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Saldar cuentas: confirma el pago que deja el saldo en $0 (pantalla 08).
 struct SettleView: View {

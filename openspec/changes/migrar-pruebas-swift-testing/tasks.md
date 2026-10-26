@@ -4,11 +4,11 @@ Cada tarea termina en un commit (Conventional Commits, descripción en español,
 
 ## 1. Paquete
 
-- [ ] 1.1 Crear `ios/Packages/CruceCore/Package.swift` (tools 6.0, `swiftLanguageModes: [.v5]`, iOS 17 y macOS 14, librería `CruceCore` y target de pruebas `CruceCoreTests`) con una prueba de Swift Testing que use `Money.format(30_000)` (verificado: `swift test` falla en RED porque `Money` todavía no está en el paquete)
+- [x] 1.1 Crear `ios/Packages/CruceCore/Package.swift` (tools 6.0, `swiftLanguageModes: [.v5]`, iOS 17 y macOS 14, librería `CruceCore` y target de pruebas `CruceCoreTests`) con una prueba de Swift Testing que use `Money.format(30_000)` (verificado: `swift test` falla en RED porque `Money` todavía no está en el paquete)
 
 ## 2. Mover la lógica
 
-- [ ] 2.1 Mover con `git mv` `ios/Cruce/Models/`, `ios/Cruce/Domain/` y `ios/Cruce/Data/MockData.swift` a `Sources/CruceCore/{Models,Domain,Fixtures}`, agregar `public` (con `public init` en los `struct`) a la API que usa la app y `import CruceCore` en los archivos de la app que la usan. En el mismo commit, en `ios/project.yml`, agregar el paquete local `CruceCore` como dependencia del target `Cruce` y eliminar el target `CruceTests` y su entrada en el esquema, para que ningún commit deje la app sin poder compilar (los archivos de `ios/CruceTests/` se migran en el grupo 3) (verificado: la prueba de 1.1 pasa en GREEN con `swift test`; `git log --follow` muestra el historial de los archivos movidos; `rg` no encuentra en `ios/Cruce/` un archivo que use esos tipos sin `import CruceCore`; `rg CruceTests ios/project.yml` no encuentra nada y `xcodegen` genera el proyecto sin errores). Commit: `refactor(ios): mover modelos y dominio al paquete CruceCore`
+- [x] 2.1 Mover con `git mv` `ios/Cruce/Models/`, `ios/Cruce/Domain/` y `ios/Cruce/Data/MockData.swift` a `Sources/CruceCore/{Models,Domain,Fixtures}`, agregar `public` (con `public init` en los `struct`) a la API que usa la app y `import CruceCore` en los archivos de la app que la usan. En el mismo commit, en `ios/project.yml`, agregar el paquete local `CruceCore` como dependencia del target `Cruce` y eliminar el target `CruceTests` y su entrada en el esquema, para que ningún commit deje la app sin poder compilar (los archivos de `ios/CruceTests/` se migran en el grupo 3) (verificado: la prueba de 1.1 pasa en GREEN con `swift test`; `git log --follow` muestra el historial de los archivos movidos; `rg` no encuentra en `ios/Cruce/` un archivo que use esos tipos sin `import CruceCore`; `rg CruceTests ios/project.yml` no encuentra nada y `xcodegen` genera el proyecto sin errores). Commit: `refactor(ios): mover modelos y dominio al paquete CruceCore`
 
 ## 3. Migrar las pruebas a Swift Testing
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Pantallas que se apilan dentro del flujo principal.
 enum Route: Hashable {

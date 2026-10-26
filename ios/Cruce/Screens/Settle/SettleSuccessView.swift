@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// "¡A paz y salvo!" después de saldar (pantalla 09).
 struct SettleSuccessView: View {

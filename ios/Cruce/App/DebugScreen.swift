@@ -1,5 +1,6 @@
 #if DEBUG
 import SwiftUI
+import CruceCore
 
 /// Abre la app directo en una pantalla con datos de ejemplo, para comparar con las capturas del diseño.
 /// Solo existe en Debug. Uso: `xcrun simctl launch <udid> com.joanrojas.cruce -screen history`.

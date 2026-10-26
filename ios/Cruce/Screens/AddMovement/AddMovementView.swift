@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Nuevo movimiento (pantalla 05) y edición de uno existente.
 struct AddMovementView: View {

@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Onboarding de 3 pasos (pantallas 01, 11 y 12).
 struct OnboardingView: View {

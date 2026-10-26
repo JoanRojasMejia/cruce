@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Ajustes (pantalla 19).
 struct SettingsView: View {

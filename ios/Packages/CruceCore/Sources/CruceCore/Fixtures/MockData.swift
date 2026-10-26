@@ -2,22 +2,22 @@ import Foundation
 
 /// Datos de ejemplo iguales a los del canvas de diseño.
 /// Desde la vista de Joan, el saldo queda en "Jesús te debe $20.000".
-enum MockData {
-    static let joan = Member(
+public enum MockData {
+    public static let joan = Member(
         id: UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!,
         name: "Joan",
         avatarColor: .yellow,
         tikeVariant: .rosa
     )
 
-    static let jesus = Member(
+    public static let jesus = Member(
         id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!,
         name: "Jesús",
         avatarColor: .violet,
         tikeVariant: .verde
     )
 
-    static func movements(reference: Date = .now) -> [Movement] {
+    public static func movements(reference: Date = .now) -> [Movement] {
         let calendar = Calendar.current
         func daysAgo(_ days: Int, hour: Int = 13) -> Date {
             let day = calendar.date(byAdding: .day, value: -days, to: reference) ?? reference

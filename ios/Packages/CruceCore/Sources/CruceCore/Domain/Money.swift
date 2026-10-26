@@ -1,7 +1,7 @@
 import Foundation
 
 /// Utilidades para pesos colombianos enteros. Nunca se usan decimales.
-enum Money {
+public enum Money {
     /// Signo menos tipográfico (U+2212), no el guion.
     static let minusSign = "\u{2212}"
 
@@ -12,7 +12,7 @@ enum Money {
     }
 
     /// Formato de la app: `$30.000`, `$1.800.000`, `+$18.000`, `−$50.000`.
-    static func format(_ value: Int, showsSign: Bool = false) -> String {
+    public static func format(_ value: Int, showsSign: Bool = false) -> String {
         let digits = String(value.magnitude)
         var groups: [String] = []
         var end = digits.endIndex
@@ -27,7 +27,7 @@ enum Money {
     }
 
     /// Convierte lo que se escribe en el teclado ("60000") a pesos. Máximo 12 dígitos.
-    static func parse(digits: String) -> Int {
+    public static func parse(digits: String) -> Int {
         Int(digits.filter(\.isNumber).prefix(12)) ?? 0
     }
 }

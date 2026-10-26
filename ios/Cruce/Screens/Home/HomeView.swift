@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Inicio: el saldo neto es el protagonista.
 /// Pantallas del canvas: 02 Inicio vacío, 03 Te deben, 04 Debes, 20 Vista de Jesús.

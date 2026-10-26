@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 /// Fila de un movimiento con su efecto en el saldo.
 /// La dirección nunca depende solo del color: lleva signo, texto y flecha.

@@ -1,4 +1,5 @@
 import SwiftUI
+import CruceCore
 
 extension AvatarColor {
     var color: Color {
