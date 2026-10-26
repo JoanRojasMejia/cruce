@@ -13,7 +13,8 @@ struct SupabaseParcheRepository: ParcheRepository {
 
     func loadParches() async throws -> [ParcheDetail] {
         try await run {
-            let userID = try await currentUserID()
+            // Sin sesión no hay parches que ver (pasa al arrancar antes de entrar).
+            guard let userID = await sessionUserID() else { return [] }
             async let parches = client.from("parches").select(ParcheRemote.detailSelect).execute().data
             async let partners = crucePartners(of: userID)
             return try ParcheRemote.details(from: await parches, userID: userID, crucePartners: await partners)
@@ -107,9 +108,13 @@ struct SupabaseParcheRepository: ParcheRepository {
 
     /// La cuenta de quien entró. `session` renueva el token si venció; sin sesión no hay parches que ver.
     private func currentUserID() async throws -> UUID {
+        guard let userID = await sessionUserID() else { throw ParcheRepositoryError.notAllowed }
+        return userID
+    }
+
+    private func sessionUserID() async -> UUID? {
         if let session = try? await client.auth.session { return session.user.id }
-        if let user = client.auth.currentUser { return user.id }
-        throw ParcheRepositoryError.notAllowed
+        return client.auth.currentUser?.id
     }
 
     /// Las cuentas con las que comparte un cruce (RLS de `ledger_members` deja ver los miembros de sus cuentas).
@@ -129,6 +134,9 @@ struct SupabaseParcheRepository: ParcheRepository {
             return try await operation()
         } catch let error as PostgrestError {
             throw ParcheRepositoryError(databaseCode: error.code, hint: error.hint) ?? error
+        } catch let error as URLError where error.code == .cancelled {
+            // La tarea se canceló (por ejemplo, otra carga la reemplazó): no es falta de red.
+            throw CancellationError()
         } catch is URLError {
             throw ParcheRepositoryError.offline
         }

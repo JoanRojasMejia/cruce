@@ -22,10 +22,10 @@ struct CruceApp: App {
                 .preferredColorScheme(.light)
                 // El texto crece con el sistema hasta accessibility1; más allá rompe el diseño.
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                .task {
-                    await stores.ledger.load()
-                    await stores.parches.load()
-                }
+                .task { await stores.ledger.load() }
+                // Los parches dependen de quién entró: se cargan al arrancar y otra vez cada vez que cambia la
+                // sesión (al entrar con el código, la carga del arranque ya pasó sin sesión).
+                .task(id: stores.session.userID) { await stores.parches.load() }
         }
     }
 

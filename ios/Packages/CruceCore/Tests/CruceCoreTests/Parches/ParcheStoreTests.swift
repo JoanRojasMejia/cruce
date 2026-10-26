@@ -677,3 +677,41 @@ extension ParcheExpense {
         )
     }
 }
+
+/// Un repositorio cuya tarea se canceló (por ejemplo, la carga que reemplaza otra al cambiar la sesión).
+private struct CancelledParcheRepository: ParcheRepository {
+    func loadParches() async throws -> [ParcheDetail] { throw CancellationError() }
+    func loadParche(id: UUID) async throws -> ParcheDetail { throw CancellationError() }
+    func loadActivity(parcheID: UUID) async throws -> [ParcheActivity] { throw CancellationError() }
+    func createParche(id: UUID, name: String, displayName: String) async throws -> ParcheDetail {
+        throw CancellationError()
+    }
+    func joinParche(code: String, displayName: String) async throws -> ParcheDetail { throw CancellationError() }
+    func addParticipant(id: UUID, parcheID: UUID, displayName: String) async throws -> ParcheParticipant {
+        throw CancellationError()
+    }
+    func claimPlace(code: String) async throws -> ParcheDetail { throw CancellationError() }
+    func saveExpense(_ expense: ParcheExpense) async throws { throw CancellationError() }
+    func deleteExpense(id: UUID, parcheID: UUID, at date: Date) async throws { throw CancellationError() }
+    func recordPayment(_ payment: ParchePayment) async throws { throw CancellationError() }
+    func confirmPayment(id: UUID, parcheID: UUID) async throws { throw CancellationError() }
+    func closeParche(id: UUID) async throws { throw CancellationError() }
+    func moveDebtToCruce(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer {
+        throw CancellationError()
+    }
+    func markSeen(parcheID: UUID) async throws { throw CancellationError() }
+}
+
+@MainActor
+@Suite("Cargas canceladas de parches")
+struct ParcheStoreCancellationTests {
+    @Test("Una carga cancelada no muestra \"sin conexión\" ni un error")
+    func cancelledLoadIsSilent() async {
+        let store = ParcheStore(
+            session: SessionStore(phase: .main, me: MockData.joan, partner: MockData.jesus, userID: MockData.joan.id),
+            repository: CancelledParcheRepository())
+        await store.load()
+        #expect(store.error == nil)
+        #expect(!store.isOffline)
+    }
+}

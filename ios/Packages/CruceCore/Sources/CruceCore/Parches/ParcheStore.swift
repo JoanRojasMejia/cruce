@@ -565,6 +565,8 @@ public final class ParcheStore {
     }
 
     private func handle(_ error: any Error) {
+        // Una tarea cancelada (otra carga la reemplazó) no es un problema que mostrar.
+        if error is CancellationError { return }
         if Self.isConnectivity(error) { isOffline = true }
         self.error = Self.problem(for: error)
     }
