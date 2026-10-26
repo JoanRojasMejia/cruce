@@ -18,6 +18,16 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 
 ---
 
+## Parches · grupos con inicio y fin
+*Hecho en el cambio `parches` (26 oct 2026), fuera del orden de los checkpoints. Migración `20261026095551_parches.sql` aplicada en local y en la nube.*
+- [x] Reparto en pesos enteros (iguales, por consumo con ítems, por partes, por porcentaje y propina) y saldos, mínimo de transferencias y deuda directa entre dos, en CruceCore.
+- [x] Base de datos: tablas, RLS (solo los del parche ven el parche), validación de sumas, actividad y funciones (`create_parche`, `join_parche`, `add_parche_participant`, `claim_parche_place`, `save_parche_expense`, `record_parche_payment`, `confirm_parche_payment`, `close_parche`, `move_parche_debt_to_cruce`, `mark_parche_seen`…), con pgTAP (`06_parches.sql`).
+- [x] Pantallas: "Tus parches", nuevo parche, "Tengo un código" (`PCH-`, `SOY-`), detalle, anotar gasto y pago, cerrar con "¿Lo pasas a tu cruce?" y tickets para compartir.
+- [x] `SupabaseParcheRepository` en `AppStores.live()`, con la cola sin conexión guardada en disco.
+- [x] Probado contra Supabase local con tres cuentas y en el simulador.
+
+**Límites conocidos:** sin tiempo real (lo de los demás se ve al abrir el parche o al recargar); el movimiento que deja "pasar al cruce" está en `movements` pero la app solo lo muestra cuando llegue el CP5; sin notificaciones push (los avisos son dentro de la app); la cola sin conexión es del teléfono, no de la cuenta.
+
 ## CP0 · Levantar el proyecto y compilar
 - [x] `git init`, primer commit con todo lo que hay.
 - [x] `cd ios && xcodegen` genera el proyecto sin errores.

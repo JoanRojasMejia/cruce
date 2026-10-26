@@ -13,7 +13,7 @@ Una app de iPhone para que **dos amigos, Joan y Jesús**, lleven sus cuentas com
 - **Problema:** hoy anotan las deudas por separado ("él me debe 30.000", "yo le debo 60.000") y no las pueden cruzar.
 - **Solución:** cada gasto se compensa automáticamente contra lo que el otro debe, y la app muestra siempre **un único saldo neto**: quién le debe a quién y cuánto.
 - **El cruce es entre dos personas.** La cuenta permanente (el "cruce") es siempre de dos; no se le agregan más personas.
-- **Parches (función futura, sin implementar):** grupos de varias personas con inicio y fin (un viaje, una cena), donde también se cruzan cuentas y al final se salda todo. Son aparte del cruce y no lo cambian.
+- **Parches (implementados, cambio `parches`):** grupos de varias personas con inicio y fin (un viaje, una cena), donde también se cruzan cuentas y al final se salda todo. Son aparte del cruce y no lo cambian; al cerrar un parche, lo que dos personas se deben directamente puede pasar a su cruce como un movimiento. Quien no tiene la app participa igual ("sin la app") y luego puede quedarse con su lugar con un código `SOY-`; al parche se entra con un código `PCH-`.
 - **Todo el texto en español (Colombia).** Moneda: pesos colombianos, formato `$30.000`.
 
 ### Vocabulario
@@ -68,8 +68,9 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
 | App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
 | Inicio de sesión (CP3) | Por correo con un código de 6 dígitos (supabase-swift 2.55.4), sesión persistente, perfil y etapa de entrada según la sesión real. Sign in with Apple queda para cuando se pague la membresía | En local sí: pasos de la tarea 4.2 de `inicio-sesion-correo`. En la nube falta pegar la plantilla del correo y probar con los correos de Jesús y Joan |
-| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores, sesión y navegación) | 56 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
-| Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) aplicada en local y en la nube (26 oct 2026) | Sí: 74 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión) y revisión de seguridad hecha |
+| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores, sesión, navegación y parches) | 154 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
+| Parches | Lógica en CruceCore (reparto, saldos, `ParcheStore` con cola sin conexión), pantallas nuevas (17 entradas `-screen` en Debug), tickets para compartir y `SupabaseParcheRepository` conectado en `AppStores.live()`. Migración `20261026095551_parches.sql` aplicada en local y en la nube (26 oct 2026) | Sí: pgTAP (`06_parches.sql`), `swift test` y, contra Supabase local, el repositorio real con tres cuentas (crear, unirse, sin la app, cuatro repartos, pagos, reclamar lugar, cerrar, pasar al cruce, avisos) y la app en el simulador mostrando "Tus parches" |
+| Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) y `parches.sql` aplicadas en local y en la nube (26 oct 2026) | Sí: 163 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión, y parches) y revisión de seguridad hecha |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
 | Integración continua (GitHub Actions) | `ci.yml`: backend, base de datos y lógica, cada uno solo si cambió su carpeta; `ios.yml` compila la app a mano | Local: cada paso corre en la Mac (Linux con `swift:6.4` en Docker) y `actionlint` no reporta errores. En GitHub: corridas en verde desde el 26 oct 2026 |
@@ -96,14 +97,16 @@ cruce/
 │   ├── Cruce/
 │   │   ├── App/              CruceApp (raíz de composición), AppStores + .cruceStores, AppStores+Sample
 │   │   │                     (solo Debug), RootView + MainView (navegación), DebugScreen
-│   │   ├── Data/             SupabaseAuthService y SupabaseAccountDirectory (supabase-swift)
+│   │   ├── Data/             SupabaseAuthService, SupabaseAccountDirectory y SupabaseParcheRepository
+│   │   │                     (supabase-swift)
 │   │   ├── Config/           Cruce.xcconfig (incluye ios/Config.xcconfig, ignorado por git)
 │   │   ├── DesignSystem/     Colors, Typography, Metrics, NeoSurface, NeoButtonStyle, Illustration
 │   │   ├── Components/       FolderCard, MovementRow, Controls (IconButton, Chip, NeoSegmented,
 │   │   │                     NeoTextField, NeoToggleStyle, PageDots, Badge, BeforeAfter),
 │   │   │                     AmountKeypad, Avatar, CategoryIcon, CruceLogo
 │   │   ├── Screens/          Onboarding, Auth, Home, AddMovement, History, Detail, Settle,
-│   │   │                     Offline, Settings
+│   │   │                     Offline, Settings y Parches (lista, nuevo, código, detalle, gasto,
+│   │   │                     pago, cerrar y tickets)
 │   │   └── Resources/        Fuentes Archivo (OFL), Assets.xcassets (ilustraciones @2x/@3x,
 │   │                         AppIcon, AccentColor, LaunchBackground)
 │   └── Packages/CruceCore/   Paquete local con la lógica pura (la app lo usa con `import CruceCore`)
@@ -113,15 +116,19 @@ cruce/
 │       │   ├── Data/         LedgerRepository e InMemoryLedgerRepository (borrado suave); AuthService,
 │       │   │                 AccountDirectory y sus dobles en memoria
 │       │   ├── State/        SessionStore, LedgerStore, Router y Route (estado de la app)
+│       │   ├── Parches/      Allocation (reparto), modelos, ParcheCalculator, ParcheDetail, ParcheTicket,
+│       │   │                 ParcheRepository (+ backend en memoria), ParcheRemote (JSON de Supabase),
+│       │   │                 ParcheStore y PendingStore (cola sin conexión en disco)
 │       │   └── Fixtures/     MockData (datos de ejemplo para Debug, previews y pruebas)
 │       └── Tests/CruceCoreTests/  BalanceCalculator, DateText, Money, InMemoryLedgerRepository,
-│                                  SessionStore, LedgerStore y Router (Swift Testing)
+│                                  SessionStore, LedgerStore, Router y Parches/ (Swift Testing)
 ├── backend/                  Go 1.27, solo librería estándar
 │   ├── cmd/api/main.go
 │   └── internal/{config,httpapi,notify}
 ├── supabase/
-│   ├── migrations/           20261024000000_init.sql y 20261026060520_endurecer_rls.sql
-│   └── tests/                Pruebas pgTAP (01_saldo a 05_rls_endurecido)
+│   ├── migrations/           20261024000000_init.sql, 20261026060520_endurecer_rls.sql y
+│   │                         20261026095551_parches.sql
+│   └── tests/                Pruebas pgTAP (01_saldo a 06_parches)
 ├── openspec/                 Registro de specs y cambios (OpenSpec, ver §9)
 │   ├── config.yaml           Esquema spec-driven, artefactos en español
 │   ├── specs/                Cómo se comporta la app hoy (fuente de verdad)
@@ -175,7 +182,7 @@ curl localhost:8080/healthz
 ```bash
 supabase start         # levanta Postgres, Auth y Realtime en Docker (config.toml ya está en el repo)
 supabase db reset      # aplica supabase/migrations
-supabase test db       # 74 pruebas pgTAP de supabase/tests
+supabase test db       # 163 pruebas pgTAP de supabase/tests
 ```
 
 ### Respaldo de la base de datos
@@ -229,6 +236,20 @@ scripts/backup-db.sh --local        # respalda la base local (con supabase start
 | 10 | Sin conexión | `OfflineView` |
 | 19 | Ajustes | `SettingsView` |
 
+Parches (sin captura en `docs/design/screens/`; se abren en Debug con `-screen <nombre>`):
+
+| Pantalla | Vista de SwiftUI | `-screen` |
+|---|---|---|
+| "Tus parches" (también la sección del inicio) | `ParcheListView`, `HomeParchesSection` | `parches`, `parchesEmpty` |
+| Nuevo parche | `NewParcheView` | `parcheNew` |
+| "Tengo un código" (`CRZ-`, `PCH-`, `SOY-`) | `EnterCodeView` | `parcheCode` |
+| Detalle (saldos, gastos, pagos, actividad) | `ParcheDetailView` | `parcheDetail`, `parcheDetailEnd`, `parcheClosed` |
+| Anotar o editar un gasto (y borrarlo) | `ParcheExpenseView` | `parcheExpense`, `parcheExpenseItems`, `parcheDelete` |
+| Anotar un pago | `ParchePaymentView` | `parchePayment` |
+| Cerrar el parche y "¿Lo pasas a tu cruce?" | `CloseParcheView`, `CruceQuestionCard` | `parcheClose`, `parcheCruce` |
+| Sin conexión (cola pendiente) | `ParcheSyncBanner` | `parcheOffline` |
+| Tickets para compartir | `ParcheTicketView` | `parcheTicket`, `parcheTicketSettled`, `parcheTicketGroup` |
+
 ### Ilustraciones
 `Assets.xcassets/Illustrations/il-0X-*.imageset`. El enum `Illustration` las mapea; `Illustration.balance(_:variant:)` aplica la regla rosa o verde. Los originales están en `~/Downloads/new-idea-proyect/ilustrations/`.
 
@@ -263,14 +284,16 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 | `MovementCategory` | enum `movement_category` (comida, mercado, transporte, hogar, ocio, prestamo, otro) |
 
 ### Piezas clave de la app
-- **Tres stores** (`@MainActor @Observable`, en `CruceCore/State/`), sin ViewModels por pantalla ni coordinador:
+- **Cuatro stores** (`@MainActor @Observable`, en `CruceCore/State/` y `CruceCore/Parches/`), sin ViewModels por pantalla ni coordinador:
   - **`SessionStore`**: `phase` (etapa del flujo de entrada), `me`, `partner`, `inviteCode`, `member(_:)`, la sesión (`userID`, `pendingEmail`, `error`, `isWorking`, `isReady`) y las acciones `refresh()` (calcula la etapa: sin sesión → onboarding; sin perfil → pedir el nombre; sin `ledger_members` → invitar; con cuenta → inicio), `sendCode(to:)`, `resendCode()`, `verify(code:)`, `createProfile(name:)` y `signOut()`. Recibe un `AuthService` y un `AccountDirectory`.
   - **`LedgerStore`**: todos los movimientos (también los eliminados) y las lecturas de los vigentes (`visibleMovements`, `movement(_:)`, `isEmpty`, `net`, `balance`, `phrase(forNet:)`…), `lastSaved` (abre la hoja "Gasto guardado"), `lastSettlement` (abre "A paz y salvo"), `isOffline`, `pendingSyncCount` y las acciones `load`, `save`, `delete`, `settle` y `retrySync`. Lee `me`/`partner` del `SessionStore` en el momento.
   - **`Router`**: `path: [Route]`, `push`, `pop` y `popToRoot`.
+  - **`ParcheStore`**: los parches de quien entró (`parches`, `unseenTotal`, saldos y frases), y las acciones crear, unirse, reclamar lugar, agregar sin la app, anotar/editar/borrar gasto, anotar/confirmar pago, cerrar y pasar al cruce. Los gastos y pagos sin conexión quedan en una cola (`pending`) guardada en disco con `FilePendingStore` y se reintentan (idempotentes por `id`). Recibe un `ParcheRepository` y un `PendingStore`; se carga al arrancar y cada vez que cambia `session.userID`.
   - Las acciones que cruzan stores quedan explícitas en la vista: "Cerrar sesión" (`router.popToRoot()` y `session.signOut()`), guardar un movimiento (`router.pop()` y `ledger.save`) y "Volver al inicio" en "A paz y salvo" (`router.popToRoot()`).
-- **`AppStores`** y **`.cruceStores(_:)`** (`App/AppStores.swift`): agrupa los tres stores y los inyecta en el `Environment` con un solo modificador; lo usan `CruceApp` (la raíz de composición), `DebugScreen` y cada `#Preview`. `AppStores.live()` es el arranque real (Release, y Debug sin `-screen`): sesión con Supabase, sin movimientos (CP5) y sin código de invitación (CP4).
+- **`AppStores`** y **`.cruceStores(_:)`** (`App/AppStores.swift`): agrupa los cuatro stores y los inyecta en el `Environment` con un solo modificador; lo usan `CruceApp` (la raíz de composición), `DebugScreen` y cada `#Preview`. `AppStores.live()` es el arranque real (Release, y Debug sin `-screen`): sesión y parches con Supabase, sin movimientos (CP5) y sin código de invitación (CP4).
 - **`AppStores.sample(phase:viewer:movements:)`** (`App/AppStores+Sample.swift`, solo Debug): datos de ejemplo para la app en Debug, `DebugScreen` y las vistas previas, con `inviteCode = "CRZ-4821"`. `MockData` reproduce el canvas: desde la vista de Joan, "Jesús te debe $20.000".
 - **`AuthService`** y **`AccountDirectory`** (`CruceCore/Data/AuthService.swift`): la frontera con Supabase Auth y con `profiles`/`ledger_members`. En la app los implementan `SupabaseAuthService` y `SupabaseAccountDirectory` (`ios/Cruce/Data/`), con un solo `SupabaseClient` creado en `AppStores.live()`; en pruebas y vistas previas, `InMemoryAuthService` (código `123456`) e `InMemoryAccountDirectory`. CruceCore no depende de supabase-swift.
+- **`ParcheRepository`** (`CruceCore/Parches/`): la frontera de parches. En la app la implementa `SupabaseParcheRepository` (`ios/Cruce/Data/`): lee con una sola consulta de `parches` con todo embebido (RLS solo deja ver los parches propios) y escribe solo con las funciones de la base (`create_parche`, `save_parche_expense`…). La traducción del JSON, los parámetros y los errores (`hint` → `ParcheRepositoryError`, sin red → `.offline`) viven en `ParcheRemote`, probado con `swift test`. En pruebas y Debug, `InMemoryParcheRepository`.
 - **`LedgerRepository`** (`CruceCore/Data/`): es la frontera con el backend. Hoy la implementa `InMemoryLedgerRepository` (un actor); en el CP5 entra `SupabaseLedgerRepository` con la misma interfaz. `delete(id:)` es **borrado suave**: marca `Movement.deletedAt` (igual a `movements.deleted_at`) y conserva el movimiento; `BalanceCalculator` y las lecturas del `LedgerStore` ignoran los eliminados.
 
 ---

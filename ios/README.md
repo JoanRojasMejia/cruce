@@ -64,16 +64,17 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 | `Cruce/DesignSystem` | Tokens de la guía de estilo: colores, tipografía Archivo, radios, bordes, sombras, espaciados, botones e ilustraciones. |
 | `Cruce/Components` | Piezas reutilizables: tarjeta carpeta, fila de movimiento, chips, segmentado, teclado, avatar, logo. |
 | `Cruce/App` | `CruceApp` (raíz de composición), `AppStores` y `.cruceStores(_:)`, `AppStores.sample` (solo Debug), `RootView`/`MainView`, `DebugScreen` y `SupabaseConfig` (lee la URL y la clave del `Info.plist`). |
-| `Cruce/Data` | `SupabaseAuthService` y `SupabaseAccountDirectory`: la sesión y el perfil con supabase-swift, con un solo `SupabaseClient`. |
+| `Cruce/Data` | `SupabaseAuthService`, `SupabaseAccountDirectory` y `SupabaseParcheRepository`: la sesión, el perfil y los parches con supabase-swift, con un solo `SupabaseClient`. Los parches se leen con una sola consulta (RLS) y se escriben solo con las funciones de la base. |
 | `Cruce/Config` | `Cruce.xcconfig`, que incluye `ios/Config.xcconfig` si existe. |
-| `Cruce/Screens` | Las pantallas del canvas, cada una con su `#Preview`. |
+| `Cruce/Screens` | Las pantallas del canvas, cada una con su `#Preview`; `Screens/Parches` tiene las de parches (lista, nuevo, código, detalle, gasto, pago, cerrar y tickets). |
 | `Cruce/Resources` | Fuentes Archivo (licencia OFL), ilustraciones @2x/@3x, ícono de la app. |
 | `Packages/CruceCore/Sources/CruceCore/Models` | `Member`, `Movement`, `SplitRule`, `MovementCategory`. |
 | `Packages/CruceCore/Sources/CruceCore/Domain` | Lógica pura: saldo neto (`BalanceCalculator`), formato de pesos (`Money`), fechas en español. |
 | `Packages/CruceCore/Sources/CruceCore/Data` | `LedgerRepository` (interfaz, `delete` es borrado suave) e `InMemoryLedgerRepository`; `AuthService` y `AccountDirectory` (sesión y perfil) con sus dobles en memoria. En el CP5 entra `SupabaseLedgerRepository`. |
 | `Packages/CruceCore/Sources/CruceCore/State` | Estado de la app, `@MainActor @Observable`: `SessionStore` (sesión y etapa), `LedgerStore` (movimientos, saldo y acciones), `Router` (pila de navegación) y `Route`. |
+| `Packages/CruceCore/Sources/CruceCore/Parches` | Parches: reparto (`Allocation`), modelos, `ParcheCalculator`, `ParcheDetail`, tickets, `ParcheRepository` con su backend en memoria, `ParcheRemote` (JSON de Supabase, parámetros y errores), `ParcheStore` y `PendingStore` (`FilePendingStore` guarda la cola sin conexión en `Application Support/Cruce/parches.json`). |
 | `Packages/CruceCore/Sources/CruceCore/Fixtures` | `MockData`: datos de ejemplo; en la app solo se usan en Debug y en las vistas previas. |
-| `Packages/CruceCore/Tests/CruceCoreTests` | Pruebas de Swift Testing del saldo (con borrado suave), los pesos, las fechas, el repositorio en memoria, los stores y el `Router`. `FailingLedgerRepository` simula el almacenamiento sin conexión. |
+| `Packages/CruceCore/Tests/CruceCoreTests` | Pruebas de Swift Testing del saldo (con borrado suave), los pesos, las fechas, el repositorio en memoria, los stores, el `Router` y los parches (`Tests/CruceCoreTests/Parches`). `FailingLedgerRepository` simula el almacenamiento sin conexión. |
 
 ## Pantallas del canvas → código
 
@@ -89,11 +90,12 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 | 08 Saldar · 09 A paz y salvo | `SettleView`, `SettleSuccessView` |
 | 10 Sin conexión | `OfflineView` |
 | 19 Ajustes | `SettingsView` |
+| Parches (sin captura en el canvas) | `ParcheListView`, `NewParcheView`, `EnterCodeView`, `ParcheDetailView`, `ParcheExpenseView`, `ParchePaymentView`, `CloseParcheView`, `ParcheTicketView`; en Debug con `-screen parches`, `parcheDetail`, `parcheExpense`… (lista completa en `CLAUDE.md` §5) |
 
 ## Reglas que el código respeta
 
 - **Recibo rosa o verde:** sale de `Member.tikeVariant` (rosa para quien creó la cuenta, verde para quien se unió). Ver `Illustration.balance(_:variant:)`.
-- **Estado:** cada vista lee solo el store que usa (`@Environment(SessionStore.self)`, `LedgerStore` o `Router`); los tres entran por `.cruceStores(_:)` en la app, `DebugScreen` y cada `#Preview`.
+- **Estado:** cada vista lee solo el store que usa (`@Environment(SessionStore.self)`, `LedgerStore`, `Router` o `ParcheStore`); los cuatro entran por `.cruceStores(_:)` en la app, `DebugScreen` y cada `#Preview`.
 - **Eliminar es borrado suave:** el movimiento se marca con `deletedAt` y deja de contar y de verse.
 - **Dinero:** `Int` en pesos, nunca `Double`. Formato `$30.000` con `Money.format`.
 - **Saldo:** nunca se guarda; se calcula con `BalanceCalculator.net`.
@@ -104,3 +106,4 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 - Sign in with Apple (función posterior: requiere la membresía de Apple Developer y su botón oficial `SignInWithAppleButton`).
 - `SupabaseLedgerRepository` con tiempo real y cola para el modo sin conexión.
 - "Cambiar monto" en Saldar (pago parcial), exportar CSV y desvincular.
+- Parches: sin tiempo real (se ve lo nuevo al abrir o deslizar para recargar), sin notificaciones push, y el movimiento que crea "pasar al cruce" solo se ve en el inicio cuando entre `SupabaseLedgerRepository` (CP5). La cola sin conexión es una por teléfono, no por cuenta.
