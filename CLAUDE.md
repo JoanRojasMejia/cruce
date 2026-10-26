@@ -90,7 +90,7 @@ cruce/
 │       │   ├── Domain/       BalanceCalculator, Money, DateText
 │       │   └── Fixtures/     MockData (datos de ejemplo para previews y pruebas)
 │       └── Tests/CruceCoreTests/  BalanceCalculatorTests, DateTextTests, MoneyTests (Swift Testing)
-├── backend/                  Go 1.22+, solo librería estándar
+├── backend/                  Go 1.27, solo librería estándar
 │   ├── cmd/api/main.go
 │   └── internal/{config,httpapi,notify}
 ├── supabase/
