@@ -14,7 +14,7 @@ Cada tarea termina en un commit (Conventional Commits, descripción en español,
 
 - [x] 3.1 Mover `MoneyTests.swift` con `git mv` a `Tests/CruceCoreTests/` y reescribirlo con `@Suite`, `@Test` y `#expect`; formato y lectura como pruebas parametrizadas; quitar la prueba provisional de 1.1 (verificado: `swift test --filter MoneyTests` pasa y cubre los 10 pares de valores de las 3 pruebas originales). Commit: `test(ios): migrar MoneyTests a Swift Testing`
 - [x] 3.2 Mover y reescribir `DateTextTests.swift` con el calendario y la zona horaria explícitos (verificado: `TZ=America/Bogota swift test --filter DateTextTests` y `TZ=Asia/Tokyo swift test --filter DateTextTests` pasan con las 4 pruebas y sus 7 aserciones). Commit: `test(ios): migrar DateTextTests a Swift Testing`
-- [ ] 3.3 Mover y reescribir `BalanceCalculatorTests.swift`, con el redondeo de montos impares parametrizado y `try #require` donde antes había `throws` (verificado: `swift test --filter BalanceCalculatorTests` pasa con los 9 casos originales y sus 16 aserciones más el `XCTUnwrap`). Commit: `test(ios): migrar BalanceCalculatorTests a Swift Testing`
+- [x] 3.3 Mover y reescribir `BalanceCalculatorTests.swift`, con el redondeo de montos impares parametrizado y `try #require` donde antes había `throws` (verificado: `swift test --filter BalanceCalculatorTests` pasa con los 9 casos originales y sus 16 aserciones más el `XCTUnwrap`). Commit: `test(ios): migrar BalanceCalculatorTests a Swift Testing`
 - [ ] 3.4 Documentar el nuevo comando de pruebas en `ios/README.md` y en `CLAUDE.md` §4 (verificado: el comando escrito, `cd ios/Packages/CruceCore && swift test`, corre tal cual y pasa). Commit: `docs(ios): explicar cómo correr las pruebas con swift test`
 
 ## 4. Proyecto de Xcode
