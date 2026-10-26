@@ -29,11 +29,12 @@ struct AppStores {
             isReady: false
         )
         let ledger = LedgerStore(session: session, repository: InMemoryLedgerRepository())
-        // TODO(4.1): reemplazar por `SupabaseParcheRepository` con la cola guardada en disco. Mientras tanto los
-        // parches viven solo en memoria, con un usuario fijo, y se pierden al cerrar la app.
+        // Los parches van con Supabase; la cola sin conexión y las respuestas a "¿Lo pasas a tu cruce?" se guardan
+        // en `Application Support/Cruce/parches.json` para que sobrevivan a cerrar la app.
         let parches = ParcheStore(
             session: session,
-            repository: InMemoryParcheRepository(backend: InMemoryParcheBackend(), userID: UUID()))
+            repository: SupabaseParcheRepository(client: client),
+            pendingStore: FilePendingStore.standard())
         return AppStores(session: session, ledger: ledger, router: Router(), parches: parches)
     }
 }
