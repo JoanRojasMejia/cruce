@@ -29,7 +29,7 @@
 - **Un proyecto de Supabase por ambiente.** Cuentas, RLS, plantillas de correo y datos nunca se mezclan.
 - **Prod no tiene plan B:** si le faltan sus claves, la app se detiene; nunca usa las de testing.
 - **Las migraciones llegan primero a testing** y después a prod, con `scripts/db-push.sh`, que en prod pide confirmación y respalda antes.
-- El backend de Go tendrá un despliegue por ambiente cuando se despliegue (CP8).
+- El backend de Go tiene una app de Fly.io por ambiente (CP8), una máquina pequeña siempre prendida para no perder webhooks: `cruce-api-testing` ahora y la de prod cuando exista su proyecto. Cada una tiene su `WEBHOOK_SECRET`, y el Database Webhook de cada proyecto de Supabase apunta a la suya.
 
 ## Próximos pasos (punto 2)
 

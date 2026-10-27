@@ -1,0 +1,25 @@
+# Backend de Cruce en Fly.io. Una app por ambiente con esta misma máquina: el nombre se pasa al desplegar,
+# por ejemplo `fly deploy -a cruce-api-testing --ha=false`. Los secretos van con `fly secrets import`, nunca aquí.
+primary_region = "sjc" # San José (California), cerca de Supabase (Oregon); Fly ya no deja crear máquinas en sea
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Siempre prendida: un webhook que llega con la máquina apagada espera el arranque y Supabase corta pronto.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

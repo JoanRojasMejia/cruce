@@ -61,17 +61,17 @@ type movementRecord struct {
 
 func (s *Server) handleMovementWebhook(w http.ResponseWriter, r *http.Request) {
 	if !s.authorized(r) {
-		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "no autorizado"})
+		s.reject(w, http.StatusUnauthorized, "no autorizado")
 		return
 	}
 
 	var payload webhookPayload
 	if err := json.NewDecoder(io.LimitReader(r.Body, maxBody)).Decode(&payload); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "JSON inválido"})
+		s.reject(w, http.StatusBadRequest, "JSON inválido")
 		return
 	}
 	if payload.Table != "movements" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "tabla inesperada"})
+		s.reject(w, http.StatusBadRequest, "tabla inesperada")
 		return
 	}
 
@@ -80,7 +80,7 @@ func (s *Server) handleMovementWebhook(w http.ResponseWriter, r *http.Request) {
 		record = payload.OldRecord
 	}
 	if record == nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sin registro"})
+		s.reject(w, http.StatusBadRequest, "sin registro")
 		return
 	}
 
@@ -100,6 +100,13 @@ func (s *Server) handleMovementWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]string{"status": "recibido"})
+}
+
+// reject responde con el error y deja una advertencia en el log con el motivo. Nunca escribe el header ni el
+// cuerpo que llegaron: pueden traer el secreto o el concepto de un movimiento.
+func (s *Server) reject(w http.ResponseWriter, status int, reason string) {
+	s.logger.Warn("webhook rechazado", "motivo", reason, "status", status)
+	writeJSON(w, status, map[string]string{"error": reason})
 }
 
 // authorized compara el header Authorization: Bearer <secreto> en tiempo constante.

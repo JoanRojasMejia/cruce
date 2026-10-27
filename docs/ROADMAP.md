@@ -9,7 +9,7 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 ## Decisiones abiertas (las toma Joan)
 
 - [ ] **Membresía de Apple Developer:** ¿se paga ya? La necesitan Sign in with Apple, las notificaciones push (CP9) y TestFlight (CP13). Por ahora no se paga: el CP3 se hizo con inicio de sesión por correo (código de 6 dígitos) y Sign in with Apple queda como función posterior.
-- [ ] **Hosting del backend de Go:** Fly.io, Render, Railway u otro (CP8).
+- [x] **Hosting del backend de Go:** *Decidido el 27 oct 2026: **Fly.io**, una máquina pequeña siempre prendida (unos US$2 al mes). Render gratis se duerme a los 15 minutos y perdería los webhooks de Supabase; Railway cuesta US$5 al mes como mínimo.*
 - [x] **Persistencia local para el modo sin conexión:** *Decidido el 27 oct 2026: archivo JSON (`Application Support/Cruce/movimientos.json`), con el mismo patrón que la cola de parches.*
 - [ ] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? (CP11).
 - [ ] **Pruebas de captura:** ¿se agrega `swift-snapshot-testing`? (CP12).
@@ -134,10 +134,11 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** en modo avión se pueden anotar gastos, y al volver la red se sincronizan sin perder ni duplicar nada.
 
 ## CP8 · Backend desplegado
-- [ ] Desplegar `backend/` con su Dockerfile en el hosting elegido.
-- [ ] Variables `WEBHOOK_SECRET`, `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` configuradas como secretos.
-- [ ] Database Webhook de `movements` (insert y update) apuntando a `/webhooks/movements` con `Authorization: Bearer`.
-- [ ] Logs visibles con cada movimiento recibido.
+*Hecho en testing en el cambio `backend-desplegado` (27 oct 2026): app `cruce-api-testing` en Fly.io, una máquina de 256 MB siempre prendida en `sjc`. El backend de prod se despliega igual cuando exista su proyecto de Supabase.*
+- [x] Desplegar `backend/` con su Dockerfile en el hosting elegido.
+- [x] Variables `WEBHOOK_SECRET` y `SUPABASE_URL` configuradas como secretos (`fly secrets import`). `SUPABASE_SERVICE_ROLE_KEY` se agrega en el CP9, cuando el backend la use.
+- [x] Database Webhook de `movements` (insert y update) apuntando a `/webhooks/movements` con `Authorization: Bearer`.
+- [x] Logs visibles con cada movimiento recibido (`fly logs -a cruce-api-testing`), sin concepto ni nombres; los rechazos dejan una advertencia.
 
 **Hecho cuando:** anotar un gasto en la app deja una línea en el log del backend en producción.
 

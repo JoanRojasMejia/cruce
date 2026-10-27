@@ -1,0 +1,7 @@
+# Nada de esto entra a la imagen: `fly deploy` sube esta carpeta a un builder remoto.
+**/.env
+**/.env.*
+!.env.example
+*.swp
+.DS_Store
+fly.toml
