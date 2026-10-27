@@ -76,7 +76,9 @@
 
 ## 5. Verificación de punta a punta
 
-- [ ] 5.1 Correr la suite completa: `swift test`, el lint, el backend, `supabase test db` y `xcodebuild` de los tres esquemas. Después, el "Hecho cuando" del CP4 en local: con dos simuladores, uno invita, el otro se une y los dos llegan al inicio vacío, con nombres y colores reales y recibo rosa y verde. En testing, Joan y Jesús se vinculan con "Cruce Test" en sus iPhone.
+- [x] 5.1 Correr la suite completa: `swift test`, el lint, el backend, `supabase test db` y `xcodebuild` de los tres esquemas. Después, el "Hecho cuando" del CP4 en local: con dos simuladores, uno invita, el otro se une y los dos llegan al inicio vacío, con nombres y colores reales y recibo rosa y verde. En testing, Joan y Jesús se vinculan con "Cruce Test" en sus iPhone.
+
+*5.1 hecho el 27 oct 2026: suite local en verde (178 Swift, 190 pgTAP, lint, backend y tres esquemas); en local, invitar y unirse con el simulador y la API; en testing, Joan y Jesús se vincularon en "Cruce Test" desde sus iPhone.*
 
 ## Workflow follow-up
 

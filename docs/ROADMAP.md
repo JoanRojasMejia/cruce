@@ -73,7 +73,7 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** las pruebas SQL pasan en local y la migración está aplicada en la nube.
 
 ## CP3 · Inicio de sesión
-*Hecho por correo en el cambio `inicio-sesion-correo` (26 oct 2026), sin membresía de Apple. En testing (27 oct 2026) se configuró SMTP de Gmail y la plantilla, y Joan entró en "Cruce Test" con el código del correo. Falta que Jesús entre para cumplir el "Hecho cuando".*
+*Hecho por correo en el cambio `inicio-sesion-correo` (26 oct 2026), sin membresía de Apple. En testing (27 oct 2026) se configuró SMTP de Gmail y la plantilla, y Joan y Jesús entraron en "Cruce Test" con el código del correo (cerrado).*
 - [x] Agregar `supabase-swift` vía SPM en `project.yml`. *Versión fija 2.55.4, solo en el target de la app.*
 - [x] Configuración en `Config.xcconfig` (no en el código): `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
 - [x] Protocolo `AuthService` y su implementación con Supabase; sesión persistente entre aperturas.
@@ -85,7 +85,7 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** Joan y Jesús pueden iniciar sesión en dos simuladores y la sesión sobrevive a cerrar la app.
 
 ## CP4 · Vincular a los dos
-*Hecho en local en el cambio `vincular-cruces` (27 oct 2026). En vez de tiempo real, la pantalla de invitar revisa cada 3 segundos (el tiempo real llega en el CP6). La migración ya está en testing (27 oct 2026); falta vincular a Joan y Jesús en "Cruce Test".*
+*Hecho en local en el cambio `vincular-cruces` (27 oct 2026). En vez de tiempo real, la pantalla de invitar revisa cada 3 segundos (el tiempo real llega en el CP6). La migración está en testing y Joan y Jesús se vincularon en "Cruce Test" desde sus iPhone (27 oct 2026, cerrado).*
 - [x] Regla en la base: dos personas tienen como máximo un cruce entre ellas (migración nueva; `redeem_invite` responde con un error claro si ya existe ese cruce).
 - [x] `InviteView` llama a `create_ledger_with_invite()` y muestra el código real.
 - [x] `JoinView` valida con `redeem_invite(code)` y muestra el nombre real de quien invitó.
