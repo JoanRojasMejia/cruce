@@ -7,6 +7,14 @@ struct SettingsView: View {
     @Environment(LedgerStore.self) private var ledger
     @Environment(Router.self) private var router
     @State private var notifyNewExpense = true
+    @State private var confirmingUnlink: Bool
+    @State private var unlinkFailed = false
+    /// El historial del cruce abierto ya escrito como CSV, listo para compartir.
+    @State private var exportURL: URL?
+
+    init(confirmingUnlink: Bool = false) {
+        _confirmingUnlink = State(initialValue: confirmingUnlink)
+    }
 
     var body: some View {
         ScrollView {
@@ -14,6 +22,7 @@ struct SettingsView: View {
                 ScreenHeader(title: "Ajustes")
 
                 Button {
+                    router.push(.profile)
                 } label: {
                     HStack(spacing: 14) {
                         Avatar(member: session.me, size: 54)
@@ -30,6 +39,7 @@ struct SettingsView: View {
                     .neoSurface(radius: Radius.card, shadow: ShadowOffset.l)
                 }
                 .buttonStyle(.plain)
+                .accessibilityHint("Cambiar tu nombre")
 
                 section("CUENTA COMPARTIDA") {
                     row {
@@ -52,12 +62,21 @@ struct SettingsView: View {
                         Text("Peso colombiano (COP)").font(.archivo(13, .bold)).foregroundStyle(
                             CruceColor.textSecondary)
                     }
-                    divider
-                    row {
-                        Text("Reparto por defecto").font(.archivo(15, .bold))
-                        Spacer()
-                        Text("50/50").font(.archivo(13, .extraBold))
-                        Image(systemName: "chevron.right").font(.system(size: 13, weight: .heavy))
+                    // Un cruce cerrado (desvinculado) es de solo lectura: no cambia de reparto.
+                    if !session.isOpenCruceClosed {
+                        divider
+                        Button {
+                            router.push(.defaultSplit)
+                        } label: {
+                            row {
+                                Text("Reparto por defecto").font(.archivo(15, .bold))
+                                Spacer()
+                                Text(defaultSplit.defaultTitle).font(.archivo(13, .extraBold))
+                                Image(systemName: "chevron.right").font(.system(size: 13, weight: .heavy))
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -77,10 +96,23 @@ struct SettingsView: View {
                 }
 
                 section("DATOS") {
-                    actionRow("Exportar historial (CSV)", systemImage: "arrow.down.to.line") {}
+                    if let exportURL {
+                        ShareLink(item: exportURL) {
+                            actionLabel("Exportar historial (CSV)", systemImage: "arrow.down.to.line")
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        actionLabel("Exportar historial (CSV)", systemImage: "arrow.down.to.line")
+                            .opacity(0.4)
+                    }
                     divider
-                    actionRow("Desvincular a \(session.partner.name)", systemImage: "xmark", tint: CruceColor.pink) {}
-                    divider
+                    if !session.isOpenCruceClosed {
+                        actionRow("Desvincular a \(session.partner.name)", systemImage: "xmark", tint: CruceColor.pink)
+                        {
+                            confirmingUnlink = true
+                        }
+                        divider
+                    }
                     actionRow("Cerrar sesión", systemImage: "rectangle.portrait.and.arrow.right") {
                         // Cruza dos stores: primero se limpia la navegación y luego se cierra la sesión.
                         router.popToRoot()
@@ -104,6 +136,46 @@ struct SettingsView: View {
         }
         .scrollIndicators(.hidden)
         .screenBackground()
+        .overlay {
+            if confirmingUnlink {
+                UnlinkConfirmation(
+                    failed: unlinkFailed,
+                    onCancel: {
+                        confirmingUnlink = false
+                        unlinkFailed = false
+                    },
+                    onUnlink: {
+                        Task {
+                            // Al cerrarse, el inicio pasa a "Tus cruces": se vuelve a la raíz.
+                            if await session.closeOpenCruce() {
+                                confirmingUnlink = false
+                                router.popToRoot()
+                            } else {
+                                unlinkFailed = true
+                            }
+                        }
+                    }
+                )
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: confirmingUnlink)
+        // El archivo se vuelve a escribir cuando cambian los movimientos o la otra persona.
+        .task(id: ExportKey(movements: ledger.movements, me: session.me, partner: session.partner)) {
+            exportURL = try? HistoryExport.write(
+                movements: ledger.movements, me: session.me, partner: session.partner)
+        }
+    }
+
+    private var defaultSplit: SplitRule {
+        SplitRule(otherPercent: session.openCruce?.defaultOtherPercent ?? CruceLink.standardOtherPercent)
+    }
+
+    /// Lo que cambia el archivo exportado.
+    private struct ExportKey: Equatable {
+        let movements: [Movement]
+        let me: Member
+        let partner: Member
     }
 
     /// "Cruce 1.0 (1) · testing": fuera de prod dice el ambiente (CRUCE_ENVIRONMENT en el Info.plist).
@@ -137,31 +209,35 @@ struct SettingsView: View {
         _ title: String, systemImage: String, tint: Color = CruceColor.ink, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack(spacing: 10) {
-                Group {
-                    if tint == CruceColor.ink {
-                        Image(systemName: systemImage).font(.system(size: 16, weight: .bold))
-                    } else {
-                        // Acción delicada: cuadro de color con borde y símbolo en tinta, como en el diseño.
-                        Image(systemName: systemImage)
-                            .font(.system(size: 10, weight: .black))
-                            .frame(width: 20, height: 20)
-                            .background(RoundedRectangle(cornerRadius: 5).fill(tint))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 5).strokeBorder(
-                                    CruceColor.ink, lineWidth: BorderWidth.thin))
-                    }
-                }
-                // Ancho fijo para que los textos de las filas queden alineados.
-                .frame(width: 24)
-                Text(title).font(.archivo(15, tint == CruceColor.ink ? .bold : .extraBold))
-                Spacer()
-            }
-            .foregroundStyle(CruceColor.ink)
-            .frame(minHeight: 48)
-            .contentShape(Rectangle())
+            actionLabel(title, systemImage: systemImage, tint: tint)
         }
         .buttonStyle(.plain)
+    }
+
+    private func actionLabel(_ title: String, systemImage: String, tint: Color = CruceColor.ink) -> some View {
+        HStack(spacing: 10) {
+            Group {
+                if tint == CruceColor.ink {
+                    Image(systemName: systemImage).font(.system(size: 16, weight: .bold))
+                } else {
+                    // Acción delicada: cuadro de color con borde y símbolo en tinta, como en el diseño.
+                    Image(systemName: systemImage)
+                        .font(.system(size: 10, weight: .black))
+                        .frame(width: 20, height: 20)
+                        .background(RoundedRectangle(cornerRadius: 5).fill(tint))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5).strokeBorder(
+                                CruceColor.ink, lineWidth: BorderWidth.thin))
+                }
+            }
+            // Ancho fijo para que los textos de las filas queden alineados.
+            .frame(width: 24)
+            Text(title).font(.archivo(15, tint == CruceColor.ink ? .bold : .extraBold))
+            Spacer()
+        }
+        .foregroundStyle(CruceColor.ink)
+        .frame(minHeight: 48)
+        .contentShape(Rectangle())
     }
 }
 

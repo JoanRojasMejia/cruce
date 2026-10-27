@@ -8,6 +8,10 @@ public enum Route: Hashable, Sendable {
     case detail(UUID)
     case settle
     case settings
+    /// Ajustes → la tarjeta del perfil: cambiar el nombre.
+    case profile
+    /// Ajustes → "Reparto por defecto" del cruce abierto.
+    case defaultSplit
     case offline
 
     // MARK: Cruces

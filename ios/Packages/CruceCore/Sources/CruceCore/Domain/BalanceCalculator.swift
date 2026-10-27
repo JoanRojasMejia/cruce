@@ -54,14 +54,18 @@ public enum BalanceCalculator {
         other: UUID,
         createdBy: UUID,
         paymentMethod: String?,
+        amount: Int? = nil,
         date: Date = .now
     ) -> Movement? {
         let net = net(of: movements, for: me)
         guard net != 0 else { return nil }
+        // Pago parcial: de $1 hasta el total; fuera de ese rango no hay pago.
+        let paid = amount ?? abs(net)
+        guard (1...abs(net)).contains(paid) else { return nil }
         return Movement(
             kind: .settlement,
             payerID: net > 0 ? other : me,
-            amount: abs(net),
+            amount: paid,
             concept: "Saldar cuentas",
             category: .otro,
             split: .fullOther,

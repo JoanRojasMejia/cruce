@@ -1,7 +1,8 @@
 import CruceCore
 import SwiftUI
 
-/// Historial agrupado por día, con filtros por persona y categoría (pantalla 07).
+/// Historial agrupado por día, con filtros por persona y categoría (pantalla 07). Deslizar una fila a la izquierda
+/// muestra "Eliminar", con la misma confirmación del detalle.
 struct HistoryView: View {
     enum PersonFilter: Hashable {
         case all
@@ -14,55 +15,89 @@ struct HistoryView: View {
     @State private var personFilter: PersonFilter = .all
     @State private var categoryFilter: MovementCategory?
 
+    /// El movimiento que se va a eliminar desde el historial (deslizar → "Eliminar"), mientras se confirma.
+    @State private var deleting: Movement?
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                ScreenHeader(title: "Historial") {
-                    Badge(text: ledger.phrase(forNet: ledger.net), fill: badgeColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                filters
-                if groups.isEmpty {
-                    Text("No hay movimientos con estos filtros.")
-                        .textStyle(.body)
-                        .foregroundStyle(CruceColor.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 40)
-                } else {
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(groups, id: \.day) { group in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(DateText.groupHeader(group.day))
-                                    .textStyle(.label)
-                                ForEach(group.movements) { movement in
-                                    Button {
-                                        router.push(.detail(movement.id))
-                                    } label: {
-                                        MovementRow(
-                                            movement: movement,
-                                            impact: ledger.impact(of: movement),
-                                            payerName: session.member(movement.payerID).name,
-                                            partnerName: session.partner.name,
-                                            isPayerMe: movement.payerID == session.me.id,
-                                            compact: true,
-                                            viewerName: session.me.name
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
+        // `List` para tener deslizar con "Eliminar" (también para VoiceOver); sin separadores ni fondo, para verse igual
+        // que el resto de la app.
+        List {
+            ScreenHeader(title: "Historial") {
+                Badge(text: ledger.phrase(forNet: ledger.net), fill: badgeColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .historyRow(top: 8, bottom: 14)
+            filters
+                .historyRow(bottom: 14)
+            if groups.isEmpty {
+                Text("No hay movimientos con estos filtros.")
+                    .textStyle(.body)
+                    .foregroundStyle(CruceColor.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
+                    .historyRow()
+            } else {
+                ForEach(groups, id: \.day) { group in
+                    Text(DateText.groupHeader(group.day))
+                        .textStyle(.label)
+                        .historyRow(bottom: 6)
+                    ForEach(group.movements) { movement in
+                        row(movement)
+                            .historyRow(bottom: movement.id == group.movements.last?.id ? 12 : 6)
                     }
                 }
             }
-            .padding(.horizontal, Spacing.screen)
-            .padding(.top, 8)
-            .padding(.bottom, 24)
-            .foregroundStyle(CruceColor.ink)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
         .scrollIndicators(.hidden)
+        .foregroundStyle(CruceColor.ink)
         .screenBackground()
+        .overlay {
+            if let movement = deleting {
+                DeleteConfirmation(
+                    movement: movement,
+                    afterNet: ledger.net - ledger.impact(of: movement),
+                    onCancel: { deleting = nil },
+                    onDelete: {
+                        deleting = nil
+                        Task { await ledger.delete(movement.id) }
+                    }
+                )
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: deleting?.id)
+    }
+
+    private func row(_ movement: Movement) -> some View {
+        Button {
+            router.push(.detail(movement.id))
+        } label: {
+            MovementRow(
+                movement: movement,
+                impact: ledger.impact(of: movement),
+                payerName: session.member(movement.payerID).name,
+                partnerName: session.partner.name,
+                isPayerMe: movement.payerID == session.me.id,
+                compact: true,
+                viewerName: session.me.name
+            )
+        }
+        .buttonStyle(.plain)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            // Un cruce cerrado (desvinculado) es de solo lectura: no se elimina.
+            if !session.isOpenCruceClosed {
+                Button {
+                    deleting = movement
+                } label: {
+                    Label("Eliminar", systemImage: "trash")
+                }
+                .tint(CruceColor.pink)
+            }
+        }
     }
 
     private var filters: some View {
@@ -132,6 +167,15 @@ struct HistoryView: View {
             grouped
             .map { DayGroup(day: $0.key, movements: $0.value.sorted { $0.date > $1.date }) }
             .sorted { $0.day > $1.day }
+    }
+}
+
+extension View {
+    /// Una fila del historial sin separador ni fondo, con los márgenes de la pantalla y el espacio de abajo que se pida.
+    fileprivate func historyRow(top: CGFloat = 0, bottom: CGFloat = 0) -> some View {
+        listRowInsets(EdgeInsets(top: top, leading: Spacing.screen, bottom: bottom, trailing: Spacing.screen))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
     }
 }
 

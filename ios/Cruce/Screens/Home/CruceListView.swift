@@ -50,7 +50,7 @@ struct CruceListView: View {
 }
 
 /// Una fila de "Tus cruces": la otra persona, la frase y el monto con signo. La dirección de la deuda va en texto,
-/// no solo en el color.
+/// no solo en el color. Un cruce cerrado lleva la marca "Cerrado".
 struct CruceRow: View {
     @Environment(LedgerStore.self) private var ledger
     let cruce: CruceLink
@@ -65,9 +65,19 @@ struct CruceRow: View {
         HStack(spacing: 12) {
             Avatar(member: cruce.partner, size: 44)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Con \(cruce.partner.name)")
-                    .textStyle(.rowTitle)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text("Con \(cruce.partner.name)")
+                        .textStyle(.rowTitle)
+                        .lineLimit(1)
+                    // Desvinculado: sigue en la lista para ver su historial, al final y marcado.
+                    if cruce.isClosed {
+                        Text("Cerrado")
+                            .font(.archivo(11, .extraBold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .neoSurface(fill: CruceColor.pink, radius: 6, border: BorderWidth.thin)
+                    }
+                }
                 Text(ledger.phrase(forNet: net, partner: cruce.partner))
                     .textStyle(.secondary)
                     .foregroundStyle(CruceColor.textSecondary)

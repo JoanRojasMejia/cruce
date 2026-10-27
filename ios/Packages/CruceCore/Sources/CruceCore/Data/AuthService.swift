@@ -40,8 +40,10 @@ public protocol AccountDirectory: Sendable {
     func profile(for userID: UUID) async throws -> Profile?
     /// Crea el perfil con `id` igual al del usuario.
     func createProfile(_ profile: Profile) async throws
-    /// Los cruces completos (de dos personas) del usuario, del más reciente al más viejo (`my_cruces()`).
-    /// Un cruce pendiente, donde nadie se ha unido, no aparece.
+    /// Cambia el nombre del usuario (`profiles.display_name`). El nombre ya viene validado (1 a 40 caracteres).
+    func updateDisplayName(_ name: String, for userID: UUID) async throws
+    /// Los cruces completos (de dos personas) del usuario (`my_cruces()`): primero los abiertos y después los cerrados,
+    /// cada grupo del más reciente al más viejo. Un cruce pendiente, donde nadie se ha unido, no aparece.
     func cruces(for userID: UUID) async throws -> [CruceLink]
     /// El código `CRZ-` del único cruce pendiente del usuario; lo crea si no hay (`create_ledger_with_invite()`).
     func inviteCode(for userID: UUID) async throws -> String
@@ -49,6 +51,11 @@ public protocol AccountDirectory: Sendable {
     func previewInvite(_ code: String, for userID: UUID) async throws -> InviteCheck
     /// Canjea un código: el usuario queda como segunda persona de ese cruce (`redeem_invite`).
     func redeemInvite(_ code: String, for userID: UUID) async throws -> InviteCheck
+    /// Cambia el reparto por defecto de un cruce (`ledgers.default_other_percent`, de 0 a 100).
+    func setDefaultOtherPercent(_ percent: Int, in cruceID: UUID, for userID: UUID) async throws
+    /// Cierra un cruce para las dos personas (`close_cruce`) y devuelve cuándo quedó cerrado. Si ya estaba cerrado,
+    /// devuelve la fecha de antes.
+    func closeCruce(_ cruceID: UUID, for userID: UUID) async throws -> Date
 }
 // En Supabase las funciones usan la sesión abierta (`auth.uid()`): el `userID` que se pasa debe ser el de esa sesión.
 // El doble en memoria lo necesita para saber quién llama.
@@ -116,6 +123,8 @@ public actor InMemoryAccountDirectory: AccountDirectory {
         let id: UUID
         let createdBy: UUID
         var members: [Membership]
+        var closedAt: Date?
+        var defaultOtherPercent = CruceLink.standardOtherPercent
     }
 
     private struct Invite {
@@ -135,6 +144,9 @@ public actor InMemoryAccountDirectory: AccountDirectory {
 
     /// Error de las lecturas mientras `isFailing` sea verdadero, como sin conexión.
     public struct Offline: Error {}
+
+    /// Lo que la base rechaza: cerrar un cruce que no es de quien llama.
+    public struct NotFound: Error {}
 
     /// `invitesFrom`: personas que ya tienen su cruce pendiente con un código vigente, en orden (`CRZ-4821`,
     /// `CRZ-4822`…), para las vistas previas de la pantalla de unirse.
@@ -204,6 +216,31 @@ public actor InMemoryAccountDirectory: AccountDirectory {
         profiles[profile.id] = profile
     }
 
+    public func updateDisplayName(_ name: String, for userID: UUID) async throws {
+        if isFailing { throw Offline() }
+        guard profiles[userID] != nil else { throw NotFound() }
+        profiles[userID] = Profile(id: userID, displayName: name)
+    }
+
+    public func setDefaultOtherPercent(_ percent: Int, in cruceID: UUID, for userID: UUID) async throws {
+        if isFailing { throw Offline() }
+        guard let index = ledgers.firstIndex(where: { $0.id == cruceID && $0.members.contains { $0.user == userID } })
+        else { throw NotFound() }
+        ledgers[index].defaultOtherPercent = percent
+    }
+
+    public func closeCruce(_ cruceID: UUID, for userID: UUID) async throws -> Date {
+        if isFailing { throw Offline() }
+        guard
+            let index = ledgers.firstIndex(where: {
+                $0.id == cruceID && $0.members.count == 2 && $0.members.contains { $0.user == userID }
+            })
+        else { throw NotFound() }
+        if let closed = ledgers[index].closedAt { return closed }
+        ledgers[index].closedAt = now
+        return now
+    }
+
     public func cruces(for userID: UUID) async throws -> [CruceLink] {
         if isFailing { throw Offline() }
         return
@@ -218,9 +255,10 @@ public actor InMemoryAccountDirectory: AccountDirectory {
                     tikeVariant: other.tikeVariant)
                 return CruceLink(
                     id: ledger.id, partner: partner, myAvatarColor: mine.avatarColor, myTikeVariant: mine.tikeVariant,
-                    linkedAt: max(mine.joinedAt, other.joinedAt))
+                    linkedAt: max(mine.joinedAt, other.joinedAt), closedAt: ledger.closedAt,
+                    defaultOtherPercent: ledger.defaultOtherPercent)
             }
-            .sorted { $0.linkedAt > $1.linkedAt }
+            .sorted { ($0.isClosed ? 1 : 0, $1.linkedAt) < ($1.isClosed ? 1 : 0, $0.linkedAt) }
     }
 
     public func inviteCode(for userID: UUID) async throws -> String {
@@ -284,7 +322,8 @@ public actor InMemoryAccountDirectory: AccountDirectory {
         }
         let name = profiles[invite.createdBy]?.displayName ?? ""
         let linked = ledgers.contains { ledger in
-            ledger.members.contains { $0.user == userID } && ledger.members.contains { $0.user == invite.createdBy }
+            ledger.closedAt == nil && ledger.members.contains { $0.user == userID }
+                && ledger.members.contains { $0.user == invite.createdBy }
         }
         if linked {
             return (.rejected(.alreadyLinked, message: "Ya tienes un cruce con \(name)"), nil)

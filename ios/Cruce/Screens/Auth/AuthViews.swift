@@ -243,7 +243,8 @@ private struct NameStep: View {
 }
 
 /// El mensaje del problema del último paso, con ícono para que no dependa solo del color.
-private struct ProblemText: View {
+/// También la usan Ajustes (perfil, reparto y desvincular).
+struct ProblemText: View {
     let problem: SessionStore.Problem
 
     init(problem: SessionStore.Problem) {

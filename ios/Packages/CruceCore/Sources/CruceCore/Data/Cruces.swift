@@ -10,13 +10,45 @@ public struct CruceLink: Identifiable, Codable, Equatable, Sendable {
     public var myTikeVariant: TikeVariant
     /// Cuándo se unió la segunda persona: el cruce más reciente es el que se completó último.
     public var linkedAt: Date
+    /// Cuándo se cerró (al desvincular), o `nil` si sigue abierto. Un cruce cerrado es de solo lectura.
+    public var closedAt: Date?
+    /// Lo que le toca a quien no pagó, en %, al anotar un movimiento nuevo (`ledgers.default_other_percent`).
+    public var defaultOtherPercent: Int
 
-    public init(id: UUID, partner: Member, myAvatarColor: AvatarColor, myTikeVariant: TikeVariant, linkedAt: Date) {
+    /// El reparto por defecto de un cruce nuevo: mitad y mitad.
+    public static let standardOtherPercent = 50
+
+    public var isClosed: Bool { closedAt != nil }
+
+    public init(
+        id: UUID, partner: Member, myAvatarColor: AvatarColor, myTikeVariant: TikeVariant, linkedAt: Date,
+        closedAt: Date? = nil, defaultOtherPercent: Int = CruceLink.standardOtherPercent
+    ) {
         self.id = id
         self.partner = partner
         self.myAvatarColor = myAvatarColor
         self.myTikeVariant = myTikeVariant
         self.linkedAt = linkedAt
+        self.closedAt = closedAt
+        self.defaultOtherPercent = defaultOtherPercent
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, partner, myAvatarColor, myTikeVariant, linkedAt, closedAt, defaultOtherPercent
+    }
+
+    /// Una sesión guardada antes del CP11 (`sesion.json`) no trae `closedAt` ni `defaultOtherPercent`: se leen como
+    /// abierto y 50 %.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        partner = try container.decode(Member.self, forKey: .partner)
+        myAvatarColor = try container.decode(AvatarColor.self, forKey: .myAvatarColor)
+        myTikeVariant = try container.decode(TikeVariant.self, forKey: .myTikeVariant)
+        linkedAt = try container.decode(Date.self, forKey: .linkedAt)
+        closedAt = try container.decodeIfPresent(Date.self, forKey: .closedAt)
+        defaultOtherPercent =
+            try container.decodeIfPresent(Int.self, forKey: .defaultOtherPercent) ?? Self.standardOtherPercent
     }
 }
 
@@ -80,6 +112,8 @@ public enum CruceRemote {
         let partnerTike: TikeVariant
         let partnerAvatar: AvatarColor
         let linkedAt: Date
+        let closedAt: Date?
+        let defaultOtherPercent: Int?
 
         enum CodingKeys: String, CodingKey {
             case ledgerId = "ledger_id"
@@ -90,10 +124,17 @@ public enum CruceRemote {
             case partnerTike = "partner_tike"
             case partnerAvatar = "partner_avatar"
             case linkedAt = "linked_at"
+            case closedAt = "closed_at"
+            case defaultOtherPercent = "default_other_percent"
         }
     }
 
-    /// Las filas de `my_cruces()`, en el mismo orden (del más reciente al más viejo).
+    /// La fecha que devuelve `close_cruce` (un `timestamptz` en JSON).
+    public static func closedAt(from data: Data) throws -> Date {
+        try ParcheRemote.decoder().decode(Date.self, from: data)
+    }
+
+    /// Las filas de `my_cruces()`, en el mismo orden (los abiertos primero, cada grupo del más reciente al más viejo).
     public static func cruceLinks(from data: Data) throws -> [CruceLink] {
         try ParcheRemote.decoder().decode([CruceRow].self, from: data).map { row in
             CruceLink(
@@ -101,7 +142,8 @@ public enum CruceRemote {
                 partner: Member(
                     id: row.partnerId, name: row.partnerName, avatarColor: row.partnerAvatar,
                     tikeVariant: row.partnerTike),
-                myAvatarColor: row.myAvatar, myTikeVariant: row.myTike, linkedAt: row.linkedAt)
+                myAvatarColor: row.myAvatar, myTikeVariant: row.myTike, linkedAt: row.linkedAt,
+                closedAt: row.closedAt, defaultOtherPercent: row.defaultOtherPercent ?? CruceLink.standardOtherPercent)
         }
     }
 }

@@ -2,8 +2,9 @@ import CruceCore
 import Foundation
 import Supabase
 
-/// Perfil y cruces de quien entró. El perfil se lee de `profiles` (con RLS); para vincular se usan solo las funciones de
-/// la base (`my_cruces`, `create_ledger_with_invite`, `preview_invite` y `redeem_invite`), que usan la sesión abierta.
+/// Perfil y cruces de quien entró. El perfil se lee y se edita en `profiles`, y el reparto por defecto en `ledgers` (con
+/// RLS); para vincular y desvincular se usan solo las funciones de la base (`my_cruces`, `create_ledger_with_invite`,
+/// `preview_invite`, `redeem_invite` y `close_cruce`), que usan la sesión abierta.
 /// La traducción del JSON vive en `CruceRemote` (CruceCore), probada con `swift test`.
 struct SupabaseAccountDirectory: AccountDirectory {
     let client: SupabaseClient
@@ -48,6 +49,29 @@ struct SupabaseAccountDirectory: AccountDirectory {
     func redeemInvite(_ code: String, for userID: UUID) async throws -> InviteCheck {
         try CruceRemote.inviteCheck(
             from: try await client.rpc("redeem_invite", params: ["p_code": code]).execute().data)
+    }
+
+    func updateDisplayName(_ name: String, for userID: UUID) async throws {
+        // La política "editar mi perfil" solo deja cambiar la fila propia.
+        try await client
+            .from("profiles")
+            .update(["display_name": name])
+            .eq("id", value: userID)
+            .execute()
+    }
+
+    func setDefaultOtherPercent(_ percent: Int, in cruceID: UUID, for userID: UUID) async throws {
+        // Solo `default_other_percent` tiene permiso de edición en `ledgers`, y RLS deja solo los cruces propios.
+        try await client
+            .from("ledgers")
+            .update(["default_other_percent": percent])
+            .eq("id", value: cruceID)
+            .execute()
+    }
+
+    func closeCruce(_ cruceID: UUID, for userID: UUID) async throws -> Date {
+        try CruceRemote.closedAt(
+            from: try await client.rpc("close_cruce", params: ["p_ledger": cruceID]).execute().data)
     }
 
     func createProfile(_ profile: Profile) async throws {

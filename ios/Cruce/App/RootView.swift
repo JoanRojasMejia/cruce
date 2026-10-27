@@ -40,7 +40,8 @@ struct RootView: View {
     }
 }
 
-/// Flujo principal con navegación por pila. La raíz es "Tus cruces" con dos o más cruces y, si no, el inicio del único.
+/// Flujo principal con navegación por pila. La raíz es el inicio del cruce cuando hay uno solo y sigue abierto; si no,
+/// "Tus cruces" (`SessionStore.showsCruceList`).
 struct MainView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(SessionStore.self) private var session
@@ -53,7 +54,7 @@ struct MainView: View {
         @Bindable var router = router
         NavigationStack(path: $router.path) {
             Group {
-                if session.cruces.count >= 2 {
+                if session.showsCruceList {
                     CruceListView()
                 } else {
                     HomeView()
@@ -133,12 +134,17 @@ struct RouteDestinations: ViewModifier {
     @ViewBuilder
     private func destination(for route: Route) -> some View {
         switch route {
-        case .addMovement: AddMovementView()
+        case .addMovement:
+            AddMovementView(
+                defaultSplit: SplitRule(
+                    otherPercent: session.openCruce?.defaultOtherPercent ?? CruceLink.standardOtherPercent))
         case .editMovement(let id): AddMovementView(editing: ledger.movement(id))
         case .history: HistoryView()
         case .detail(let id): MovementDetailView(movementID: id)
         case .settle: SettleView()
         case .settings: SettingsView()
+        case .profile: ProfileView()
+        case .defaultSplit: DefaultSplitView()
         case .offline: OfflineView()
         case .cruce(let id): HomeView(showsBack: true).onAppear { session.open(id) }
         case .invite: InviteView()

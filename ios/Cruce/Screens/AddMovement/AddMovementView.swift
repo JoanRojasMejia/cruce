@@ -28,7 +28,9 @@ struct AddMovementView: View {
     @State private var otherShare: Double
     @FocusState private var editingConcept: Bool
 
-    init(editing: Movement? = nil) {
+    /// `defaultSplit`: el reparto con que arranca un movimiento nuevo (el reparto por defecto del cruce). Al editar se
+    /// usa el reparto del movimiento.
+    init(editing: Movement? = nil, defaultSplit: SplitRule = .equal) {
         self.editing = editing
         _digits = State(initialValue: editing.map { String($0.amount) } ?? "")
         _payerID = State(initialValue: editing?.payerID)
@@ -36,14 +38,14 @@ struct AddMovementView: View {
         _category = State(initialValue: editing?.category ?? .comida)
         let mode: SplitMode
         let share: Int
-        switch editing?.split {
-        case .percentage(let s)?:
+        switch editing?.split ?? defaultSplit {
+        case .percentage(let s):
             mode = .percentage
             share = s
-        case .fullOther?:
+        case .fullOther:
             mode = .fullOther
             share = 100
-        default:
+        case .equal:
             mode = .equal
             share = 50
         }

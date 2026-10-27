@@ -63,6 +63,57 @@ struct CruceRemoteTests {
         #expect(links[0].linkedAt > links[1].linkedAt)
     }
 
+    @Test("Las filas traen si el cruce está cerrado y su reparto por defecto")
+    func closedAndDefaultSplit() throws {
+        let json = """
+            [
+              {"ledger_id": "aaaaaaaa-0000-0000-0000-000000000002", "partner_id": "33333333-3333-3333-3333-333333333333",
+               "partner_name": "Ana", "my_tike": "rosa", "my_avatar": "yellow", "partner_tike": "verde",
+               "partner_avatar": "violet", "linked_at": "2026-10-27T10:00:00+00:00", "closed_at": null,
+               "default_other_percent": 70},
+              {"ledger_id": "aaaaaaaa-0000-0000-0000-000000000001", "partner_id": "11111111-1111-1111-1111-111111111111",
+               "partner_name": "Joan", "my_tike": "verde", "my_avatar": "violet", "partner_tike": "rosa",
+               "partner_avatar": "yellow", "linked_at": "2026-10-26T10:00:00+00:00",
+               "closed_at": "2026-10-27T18:00:00.25+00:00", "default_other_percent": 50}
+            ]
+            """
+        let links = try CruceRemote.cruceLinks(from: data(json))
+        #expect(links.map(\.isClosed) == [false, true])
+        #expect(links.map(\.defaultOtherPercent) == [70, 50])
+    }
+
+    @Test("La fecha que devuelve close_cruce se lee con sus fracciones de segundo")
+    func closedAtDate() throws {
+        let date = try CruceRemote.closedAt(from: data("\"2026-10-27T18:00:00.25+00:00\""))
+        #expect(date == Date(timeIntervalSince1970: 1_793_124_000.25))
+    }
+
+    @Test("Una sesión guardada antes del CP11 se lee como cruce abierto y a medias")
+    func oldSnapshot() throws {
+        let json = """
+            {"id": "aaaaaaaa-0000-0000-0000-000000000001", "linkedAt": 0, "myAvatarColor": "yellow",
+             "myTikeVariant": "rosa",
+             "partner": {"id": "22222222-2222-2222-2222-222222222222", "name": "Jesús", "avatarColor": "violet",
+                         "tikeVariant": "verde"}}
+            """
+        let link = try JSONDecoder().decode(CruceLink.self, from: data(json))
+        #expect(!link.isClosed)
+        #expect(link.defaultOtherPercent == 50)
+        let again = try JSONDecoder().decode(CruceLink.self, from: JSONEncoder().encode(link))
+        #expect(again == link)
+    }
+
+    @Test("El reparto por defecto se vuelve el reparto de un movimiento nuevo")
+    func splitFromDefault() {
+        #expect(SplitRule(otherPercent: 50) == .equal)
+        #expect(SplitRule(otherPercent: 100) == .fullOther)
+        #expect(SplitRule(otherPercent: 70) == .percentage(otherShare: 70))
+        #expect(SplitRule(otherPercent: 70).defaultTitle == "70 %")
+        #expect(SplitRule(otherPercent: 50).defaultTitle == "50/50")
+        #expect(SplitRule(otherPercent: 100).defaultTitle == "Todo es del otro")
+        #expect(SplitRule.equal.otherPercent == 50)
+    }
+
     @Test("Una fila con un color desconocido no se acepta")
     func badRow() {
         let json = """

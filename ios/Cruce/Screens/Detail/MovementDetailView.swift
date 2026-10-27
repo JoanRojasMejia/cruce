@@ -1,7 +1,7 @@
 import CruceCore
 import SwiftUI
 
-/// Detalle de un movimiento con editar y eliminar (pantallas 17 y 18).
+/// Detalle de un movimiento con editar y eliminar (pantallas 17 y 18). En un cruce cerrado solo se ve.
 struct MovementDetailView: View {
     @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
@@ -58,7 +58,7 @@ struct MovementDetailView: View {
 
         return VStack(alignment: .leading, spacing: 16) {
             ScreenHeader(title: "Movimiento") {
-                if movement.kind == .expense {
+                if movement.kind == .expense && !session.isOpenCruceClosed {
                     IconButton(systemName: "pencil", accessibilityLabel: "Editar movimiento") {
                         router.push(.editMovement(movement.id))
                     }
@@ -136,23 +136,26 @@ struct MovementDetailView: View {
 
             Spacer(minLength: 0)
 
-            HStack(spacing: 10) {
-                if movement.kind == .expense {
-                    Button {
-                        router.push(.editMovement(movement.id))
-                    } label: {
-                        Label("Editar", systemImage: "pencil")
+            // Un cruce cerrado (desvinculado) es de solo lectura.
+            if !session.isOpenCruceClosed {
+                HStack(spacing: 10) {
+                    if movement.kind == .expense {
+                        Button {
+                            router.push(.editMovement(movement.id))
+                        } label: {
+                            Label("Editar", systemImage: "pencil")
+                        }
+                        .buttonStyle(.neoSecondary)
                     }
-                    .buttonStyle(.neoSecondary)
+                    Button {
+                        confirmingDelete = true
+                    } label: {
+                        Label("Eliminar", systemImage: "trash")
+                    }
+                    .buttonStyle(.neoDestructive)
                 }
-                Button {
-                    confirmingDelete = true
-                } label: {
-                    Label("Eliminar", systemImage: "trash")
-                }
-                .buttonStyle(.neoDestructive)
+                .labelStyle(NeoLabelStyle())
             }
-            .labelStyle(NeoLabelStyle())
         }
         .padding(.horizontal, Spacing.screen)
         .padding(.top, 8)

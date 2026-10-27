@@ -144,9 +144,9 @@ public final class LedgerStore {
     }
 
     /// Crea o reemplaza un movimiento del cruce abierto. Si es nuevo, abre la hoja "Gasto guardado".
-    /// Sin cruce abierto no hace nada.
+    /// Sin cruce abierto, o con el cruce cerrado (solo lectura), no hace nada.
     public func save(_ movement: Movement) async {
-        guard let cruce = session.openCruceID else { return }
+        guard let cruce = session.openCruceID, !session.isOpenCruceClosed else { return }
         let isNew = self.movement(movement.id) == nil
         if isNew {
             lastSaved = movement
@@ -156,21 +156,23 @@ public final class LedgerStore {
 
     /// Borrado suave: marca el movimiento con la fecha del borrado y lo conserva en la lista.
     public func delete(_ id: UUID) async {
-        guard let cruce = session.openCruceID,
+        guard let cruce = session.openCruceID, !session.isOpenCruceClosed,
             movementsByCruce[cruce]?.contains(where: { $0.id == id }) == true
         else { return }
         await enqueue(.delete(id: id, cruce: cruce, at: now()))
     }
 
-    /// Registra el pago que deja el saldo del cruce abierto en $0. En $0 no hace nada.
-    public func settle(paymentMethod: String?) async {
-        guard let cruce = session.openCruceID,
+    /// Registra el pago de quien debe en el cruce abierto: sin `amount`, el total (el saldo queda en $0); con `amount`,
+    /// un pago parcial de $1 hasta el total. En $0, con un monto fuera de rango o en un cruce cerrado no hace nada.
+    public func settle(paymentMethod: String?, amount: Int? = nil) async {
+        guard let cruce = session.openCruceID, !session.isOpenCruceClosed,
             let payment = BalanceCalculator.settlement(
                 movements: movements,
                 me: session.me.id,
                 other: session.partner.id,
                 createdBy: session.me.id,
-                paymentMethod: paymentMethod
+                paymentMethod: paymentMethod,
+                amount: amount
             )
         else { return }
         lastSettlement = payment

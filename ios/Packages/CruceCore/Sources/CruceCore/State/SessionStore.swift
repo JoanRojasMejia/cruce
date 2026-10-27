@@ -54,7 +54,7 @@ public final class SessionStore {
     public var partner: Member
     /// Código `CRZ-` del cruce pendiente, para invitar. `nil` hasta `loadInviteCode()`.
     public var inviteCode: String?
-    /// Los cruces completos, del más reciente al más viejo.
+    /// Los cruces completos: primero los abiertos y después los cerrados, cada grupo del más reciente al más viejo.
     public private(set) var cruces: [CruceLink] = []
     /// El cruce con el que se trabaja: el inicio, los movimientos, saldar y Ajustes son de este cruce.
     public private(set) var openCruceID: UUID?
@@ -65,6 +65,14 @@ public final class SessionStore {
     /// El cruce abierto, o `nil` si no hay cruces.
     public var openCruce: CruceLink? {
         cruces.first { $0.id == openCruceID }
+    }
+    /// El cruce abierto está cerrado (se desvinculó): es de solo lectura.
+    public var isOpenCruceClosed: Bool {
+        openCruce?.isClosed ?? false
+    }
+    /// El inicio es "Tus cruces" salvo cuando hay un único cruce y sigue abierto: entonces es ese cruce.
+    public var showsCruceList: Bool {
+        !(cruces.count == 1 && !cruces[0].isClosed)
     }
     /// De quién es el código que se está escribiendo para unirse (`checkCode`).
     public var invitePreview: InviteCheck?
@@ -220,6 +228,66 @@ public final class SessionStore {
         }
         if ok { await refresh() }
         return ok
+    }
+
+    // MARK: - Ajustes
+
+    /// Cambia el nombre de quien usa la app (de 1 a 40 caracteres, sin espacios a los lados).
+    /// Sin red deja el error y conserva el nombre anterior.
+    @discardableResult
+    public func updateName(_ name: String) async -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let user = userID, (1...Self.maxNameLength).contains(trimmed.count) else {
+            error = .invalidName
+            return false
+        }
+        let ok = await perform {
+            try await directory.updateDisplayName(trimmed, for: user)
+        }
+        if ok {
+            me.name = trimmed
+            await saveSnapshot()
+        }
+        return ok
+    }
+
+    /// Cambia el reparto por defecto del cruce abierto (lo que le toca a quien no pagó, de 0 a 100).
+    /// En un cruce cerrado no hace nada; sin red deja el error y conserva el anterior.
+    @discardableResult
+    public func setDefaultSplit(_ percent: Int) async -> Bool {
+        guard let user = userID, let cruce = openCruce, !cruce.isClosed, (0...100).contains(percent) else {
+            return false
+        }
+        let ok = await perform {
+            try await directory.setDefaultOtherPercent(percent, in: cruce.id, for: user)
+        }
+        if ok, let index = cruces.firstIndex(where: { $0.id == cruce.id }) {
+            cruces[index].defaultOtherPercent = percent
+            await saveSnapshot()
+        }
+        return ok
+    }
+
+    /// Desvincula: cierra el cruce abierto para los dos y vuelve a cargar los cruces (el cerrado pasa al final).
+    /// El cruce sigue abierto en la app para ver su historial. Sin red deja el error y no cambia nada.
+    /// La navegación la limpia quien llama (`Router.popToRoot()`).
+    @discardableResult
+    public func closeOpenCruce() async -> Bool {
+        guard let user = userID, let cruce = openCruce, !cruce.isClosed else { return false }
+        var closedAt: Date?
+        let ok = await perform {
+            closedAt = try await directory.closeCruce(cruce.id, for: user)
+        }
+        guard ok else { return false }
+        if let links = try? await directory.cruces(for: user) {
+            apply(links)
+        } else if let index = cruces.firstIndex(where: { $0.id == cruce.id }) {
+            // Se cerró pero no se pudo recargar: se marca aquí y se ordena como lo haría la base.
+            cruces[index].closedAt = closedAt
+            cruces.sort { !$0.isClosed && $1.isClosed }
+        }
+        await saveSnapshot()
+        return true
     }
 
     // MARK: - Vincular

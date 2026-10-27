@@ -4,6 +4,7 @@ import SwiftUI
 /// Inicio del cruce abierto: el saldo neto es el protagonista.
 /// Pantallas del canvas: 02 Inicio vacío, 03 Te deben, 04 Debes, 20 Vista de Jesús.
 /// Con un solo cruce es la raíz; con varios se abre desde "Tus cruces" (`showsBack`) y lleva volver y "Con Ana".
+/// Un cruce cerrado (desvinculado) muestra el aviso y su saldo, sin agregar gastos ni saldar.
 struct HomeView: View {
     @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
@@ -19,7 +20,14 @@ struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header
-                    if ledger.isEmpty {
+                    if let closedAt = session.openCruce?.closedAt {
+                        // Desvinculado: se ve el saldo y el historial, pero no se anota ni se salda.
+                        ClosedCruceBanner(closedAt: closedAt)
+                        if !ledger.isEmpty {
+                            BalanceCard()
+                            recent
+                        }
+                    } else if ledger.isEmpty {
                         EmptyHomeContent()
                             .frame(maxHeight: .infinity)
                     } else {
@@ -281,6 +289,35 @@ struct EmptyHomeContent: View {
             .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
             .labelStyle(NeoLabelStyle())
         }
+    }
+}
+
+/// Aviso de un cruce cerrado: desde cuándo y qué se puede hacer con él.
+struct ClosedCruceBanner: View {
+    let closedAt: Date
+
+    init(closedAt: Date) {
+        self.closedAt = closedAt
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 16, weight: .heavy))
+                .frame(width: 36, height: 36)
+                .neoSurface(fill: CruceColor.pink, radius: 10, border: BorderWidth.thin)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Cruce cerrado el \(DateText.day(closedAt))").font(.archivo(15, .extraBold))
+                Text("Ya no se puede anotar ni saldar. El historial sigue aquí y lo puedes exportar en Ajustes.")
+                    .textStyle(.secondary)
+                    .foregroundStyle(CruceColor.textBody)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .neoSurface(radius: Radius.card, shadow: ShadowOffset.s)
+        .accessibilityElement(children: .combine)
     }
 }
 

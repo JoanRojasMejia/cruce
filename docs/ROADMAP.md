@@ -11,7 +11,8 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 - [ ] **Membresía de Apple Developer:** ¿se paga ya? La necesitan Sign in with Apple, las notificaciones push (CP9) y TestFlight (CP13). Por ahora no se paga: el CP3 se hizo con inicio de sesión por correo (código de 6 dígitos) y Sign in with Apple queda como función posterior.
 - [x] **Hosting del backend de Go:** *Decidido el 27 oct 2026: **Fly.io**, una máquina pequeña siempre prendida (unos US$2 al mes). Render gratis se duerme a los 15 minutos y perdería los webhooks de Supabase; Railway cuesta US$5 al mes como mínimo.*
 - [x] **Persistencia local para el modo sin conexión:** *Decidido el 27 oct 2026: archivo JSON (`Application Support/Cruce/movimientos.json`), con el mismo patrón que la cola de parches.*
-- [ ] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? (CP11).
+- [x] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? *Decidido el 27 oct 2026: **sí, de $1 hasta el total**; queda como un pago más y la pantalla dice "Pago anotado". Implementado en el CP11.*
+- [x] **Desvincular:** ¿qué pasa con el cruce y su historial? *Decidido el 27 oct 2026: **se cierra para los dos**; nadie anota ni salda, los dos ven y exportan el historial, y para volver se vinculan con un código nuevo (un cruce nuevo). Implementado en el CP11.*
 - [ ] **Pruebas de captura:** ¿se agrega `swift-snapshot-testing`? (CP12).
 - [x] **Una cuenta por persona:** ¿una persona puede pertenecer a más de una cuenta compartida? *Decidido el 27 oct 2026: **varios cruces, uno por pareja**. Con uno solo el inicio es ese cruce; con varios, el inicio muestra "Tus cruces". La regla va en el CP4 y la lista en el CP4b.*
 - [ ] **Borrar la cuenta de usuario:** Apple lo exige; falta definir qué pasa con sus cruces y los movimientos de los otros (CP11 o CP13).
@@ -159,12 +160,13 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** las dos tareas corren solas y dejan un registro.
 
 ## CP11 · Funciones pendientes de la interfaz
-- [ ] "Cambiar monto" en Saldar (pago parcial), según la decisión abierta.
-- [ ] Exportar el historial a CSV (ShareLink con el archivo).
-- [ ] Desvincular a la otra persona, con confirmación y explicación de qué pasa con el historial.
-- [ ] Editar el perfil (nombre).
-- [ ] Reparto por defecto (`ledgers.default_other_percent`) usado en "Nuevo movimiento".
-- [ ] Filas del historial: deslizar para eliminar, con confirmación.
+*Hecho en el cambio `funciones-pendientes` (27 oct 2026): probado en local y con la migración aplicada en testing; falta probar las pantallas en "Cruce Test". Quedan sin acción el switch de notificaciones (CP9) y "Recordarme saldar" (CP10).*
+- [x] "Cambiar monto" en Saldar (pago parcial), según la decisión abierta.
+- [x] Exportar el historial a CSV (ShareLink con el archivo).
+- [x] Desvincular a la otra persona, con confirmación y explicación de qué pasa con el historial.
+- [x] Editar el perfil (nombre).
+- [x] Reparto por defecto (`ledgers.default_other_percent`) usado en "Nuevo movimiento".
+- [x] Filas del historial: deslizar para eliminar, con confirmación.
 
 **Hecho cuando:** ningún botón de la app está vacío.
 

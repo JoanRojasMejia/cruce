@@ -9,6 +9,7 @@
         case signUp, signUpCode, signUpName, invite, join, joinInvalid, connected
         case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus, cruces, cruceAna
         case add, saved, history, detail, delete, settle, success, offline, settings
+        case profile, defaultSplit, settleAmount, successPartial, unlink, crucesClosed, cruceClosed
         case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
@@ -50,7 +51,22 @@
                 stores.ledger.isOffline = true
                 stores.ledger.pendingSyncCount = 1
                 return stores
-            case .settings: return stores(path: [.settings])
+            case .settings, .unlink: return stores(path: [.settings])
+            case .profile: return stores(path: [.settings, .profile])
+            case .defaultSplit: return stores(path: [.settings, .defaultSplit])
+            case .settleAmount: return .sample()
+            case .successPartial:
+                let stores = AppStores.sample()
+                stores.ledger.lastSettlement = BalanceCalculator.settlement(
+                    movements: stores.ledger.visibleMovements, me: MockData.joan.id, other: MockData.jesus.id,
+                    createdBy: MockData.joan.id, paymentMethod: "Nequi", amount: 5_000
+                )
+                return stores
+            case .crucesClosed: return .sample(withAna: true, closedJesus: true)
+            case .cruceClosed:
+                let stores = AppStores.sample(closedJesus: true)
+                stores.router.push(.cruce(MockData.joanJesusCruceID))
+                return stores
             case .parches: return stores(path: [.parches])
             case .parchesEmpty: return stores(path: [.parches], parcheBackend: InMemoryParcheBackend())
             case .parcheNew: return stores(path: [.newParche])
@@ -103,6 +119,13 @@
             switch self {
             case .onboarding2: OnboardingView(page: 1)
             case .onboarding3: OnboardingView(page: 2)
+            case .settleAmount:
+                ChangeAmountSheet(total: stores.ledger.balance.amount, initial: 5_000) { _ in }
+                    .screenBackground()
+            case .unlink:
+                NavigationStack {
+                    SettingsView(confirmingUnlink: true).toolbar(.hidden, for: .navigationBar)
+                }
             case .detail, .delete:
                 NavigationStack {
                     MovementDetailView(

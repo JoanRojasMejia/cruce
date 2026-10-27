@@ -63,6 +63,28 @@ public enum SplitRule: Codable, Hashable, Sendable {
         case .fullOther: return "Todo es del otro"
         }
     }
+
+    /// El reparto que corresponde al reparto por defecto de un cruce (lo que le toca a quien no pagó, en %):
+    /// 50 es mitad y mitad, 100 es todo del otro y cualquier otro valor es ese porcentaje.
+    public init(otherPercent: Int) {
+        switch otherPercent {
+        case 50: self = .equal
+        case 100: self = .fullOther
+        default: self = .percentage(otherShare: min(max(otherPercent, 0), 100))
+        }
+    }
+
+    /// Cómo se nombra el reparto por defecto en Ajustes: "50/50", "70 %" o "Todo es del otro".
+    public var defaultTitle: String {
+        switch self {
+        case .equal: return "50/50"
+        case .percentage(let share): return "\(share) %"
+        case .fullOther: return "Todo es del otro"
+        }
+    }
+
+    /// Lo que le toca a quien no pagó, en %, para guardarlo como reparto por defecto.
+    public var otherPercent: Int { otherSharePercent }
 }
 
 /// Un gasto o un pago para saldar.

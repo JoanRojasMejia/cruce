@@ -6,7 +6,7 @@ public enum Money {
     static let minusSign = "\u{2212}"
 
     /// Parte de un monto según un porcentaje, redondeando al peso más cercano (.5 hacia arriba).
-    static func share(of amount: Int, percent: Int) -> Int {
+    public static func share(of amount: Int, percent: Int) -> Int {
         precondition(amount >= 0, "Los montos siempre son positivos")
         return (amount * percent + 50) / 100
     }

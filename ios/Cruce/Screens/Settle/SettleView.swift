@@ -1,7 +1,8 @@
 import CruceCore
 import SwiftUI
 
-/// Saldar cuentas: confirma el pago que deja el saldo en $0 (pantalla 08).
+/// Saldar cuentas: confirma el pago que deja el saldo en $0 (pantalla 08). Con "Cambiar monto" el pago puede ser
+/// parcial, de $1 hasta el total.
 struct SettleView: View {
     enum Method: String, CaseIterable, Hashable {
         case efectivo = "Efectivo"
@@ -12,6 +13,9 @@ struct SettleView: View {
     @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
     @State private var method: Method = .nequi
+    /// Monto elegido con "Cambiar monto", o `nil` para pagar el total.
+    @State private var customAmount: Int?
+    @State private var isChangingAmount = false
 
     var body: some View {
         FittingScroll {
@@ -52,22 +56,48 @@ struct SettleView: View {
                 VStack(spacing: 10) {
                     Button {
                         Task {
-                            await ledger.settle(paymentMethod: method.rawValue)
+                            await ledger.settle(paymentMethod: method.rawValue, amount: customAmount)
                         }
                     } label: {
-                        Label("Confirmar pago de \(Money.format(ledger.balance.amount))", systemImage: "checkmark")
+                        Label("Confirmar pago de \(Money.format(paid))", systemImage: "checkmark")
                     }
                     .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
                     .labelStyle(NeoLabelStyle())
 
-                    Button("Cambiar monto") {}
-                        .buttonStyle(.neoLink)
+                    Button(customAmount == nil ? "Cambiar monto" : "Pagar el total") {
+                        if customAmount == nil {
+                            isChangingAmount = true
+                        } else {
+                            customAmount = nil
+                        }
+                    }
+                    .buttonStyle(.neoLink)
                 }
             }
         }
         .padding(.horizontal, Spacing.screen)
         .padding(.top, 8)
         .padding(.bottom, 16)
+        .sheet(isPresented: $isChangingAmount) {
+            ChangeAmountSheet(total: ledger.balance.amount, initial: customAmount) { amount in
+                // El total es lo mismo que no cambiar el monto.
+                customAmount = amount == ledger.balance.amount ? nil : amount
+            }
+            .presentationDetents([.large])
+            .presentationCornerRadius(Radius.sheet)
+            .presentationBackground { SheetBackground() }
+        }
+    }
+
+    /// Lo que se va a pagar: el monto elegido o, si no, el total.
+    private var paid: Int {
+        customAmount ?? ledger.balance.amount
+    }
+
+    /// Cómo queda el saldo después del pago, desde la vista de quien usa la app.
+    private var after: String {
+        let remaining = iOwe ? ledger.net + paid : ledger.net - paid
+        return remaining == 0 ? "$0 · a paz y salvo" : ledger.phrase(forNet: remaining)
     }
 
     /// Quién paga y quién recibe, con el antes y el después.
@@ -80,7 +110,7 @@ struct SettleView: View {
                 HStack(spacing: 12) {
                     person(payer, caption: iOwe ? "Tú pagas" : "\(payer.name) paga")
                     VStack(spacing: 2) {
-                        Text(Money.format(ledger.balance.amount))
+                        Text(Money.format(paid))
                             .font(.archivo(30, .black))
                             .tracking(-1)
                             .lineLimit(1)
@@ -97,7 +127,7 @@ struct SettleView: View {
                     beforeTitle: "ANTES",
                     before: ledger.phrase(forNet: ledger.net),
                     afterTitle: "DESPUÉS",
-                    after: "$0 · a paz y salvo"
+                    after: after
                 )
             }
         }
@@ -145,11 +175,63 @@ struct SettleView: View {
     }
 }
 
+/// "Cambiar monto": el teclado para escribir un pago parcial, de $1 hasta el total.
+struct ChangeAmountSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    private let total: Int
+    private let onDone: (Int) -> Void
+    @State private var digits: String
+
+    /// `initial`: el monto elegido antes; sin él, el teclado arranca vacío para escribir el pago parcial.
+    init(total: Int, initial: Int?, onDone: @escaping (Int) -> Void) {
+        self.total = total
+        self.onDone = onDone
+        _digits = State(initialValue: initial.map(String.init) ?? "")
+    }
+
+    private var amount: Int { Money.parse(digits: digits) }
+    private var isValid: Bool { (1...max(total, 1)).contains(amount) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("¿Cuánto se paga?").font(.archivo(22, .black))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Money.format(amount))
+                    .font(.archivo(46, .black, relativeTo: .largeTitle))
+                    .tracking(-2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Text(amount > total ? "No puede ser más de \(Money.format(total))" : "Máximo \(Money.format(total))")
+                    .textStyle(.secondary)
+                    .foregroundStyle(amount > total ? CruceColor.ink : CruceColor.textSecondary)
+            }
+            .accessibilityElement(children: .combine)
+            AmountKeypad(digits: $digits)
+            Spacer(minLength: 0)
+            Button("Listo") {
+                onDone(amount)
+                dismiss()
+            }
+            .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
+            .disabled(!isValid)
+        }
+        .foregroundStyle(CruceColor.ink)
+        .padding(.horizontal, Spacing.screen)
+        .padding(.top, 24)
+        .padding(.bottom, 16)
+    }
+}
+
 #if DEBUG
     #Preview {
         NavigationStack {
             SettleView().toolbar(.hidden, for: .navigationBar)
         }
         .cruceStores(.sample())
+    }
+
+    #Preview("Cambiar monto") {
+        ChangeAmountSheet(total: 50_000, initial: 20_000) { _ in }
+            .cruceStores(.sample())
     }
 #endif

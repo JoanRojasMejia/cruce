@@ -5,7 +5,8 @@
     extension AppStores {
         /// Datos de ejemplo del canvas (solo Debug): por defecto los ve Joan y "Jesús te debe $20.000".
         /// En el inicio hay un cruce con Jesús; con `withAna`, Joan tiene también uno con Ana (el más reciente, abierto
-        /// al arrancar) donde le debe $15.000, y el inicio muestra "Tus cruces".
+        /// al arrancar) donde le debe $15.000, y el inicio muestra "Tus cruces". Con `closedJesus`, el cruce con Jesús
+        /// está cerrado (desvinculado).
         /// Lo usan la app en Debug, `DebugScreen` y las vistas previas.
         @MainActor
         static func sample(
@@ -16,6 +17,7 @@
             pendingEmail: String? = nil,
             joinCode: String? = nil,
             withAna: Bool = false,
+            closedJesus: Bool = false,
             parcheBackend: InMemoryParcheBackend? = nil
         ) -> AppStores {
             let other = viewer.id == MockData.joan.id ? MockData.jesus : MockData.joan
@@ -34,7 +36,9 @@
             var cruces: [CruceLink] = []
             var byCruce: [UUID: [Movement]] = [:]
             if phase == .main {
-                cruces = [MockData.joanJesusCruce(viewer: viewer)]
+                var jesusCruce = MockData.joanJesusCruce(viewer: viewer)
+                jesusCruce.closedAt = closedJesus ? .now : nil
+                cruces = [jesusCruce]
                 byCruce[MockData.joanJesusCruceID] = movements
                 if withAna {
                     cruces.insert(MockData.joanAnaCruce, at: 0)
