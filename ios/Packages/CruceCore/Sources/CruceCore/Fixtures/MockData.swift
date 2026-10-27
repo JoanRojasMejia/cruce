@@ -17,6 +17,41 @@ public enum MockData {
         tikeVariant: .verde
     )
 
+    /// Ana creó su cruce con Joan y Joan se unió con código: en ese cruce Ana es amarilla y rosa, y Joan, violeta y verde.
+    public static let ana = Member(
+        id: UUID(uuidString: "00000000-0000-0000-0000-00000000000C")!,
+        name: "Ana",
+        avatarColor: .yellow,
+        tikeVariant: .rosa
+    )
+
+    /// El cruce de Joan y Jesús (el del canvas).
+    public static let joanJesusCruceID = UUID(uuidString: "00000000-0000-0000-0000-0000000000C1")!
+    /// El cruce de Joan y Ana, para probar varios cruces.
+    public static let joanAnaCruceID = UUID(uuidString: "00000000-0000-0000-0000-0000000000C2")!
+
+    /// El cruce de Joan y Jesús visto por `viewer` (Joan o Jesús): Joan lo creó.
+    public static func joanJesusCruce(viewer: Member) -> CruceLink {
+        let isJoan = viewer.id == joan.id
+        return CruceLink(
+            id: joanJesusCruceID, partner: isJoan ? jesus : joan, myAvatarColor: isJoan ? .yellow : .violet,
+            myTikeVariant: isJoan ? .rosa : .verde, linkedAt: Date(timeIntervalSince1970: 1_792_000_000))
+    }
+
+    /// El cruce de Joan y Ana visto por Joan: más reciente que el de Jesús.
+    public static let joanAnaCruce = CruceLink(
+        id: joanAnaCruceID, partner: ana, myAvatarColor: .violet, myTikeVariant: .verde,
+        linkedAt: Date(timeIntervalSince1970: 1_792_500_000))
+
+    /// Movimientos del cruce de Joan y Ana: Joan le debe $15.000 a Ana.
+    public static func anaMovements(reference: Date = .now) -> [Movement] {
+        let day = Calendar.current.date(byAdding: .day, value: -3, to: reference) ?? reference
+        return [
+            Movement(
+                payerID: ana.id, amount: 30_000, concept: "Pizza", category: .comida, date: day, createdBy: ana.id)
+        ]
+    }
+
     public static func movements(reference: Date = .now) -> [Movement] {
         let calendar = Calendar.current
         func daysAgo(_ days: Int, hour: Int = 13) -> Date {

@@ -27,6 +27,15 @@ Los valores de la guía están en código en `ios/Cruce/DesignSystem`. Si cambia
 - **Sombras:** sólidas, sin blur, desplazamiento igual en x e y: 2, 3, 4, 5, 6, 8 px.
 - **Espaciado:** margen lateral 20, área táctil mínima 44.
 
+## Tus cruces (sin captura en el canvas)
+
+Con dos o más cruces, el inicio es "Tus cruces" (`CruceListView`). Se armó con las piezas de "Tus parches" y los tokens de esta guía, sin colores ni tamaños nuevos:
+
+- **Encabezado:** el mismo del inicio (`MainHeader`: logo, aviso sin conexión y Ajustes). El título "Tus cruces" va en `title1Compact` y el texto de abajo en `body`.
+- **Fila de cada cruce (`CruceRow`):** `Avatar` de la otra persona (44 pt), "Con Ana" en `rowTitle`, la frase del saldo en `secondary` y, a la derecha, el monto con signo (Archivo Black 18, con el menos tipográfico) y "a tu favor" o "a favor de Ana". Es una superficie `neoSurface` con `Radius.card` y `ShadowOffset.s`, igual que `ParcheRow`. La dirección de la deuda va en texto, no solo en el color.
+- **Botones:** "Invitar a alguien" y "Tengo un código", con `NeoButtonStyle(kind: .secondary, height: 52)`. Van lado a lado si hay al menos 340 pt y, si no (iPhone SE o texto grande), uno debajo del otro.
+- **Inicio de un cruce desde la lista:** `HomeView` cambia el logo por el botón de volver y el título "Con Ana" (`title2`).
+
 ## Ilustraciones
 
 En `ios/Cruce/Resources/Assets.xcassets/Illustrations`, a @2x y @3x. Los originales están en `new-idea-proyect/ilustrations`.

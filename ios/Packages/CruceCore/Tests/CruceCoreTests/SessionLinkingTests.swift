@@ -204,4 +204,70 @@ struct SessionLinkingTests {
         #expect(joan.pendingJoinCode == nil)
         #expect(joan.invitePreview == nil)
     }
+
+    // MARK: - Cruce abierto
+
+    @Test("Abrir otro cruce cambia la otra persona, el color y el recibo de quien usa la app")
+    func openChangesPartnerAndColors() {
+        let session = SessionStore(
+            phase: .main, me: MockData.joan, partner: MockData.jesus,
+            cruces: [MockData.joanAnaCruce, MockData.joanJesusCruce(viewer: MockData.joan)])
+        #expect(session.openCruceID == MockData.joanAnaCruceID)
+        #expect(session.partner.name == "Ana")
+        #expect(session.me.tikeVariant == .verde)
+        session.open(MockData.joanJesusCruceID)
+        #expect(session.partner.name == "Jesús")
+        #expect(session.me.tikeVariant == .rosa)
+        #expect(session.me.avatarColor == .yellow)
+        #expect(session.openCruce?.id == MockData.joanJesusCruceID)
+    }
+
+    @Test("Recargar la sesión conserva el cruce abierto")
+    func refreshKeepsOpenCruce() async {
+        let directory = makeDirectory()
+        await directory.link(joanID, jesusID)
+        await directory.link(anaID, joanID)
+        let joan = await session(joanID, directory)
+        #expect(joan.partner.name == "Ana")
+        let jesusCruce = joan.cruces.first { $0.partner.id == jesusID }!.id
+        joan.open(jesusCruce)
+        await joan.refresh()
+        #expect(joan.openCruceID == jesusCruce)
+        #expect(joan.partner.name == "Jesús")
+    }
+
+    @Test("Con un cruce ya, quien invita ve el cruce nuevo sin salir del inicio")
+    func inviterInMainNoticesNewCruce() async {
+        let directory = makeDirectory()
+        await directory.link(joanID, jesusID)
+        let joan = await session(joanID, directory)
+        #expect(joan.phase == .main)
+        await joan.loadInviteCode()
+        await joan.checkForPartner()
+        #expect(joan.lastLinked == nil)
+
+        let ana = await session(anaID, directory)
+        _ = await ana.join(code: digits(joan.inviteCode))
+        await joan.checkForPartner()
+        #expect(joan.phase == .main)
+        #expect(joan.lastLinked?.partner.name == "Ana")
+        #expect(joan.partner.name == "Ana")
+        #expect(joan.cruces.count == 2)
+    }
+
+    @Test("Con un cruce ya, unirse a otro abre el cruce nuevo sin salir del inicio")
+    func joinFromMainOpensNewCruce() async {
+        let directory = makeDirectory()
+        await directory.link(joanID, jesusID)
+        let ana = await session(anaID, directory)
+        await ana.loadInviteCode()
+        let jesus = await session(jesusID, directory)
+        #expect(jesus.phase == .main)
+        #expect(await jesus.join(code: digits(ana.inviteCode)))
+        #expect(jesus.phase == .main)
+        #expect(jesus.lastLinked?.partner.name == "Ana")
+        #expect(jesus.partner.name == "Ana")
+        #expect(jesus.me.tikeVariant == .verde)
+        #expect(jesus.cruces.count == 2)
+    }
 }

@@ -10,6 +10,15 @@ public enum Route: Hashable, Sendable {
     case settings
     case offline
 
+    // MARK: Cruces
+
+    /// El inicio de un cruce, desde "Tus cruces": lo abre (`SessionStore.open`) y muestra su saldo.
+    case cruce(UUID)
+    /// "Invitar a alguien" teniendo ya un cruce: el código del cruce pendiente.
+    case invite
+    /// Unirse a otro cruce con un código `CRZ-` (arranca con `SessionStore.pendingJoinCode`).
+    case join
+
     // MARK: Parches
 
     /// "Tus parches": la lista completa.

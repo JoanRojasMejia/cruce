@@ -11,7 +11,7 @@ struct LedgerStoreTests {
     private let deletedAt = Date(timeIntervalSince1970: 2_000_000)
 
     private func session() -> SessionStore {
-        SessionStore(phase: .main, me: joan, partner: jesus)
+        SessionStore(phase: .main, me: joan, partner: jesus, cruces: [MockData.joanJesusCruce(viewer: joan)])
     }
 
     private func expense(_ payer: Member, _ amount: Int, day: Int = 1) -> Movement {
@@ -22,7 +22,8 @@ struct LedgerStoreTests {
 
     /// Store con el repositorio en memoria sembrado con los mismos movimientos.
     private func store(_ movements: [Movement]) -> (LedgerStore, InMemoryLedgerRepository) {
-        let repository = InMemoryLedgerRepository(movements: movements, now: { deletedAt })
+        let repository = InMemoryLedgerRepository(
+            movements: [MockData.joanJesusCruceID: movements], now: { deletedAt })
         let store = LedgerStore(
             session: session(), repository: repository, movements: movements, now: { deletedAt })
         return (store, repository)
@@ -55,7 +56,7 @@ struct LedgerStoreTests {
         #expect(!store.visibleMovements.contains { $0.id == dinner.id })
         #expect(store.movement(dinner.id) == nil)
         #expect(store.movements.first { $0.id == dinner.id }?.deletedAt == deletedAt)
-        let stored = try await repository.loadMovements()
+        let stored = try await repository.loadMovements(in: MockData.joanJesusCruceID)
         #expect(stored.first { $0.id == dinner.id }?.deletedAt == deletedAt)
     }
 
@@ -116,9 +117,69 @@ struct LedgerStoreTests {
     @Test("Las lecturas usan a quien tiene la sesión en ese momento")
     func readsFollowSession() {
         let movements = MockData.movements()
-        let session = SessionStore(phase: .main, me: jesus, partner: joan)
+        let session = SessionStore(
+            phase: .main, me: jesus, partner: joan, cruces: [MockData.joanJesusCruce(viewer: jesus)])
         let store = LedgerStore(session: session, repository: InMemoryLedgerRepository(), movements: movements)
         #expect(store.balance == .youOwe(20_000))
         #expect(store.phrase(forNet: store.net) == "Le debes $20.000 a Joan")
+    }
+
+    // MARK: - Varios cruces
+
+    /// Joan con dos cruces: con Ana (el más reciente, abierto al arrancar) y con Jesús.
+    private func twoCruces() -> (LedgerStore, SessionStore, InMemoryLedgerRepository) {
+        let session = SessionStore(
+            phase: .main, me: joan, partner: jesus,
+            cruces: [MockData.joanAnaCruce, MockData.joanJesusCruce(viewer: joan)])
+        let repository = InMemoryLedgerRepository(movements: [
+            MockData.joanJesusCruceID: MockData.movements(), MockData.joanAnaCruceID: MockData.anaMovements(),
+        ])
+        return (LedgerStore(session: session, repository: repository), session, repository)
+    }
+
+    @Test("Cargar trae los movimientos de cada cruce y las lecturas son del cruce abierto")
+    func loadsEveryCruce() async {
+        let (store, session, _) = twoCruces()
+        await store.load()
+        #expect(session.openCruceID == MockData.joanAnaCruceID)
+        #expect(store.balance == .youOwe(15_000))
+        session.open(MockData.joanJesusCruceID)
+        #expect(store.balance == .theyOweYou(20_000))
+        #expect(store.visibleMovements.count == MockData.movements().count)
+    }
+
+    @Test("La frase y el saldo de cualquier cruce nombran a su persona")
+    func phrasePerCruce() async {
+        let (store, _, _) = twoCruces()
+        await store.load()
+        #expect(store.net(of: MockData.joanAnaCruceID) == -15_000)
+        #expect(store.net(of: MockData.joanJesusCruceID) == 20_000)
+        #expect(store.phrase(forNet: -15_000, partner: MockData.ana) == "Le debes $15.000 a Ana")
+        #expect(store.phrase(forNet: store.net) == "Le debes $15.000 a Ana")
+    }
+
+    @Test("Anotar en el cruce de Ana no cambia el de Jesús")
+    func saveOnlyInOpenCruce() async throws {
+        let (store, session, repository) = twoCruces()
+        await store.load()
+        let dinner = expense(joan, 40_000, day: 30)
+        await store.save(dinner)
+        #expect(store.movement(dinner.id) != nil)
+        #expect(try await repository.loadMovements(in: MockData.joanAnaCruceID).contains(dinner))
+        #expect(try await repository.loadMovements(in: MockData.joanJesusCruceID).contains(dinner) == false)
+        session.open(MockData.joanJesusCruceID)
+        #expect(store.movement(dinner.id) == nil)
+        #expect(store.balance == .theyOweYou(20_000))
+    }
+
+    @Test("Saldar un cruce lo deja en $0 y no cambia el otro")
+    func settleOnlyOpenCruce() async {
+        let (store, session, _) = twoCruces()
+        await store.load()
+        session.open(MockData.joanJesusCruceID)
+        await store.settle(paymentMethod: "Nequi")
+        #expect(store.balance == .settled)
+        #expect(store.lastSettlement?.payerID == jesus.id)
+        #expect(store.net(of: MockData.joanAnaCruceID) == -15_000)
     }
 }

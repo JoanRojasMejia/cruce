@@ -96,12 +96,13 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** con dos simuladores, uno invita, el otro se une y los dos llegan al inicio vacío.
 
 ## CP4b · Varios cruces
-- [ ] La sesión conoce todos los cruces de quien entró (con quién, colores y recibo de cada uno), no un solo `partner`.
-- [ ] El inicio: con un cruce, ese cruce (el diseño actual); con dos o más, "Tus cruces" con el saldo de cada uno, y al tocar uno se abre su inicio.
-- [ ] "Invitar a alguien" desde el inicio y desde Ajustes crea un cruce nuevo con su código `CRZ-`; "Tengo un código" también acepta `CRZ-`.
-- [ ] Los movimientos, el historial, saldar y Ajustes trabajan sobre el cruce abierto.
-- [ ] "¿Lo pasas a tu cruce?" al cerrar un parche ofrece el cruce con cada persona que tenga la app.
-- [ ] Pruebas de los stores con dos cruces y capturas de "Tus cruces".
+*Hecho en local en el cambio `varios-cruces` (27 oct 2026). "¿Lo pasas a tu cruce?" ya ofrecía el cruce con cada persona desde los parches; la deuda que se pasa se verá en el cruce cuando los movimientos estén en Supabase (CP5). Falta probarlo en testing con una tercera cuenta.*
+- [x] La sesión conoce todos los cruces de quien entró (con quién, colores y recibo de cada uno), no un solo `partner`.
+- [x] El inicio: con un cruce, ese cruce (el diseño actual); con dos o más, "Tus cruces" con el saldo de cada uno, y al tocar uno se abre su inicio.
+- [x] "Invitar a alguien" desde el inicio y desde Ajustes crea un cruce nuevo con su código `CRZ-`; "Tengo un código" también acepta `CRZ-`.
+- [x] Los movimientos, el historial, saldar y Ajustes trabajan sobre el cruce abierto.
+- [x] "¿Lo pasas a tu cruce?" al cerrar un parche ofrece el cruce con cada persona que tenga la app.
+- [x] Pruebas de los stores con dos cruces y capturas de "Tus cruces".
 
 **Hecho cuando:** Joan tiene un cruce con Jesús y otro con una tercera cuenta, ve los dos en "Tus cruces" con su saldo, y lo que anota en uno no aparece en el otro.
 

@@ -7,7 +7,7 @@
     enum DebugScreen: String, CaseIterable {
         case onboarding1, onboarding2, onboarding3
         case signUp, signUpCode, signUpName, invite, join, joinInvalid, connected
-        case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus
+        case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus, cruces, cruceAna
         case add, saved, history, detail, delete, settle, success, offline, settings
         case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
             parcheExpenseItems
@@ -36,6 +36,11 @@
                 // Solo los gastos que pagó Jesús: Joan queda debiendo.
                 return .sample(movements: MockData.movements().filter { $0.payerID == MockData.jesus.id })
             case .homeJesus: return .sample(viewer: MockData.jesus)
+            case .cruces: return .sample(withAna: true)
+            case .cruceAna:
+                let stores = AppStores.sample(withAna: true)
+                stores.router.push(.cruce(MockData.joanAnaCruceID))
+                return stores
             case .add: return stores(path: [.addMovement])
             case .history: return stores(path: [.history])
             case .detail, .delete: return .sample()

@@ -42,6 +42,10 @@ struct SettingsView: View {
                         }
                     }
                     divider
+                    actionRow("Invitar a alguien", systemImage: "person.badge.plus") {
+                        router.push(.invite)
+                    }
+                    divider
                     row {
                         Text("Moneda").font(.archivo(15, .bold))
                         Spacer()

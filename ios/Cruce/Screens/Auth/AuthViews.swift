@@ -287,9 +287,12 @@ struct InviteView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // Con sesión real no hay a dónde volver: el perfil ya existe.
+            // Con sesión real y sin cruce no hay a dónde volver: el perfil ya existe. Desde el inicio ("Invitar a
+            // alguien") se vuelve atrás.
             if session.userID == nil {
                 BackButton { session.phase = .signUp }
+            } else if session.phase == .main {
+                BackButton()
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -373,26 +376,9 @@ struct InviteView: View {
             Spacer(minLength: 0)
 
             // "Tengo un código" acepta el del cruce (va a unirse) y los de parches; los parches no necesitan cruce.
-            HStack(spacing: 12) {
-                Button {
-                    router.push(.enterCode)
-                } label: {
-                    Label("Tengo un código", systemImage: "number")
-                }
-                Button {
-                    router.push(.parches)
-                } label: {
-                    Label("Mis parches", systemImage: "person.3")
-                }
-            }
-            .buttonStyle(NeoButtonStyle(kind: .secondary, height: 52))
-            .labelStyle(NeoLabelStyle())
-
-            // Mientras no haya cuenta compartida (CP4), los ajustes no existen: cerrar sesión va aquí.
-            if session.userID != nil {
-                Button("Cerrar sesión") { Task { await session.signOut() } }
-                    .buttonStyle(.neoLink)
-                    .frame(maxWidth: .infinity)
+            // Desde el inicio ya están en "Tus cruces" y en el inicio, y cerrar sesión está en Ajustes.
+            if session.phase != .main {
+                entryButtons
             }
         }
         .foregroundStyle(CruceColor.ink)
@@ -409,6 +395,31 @@ struct InviteView: View {
                 try? await Task.sleep(for: .seconds(3))
                 await session.checkForPartner()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var entryButtons: some View {
+        HStack(spacing: 12) {
+            Button {
+                router.push(.enterCode)
+            } label: {
+                Label("Tengo un código", systemImage: "number")
+            }
+            Button {
+                router.push(.parches)
+            } label: {
+                Label("Mis parches", systemImage: "person.3")
+            }
+        }
+        .buttonStyle(NeoButtonStyle(kind: .secondary, height: 52))
+        .labelStyle(NeoLabelStyle())
+
+        // Mientras no haya cruce, los ajustes no existen: cerrar sesión va aquí.
+        if session.userID != nil {
+            Button("Cerrar sesión") { Task { await session.signOut() } }
+                .buttonStyle(.neoLink)
+                .frame(maxWidth: .infinity)
         }
     }
 }
@@ -432,6 +443,7 @@ private struct ProblemNote: View {
 struct JoinView: View {
     /// Con los 4 dígitos, la base dice de quién es el código (`preview_invite`); unirse lo canjea (`redeem_invite`).
     @Environment(SessionStore.self) private var session
+    @Environment(\.dismiss) private var dismiss
     @State private var digits = ""
     @FocusState private var focused: Bool
 
@@ -452,7 +464,8 @@ struct JoinView: View {
             BackButton {
                 session.pendingJoinCode = nil
                 session.invitePreview = nil
-                session.phase = .invite
+                // Desde el inicio ("Tengo un código") se vuelve atrás; sin cruce, a invitar.
+                if session.phase == .main { dismiss() } else { session.phase = .invite }
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -557,6 +570,7 @@ struct JoinView: View {
 /// Conectados (pantalla 16).
 struct ConnectedView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(Router.self) private var router
 
     var body: some View {
         ZStack {
@@ -599,7 +613,14 @@ struct ConnectedView: View {
                     Spacer(minLength: 0)
 
                     Button {
-                        session.phase = .main
+                        if let linked = session.lastLinked {
+                            // Desde el inicio: se cierra "Conectados" y se abre el cruce nuevo.
+                            session.lastLinked = nil
+                            router.popToRoot()
+                            if session.cruces.count >= 2 { router.push(.cruce(linked.id)) }
+                        } else {
+                            session.phase = .main
+                        }
                     } label: {
                         Label("Ir al inicio", systemImage: "arrow.right").labelStyle(TrailingIconLabelStyle())
                     }

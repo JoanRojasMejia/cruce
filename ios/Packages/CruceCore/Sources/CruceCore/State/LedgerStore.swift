@@ -1,13 +1,14 @@
 import Foundation
 import Observation
 
-/// Movimientos de la cuenta compartida, el saldo y las acciones que los cambian.
+/// Movimientos de cada cruce, el saldo y las acciones que los cambian.
+/// Las lecturas y las acciones son del cruce abierto (`SessionStore.openCruceID`); `net(of:)` da el saldo de cualquiera.
 /// Guarda todos los movimientos, incluidos los eliminados; las lecturas visibles solo muestran los vigentes.
 @MainActor
 @Observable
 public final class LedgerStore {
-    /// Todos los movimientos, también los eliminados (borrado suave).
-    public private(set) var movements: [Movement]
+    /// Los movimientos de cada cruce (por el id del cruce), también los eliminados (borrado suave).
+    public private(set) var movementsByCruce: [UUID: [Movement]] = [:]
     /// Último movimiento guardado; muestra la hoja "Gasto guardado" en el inicio.
     public var lastSaved: Movement?
     /// Pago recién registrado; muestra la pantalla "A paz y salvo".
@@ -24,15 +25,31 @@ public final class LedgerStore {
         session: SessionStore,
         repository: LedgerRepository,
         movements: [Movement] = [],
+        movementsByCruce: [UUID: [Movement]] = [:],
         now: @escaping () -> Date = { .now }
     ) {
         self.session = session
         self.repository = repository
-        self.movements = movements
         self.now = now
+        // Para las vistas previas y las pruebas sin `load()`: `movements` son los del cruce abierto y
+        // `movementsByCruce`, los de los demás.
+        self.movementsByCruce = movementsByCruce
+        if let open = session.openCruceID, !movements.isEmpty || movementsByCruce[open] == nil {
+            self.movementsByCruce[open] = movements
+        }
     }
 
     // MARK: - Lecturas
+
+    /// Todos los movimientos del cruce abierto, también los eliminados (borrado suave).
+    public var movements: [Movement] {
+        session.openCruceID.flatMap { movementsByCruce[$0] } ?? []
+    }
+
+    /// Saldo de quien usa la app en ese cruce (para "Tus cruces").
+    public func net(of cruce: UUID) -> Int {
+        BalanceCalculator.net(of: movementsByCruce[cruce] ?? [], for: session.me.id)
+    }
 
     /// Movimientos vigentes, del más reciente al más antiguo.
     public var visibleMovements: [Movement] {
@@ -67,12 +84,17 @@ public final class LedgerStore {
         BalanceCalculator.impact(of: movement, for: session.me.id)
     }
 
-    /// "Jesús te debe $20.000", "Le debes $20.000 a Jesús" o "Están a paz y salvo".
+    /// "Jesús te debe $20.000", "Le debes $20.000 a Jesús" o "Están a paz y salvo", con la otra persona del cruce
+    /// abierto.
     public func phrase(forNet net: Int) -> String {
-        let partner = session.partner.name
+        phrase(forNet: net, partner: session.partner)
+    }
+
+    /// La misma frase con la otra persona de cualquier cruce.
+    public func phrase(forNet net: Int, partner: Member) -> String {
         switch BalanceState(net: net) {
-        case .theyOweYou(let v): return "\(partner) te debe \(Money.format(v))"
-        case .youOwe(let v): return "Le debes \(Money.format(v)) a \(partner)"
+        case .theyOweYou(let v): return "\(partner.name) te debe \(Money.format(v))"
+        case .youOwe(let v): return "Le debes \(Money.format(v)) a \(partner.name)"
         case .settled: return "Están a paz y salvo"
         }
     }
@@ -84,24 +106,31 @@ public final class LedgerStore {
 
     // MARK: - Acciones
 
+    /// Carga los movimientos de todos los cruces de la sesión.
     public func load() async {
         do {
-            movements = try await repository.loadMovements()
+            var loaded: [UUID: [Movement]] = [:]
+            for cruce in session.cruces {
+                loaded[cruce.id] = try await repository.loadMovements(in: cruce.id)
+            }
+            movementsByCruce = loaded
         } catch {
             isOffline = true
         }
     }
 
-    /// Crea o reemplaza un movimiento. Si es nuevo, abre la hoja "Gasto guardado".
+    /// Crea o reemplaza un movimiento del cruce abierto. Si es nuevo, abre la hoja "Gasto guardado".
+    /// Sin cruce abierto no hace nada.
     public func save(_ movement: Movement) async {
+        guard let cruce = session.openCruceID else { return }
         let isNew = self.movement(movement.id) == nil
-        if let index = movements.firstIndex(where: { $0.id == movement.id }) {
-            movements[index] = movement
+        if let index = movementsByCruce[cruce, default: []].firstIndex(where: { $0.id == movement.id }) {
+            movementsByCruce[cruce]?[index] = movement
         } else {
-            movements.append(movement)
+            movementsByCruce[cruce, default: []].append(movement)
         }
         do {
-            try await repository.save(movement)
+            try await repository.save(movement, in: cruce)
         } catch {
             pendingSyncCount += 1
             isOffline = true
@@ -113,19 +142,21 @@ public final class LedgerStore {
 
     /// Borrado suave: marca el movimiento con la fecha del borrado y lo conserva en la lista.
     public func delete(_ id: UUID) async {
-        guard let index = movements.firstIndex(where: { $0.id == id }) else { return }
-        movements[index].deletedAt = now()
+        guard let cruce = session.openCruceID,
+            let index = movementsByCruce[cruce]?.firstIndex(where: { $0.id == id })
+        else { return }
+        movementsByCruce[cruce]?[index].deletedAt = now()
         do {
-            try await repository.delete(id: id)
+            try await repository.delete(id: id, in: cruce)
         } catch {
             pendingSyncCount += 1
             isOffline = true
         }
     }
 
-    /// Registra el pago que deja el saldo en $0. En $0 no hace nada.
+    /// Registra el pago que deja el saldo del cruce abierto en $0. En $0 no hace nada.
     public func settle(paymentMethod: String?) async {
-        guard
+        guard let cruce = session.openCruceID,
             let payment = BalanceCalculator.settlement(
                 movements: movements,
                 me: session.me.id,
@@ -134,8 +165,8 @@ public final class LedgerStore {
                 paymentMethod: paymentMethod
             )
         else { return }
-        movements.append(payment)
-        try? await repository.save(payment)
+        movementsByCruce[cruce, default: []].append(payment)
+        try? await repository.save(payment, in: cruce)
         lastSettlement = payment
     }
 

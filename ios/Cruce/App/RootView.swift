@@ -36,19 +36,27 @@ struct RootView: View {
     }
 }
 
-/// Flujo principal con navegación por pila.
+/// Flujo principal con navegación por pila. La raíz es "Tus cruces" con dos o más cruces y, si no, el inicio del único.
 struct MainView: View {
+    @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
     @Environment(Router.self) private var router
 
     var body: some View {
+        @Bindable var session = session
         @Bindable var ledger = ledger
         @Bindable var router = router
         NavigationStack(path: $router.path) {
-            HomeView()
-                .toolbar(.hidden, for: .navigationBar)
-                .swipeBackEnabled()
-                .routeDestinations()
+            Group {
+                if session.cruces.count >= 2 {
+                    CruceListView()
+                } else {
+                    HomeView()
+                }
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .swipeBackEnabled()
+            .routeDestinations()
         }
         // Oscurece el inicio detrás de "Gasto guardado" más que la atenuación del sistema.
         .overlay {
@@ -66,6 +74,14 @@ struct MainView: View {
         }
         .fullScreenCover(item: $ledger.lastSettlement) { payment in
             SettleSuccessView(payment: payment)
+        }
+        // Alguien se unió al código o quien usa la app se unió a otro cruce, estando ya en el inicio.
+        .fullScreenCover(item: $session.lastLinked) { _ in
+            ConnectedView()
+        }
+        // Al cambiar los cruces (o al arrancar) se cargan los movimientos de cada uno.
+        .task(id: session.cruces.map(\.id)) {
+            await ledger.load()
         }
     }
 }
@@ -87,6 +103,7 @@ struct InviteFlow: View {
 
 /// Las pantallas de cada `Route`. Lo comparten el flujo principal e invitar.
 struct RouteDestinations: ViewModifier {
+    @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
 
     func body(content: Content) -> some View {
@@ -107,6 +124,9 @@ struct RouteDestinations: ViewModifier {
         case .settle: SettleView()
         case .settings: SettingsView()
         case .offline: OfflineView()
+        case .cruce(let id): HomeView(showsBack: true).onAppear { session.open(id) }
+        case .invite: InviteView()
+        case .join: JoinView()
         case .parches: ParcheListView()
         case .parche(let id): ParcheDetailView(parcheID: id)
         case .newParche: NewParcheView()

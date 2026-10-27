@@ -49,13 +49,23 @@ public final class SessionStore {
     public var phase: Phase
     /// Quien usa la app. Su color y su recibo salen del cruce más reciente.
     public var me: Member
-    /// La otra persona del cruce más reciente. Mientras no haya cruces es un marcador que ninguna pantalla muestra.
-    /// (El CP4b lo cambia por el cruce abierto.)
+    /// La otra persona del cruce abierto (ver `open(_:)`). Mientras no haya cruces es un marcador que ninguna pantalla
+    /// muestra.
     public var partner: Member
     /// Código `CRZ-` del cruce pendiente, para invitar. `nil` hasta `loadInviteCode()`.
     public var inviteCode: String?
     /// Los cruces completos, del más reciente al más viejo.
     public private(set) var cruces: [CruceLink] = []
+    /// El cruce con el que se trabaja: el inicio, los movimientos, saldar y Ajustes son de este cruce.
+    public private(set) var openCruceID: UUID?
+    /// Cruce recién creado estando en el inicio (alguien se unió al código o quien usa la app se unió a otro).
+    /// Abre "Conectados"; la vista lo vuelve `nil` al cerrarla.
+    public var lastLinked: CruceLink?
+
+    /// El cruce abierto, o `nil` si no hay cruces.
+    public var openCruce: CruceLink? {
+        cruces.first { $0.id == openCruceID }
+    }
     /// De quién es el código que se está escribiendo para unirse (`checkCode`).
     public var invitePreview: InviteCheck?
     /// Código `CRZ-` que llegó por "Tengo un código", para que la pantalla de unirse arranque con él.
@@ -81,6 +91,7 @@ public final class SessionStore {
         me: Member,
         partner: Member,
         inviteCode: String? = nil,
+        cruces: [CruceLink] = [],
         auth: any AuthService = InMemoryAuthService(),
         directory: any AccountDirectory = InMemoryAccountDirectory(),
         isReady: Bool = true,
@@ -96,6 +107,8 @@ public final class SessionStore {
         self.isReady = isReady
         self.userID = userID
         self.pendingEmail = pendingEmail
+        // Datos de ejemplo: abre el primer cruce (el más reciente) como hace `refresh()`.
+        if !cruces.isEmpty { apply(cruces) }
     }
 
     /// El miembro con ese `id`: quien usa la app o el otro.
@@ -216,10 +229,18 @@ public final class SessionStore {
         await perform {
             switch try await directory.redeemInvite(full, for: user) {
             case .valid:
-                apply(try await directory.cruces(for: user))
+                let known = Set(cruces.map(\.id))
+                let links = try await directory.cruces(for: user)
+                apply(links)
                 pendingJoinCode = nil
                 invitePreview = nil
-                phase = .connected
+                // Se abre el cruce nuevo. Sin cruces (etapa de unirse) se pasa a "Conectados"; con cruces se queda en
+                // el inicio y `lastLinked` muestra "Conectados" encima.
+                if let new = links.first(where: { !known.contains($0.id) }) {
+                    open(new.id)
+                    if phase == .main { lastLinked = new }
+                }
+                if phase != .main { phase = .connected }
                 joined = true
             case .rejected(_, let message):
                 error = .inviteRejected(message)
@@ -228,14 +249,31 @@ public final class SessionStore {
         return joined
     }
 
-    /// Mientras se espera en la pantalla de invitar, revisa si la otra persona ya se unió y, si sí, pasa a
-    /// "Conectados". Si falla la red no hace nada: se vuelve a revisar en unos segundos.
+    /// Mientras se espera en la pantalla de invitar, revisa si la otra persona ya se unió y, si sí, abre ese cruce:
+    /// sin cruces pasa a "Conectados"; desde el inicio deja `lastLinked`. Si falla la red no hace nada: se vuelve a
+    /// revisar en unos segundos.
     public func checkForPartner() async {
-        guard phase == .invite, let user = userID,
-            let links = try? await directory.cruces(for: user), !links.isEmpty
+        guard phase == .invite || phase == .main, let user = userID else { return }
+        let known = Set(cruces.map(\.id))
+        guard let links = try? await directory.cruces(for: user),
+            let new = links.first(where: { !known.contains($0.id) })
         else { return }
         apply(links)
-        phase = .connected
+        open(new.id)
+        if phase == .invite {
+            phase = .connected
+        } else {
+            lastLinked = new
+        }
+    }
+
+    /// Abre ese cruce: `partner` pasa a ser su otra persona, y el color y el recibo de `me` son los de ese cruce.
+    public func open(_ id: UUID) {
+        guard let cruce = cruces.first(where: { $0.id == id }) else { return }
+        openCruceID = id
+        me.avatarColor = cruce.myAvatarColor
+        me.tikeVariant = cruce.myTikeVariant
+        partner = cruce.partner
     }
 
     /// `CRZ-` y 4 dígitos a partir de lo que se escribió, o `nil` si no son 4 dígitos.
@@ -246,18 +284,19 @@ public final class SessionStore {
         return "CRZ-" + digits
     }
 
-    /// Guarda los cruces y toma `me` (color y recibo) y `partner` del más reciente. Sin cruces, `me` queda
-    /// amarillo y rosa: quien no tiene cruce es quien va a crear el suyo al invitar.
+    /// Guarda los cruces y deja abierto el mismo cruce si sigue existiendo; si no, el más reciente.
+    /// Sin cruces, `me` queda amarillo y rosa: quien no tiene cruce es quien va a crear el suyo al invitar.
     private func apply(_ links: [CruceLink]) {
         cruces = links
-        guard let latest = links.first else {
+        if let current = openCruceID, links.contains(where: { $0.id == current }) {
+            open(current)
+        } else if let latest = links.first {
+            open(latest.id)
+        } else {
+            openCruceID = nil
             me.avatarColor = .yellow
             me.tikeVariant = .rosa
-            return
         }
-        me.avatarColor = latest.myAvatarColor
-        me.tikeVariant = latest.myTikeVariant
-        partner = latest.partner
     }
 
     /// Cierra la sesión y vuelve al onboarding, aunque falle la red (la sesión guardada se borra igual).
@@ -270,6 +309,8 @@ public final class SessionStore {
         // Quien entre después no hereda el nombre ni los colores de esta persona.
         me = Member(name: "Tú", avatarColor: .yellow, tikeVariant: .rosa)
         cruces = []
+        openCruceID = nil
+        lastLinked = nil
         inviteCode = nil
         invitePreview = nil
         pendingJoinCode = nil

@@ -18,17 +18,17 @@ actor FailingLedgerRepository: LedgerRepository {
         isFailing = false
     }
 
-    func loadMovements() async throws -> [Movement] {
+    func loadMovements(in cruce: UUID) async throws -> [Movement] {
         if isFailing { throw Offline() }
         return storage
     }
 
-    func save(_ movement: Movement) async throws {
+    func save(_ movement: Movement, in cruce: UUID) async throws {
         if isFailing { throw Offline() }
         storage.append(movement)
     }
 
-    func delete(id: UUID) async throws {
+    func delete(id: UUID, in cruce: UUID) async throws {
         if isFailing { throw Offline() }
     }
 }

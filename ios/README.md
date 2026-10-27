@@ -116,7 +116,8 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 | 17 Detalle · 18 Eliminar | `MovementDetailView` + `DeleteConfirmation` |
 | 08 Saldar · 09 A paz y salvo | `SettleView`, `SettleSuccessView` |
 | 10 Sin conexión | `OfflineView` |
-| 19 Ajustes | `SettingsView` |
+| 19 Ajustes | `SettingsView` (con "Invitar a alguien") |
+| "Tus cruces" (sin captura en el canvas) | `CruceListView` (el inicio con dos o más cruces); en Debug con `-screen cruces` y `-screen cruceAna` |
 | Parches (sin captura en el canvas) | `ParcheListView`, `NewParcheView`, `EnterCodeView`, `ParcheDetailView`, `ParcheExpenseView`, `ParchePaymentView`, `CloseParcheView`, `ParcheTicketView`; en Debug con `-screen parches`, `parcheDetail`, `parcheExpense`… (lista completa en `CLAUDE.md` §5) |
 
 ## Reglas que el código respeta

@@ -1,12 +1,18 @@
 import CruceCore
 import SwiftUI
 
-/// Inicio: el saldo neto es el protagonista.
+/// Inicio del cruce abierto: el saldo neto es el protagonista.
 /// Pantallas del canvas: 02 Inicio vacío, 03 Te deben, 04 Debes, 20 Vista de Jesús.
+/// Con un solo cruce es la raíz; con varios se abre desde "Tus cruces" (`showsBack`) y lleva volver y "Con Ana".
 struct HomeView: View {
     @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
     @Environment(Router.self) private var router
+    private let showsBack: Bool
+
+    init(showsBack: Bool = false) {
+        self.showsBack = showsBack
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -36,19 +42,15 @@ struct HomeView: View {
     }
 
     private var header: some View {
-        HStack {
-            CruceLogo()
-            Spacer()
-            if ledger.isOffline {
-                Button {
-                    router.push(.offline)
-                } label: {
-                    Badge(text: "Sin conexión", fill: CruceColor.pink)
-                }
-                .buttonStyle(.plain)
-            }
-            IconButton(systemName: "gearshape", accessibilityLabel: "Ajustes", size: 44) {
-                router.push(.settings)
+        MainHeader {
+            if showsBack {
+                BackButton()
+                Text("Con \(session.partner.name)")
+                    .textStyle(.title2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            } else {
+                CruceLogo()
             }
         }
     }
