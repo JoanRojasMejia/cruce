@@ -3,7 +3,7 @@
     import CruceCore
 
     /// Abre la app directo en una pantalla con datos de ejemplo, para comparar con las capturas del diseño.
-    /// Solo existe en Debug. Uso: `xcrun simctl launch <udid> com.joanrojas.cruce -screen history`.
+    /// Solo existe en Debug. Uso: `xcrun simctl launch <udid> com.joanrojas.cruce.dev -screen history`.
     enum DebugScreen: String, CaseIterable {
         case onboarding1, onboarding2, onboarding3
         case signUp, signUpCode, signUpName, invite, join, connected

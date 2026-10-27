@@ -17,6 +17,19 @@
 6. **Eliminar es borrado suave** (`deleted_at`) para poder avisarle al otro y, si hace falta, deshacer.
 7. **Recibo rosa o verde** según quién usa la app: se guarda en `ledger_members.tike_variant` (rosa = quien creó la cuenta).
 
+## Ambientes
+
+| Ambiente | App (configuración · esquema) | Supabase |
+|---|---|---|
+| local | Debug · `Cruce` ("Cruce Dev") | Docker en la Mac |
+| testing | Staging · `Cruce Test` ("Cruce Test") | Proyecto `pqdjiecynyjnianslikp` |
+| prod | Release · `Cruce Prod` ("Cruce") | Proyecto propio, se crea antes de TestFlight |
+
+- **Un proyecto de Supabase por ambiente.** Cuentas, RLS, plantillas de correo y datos nunca se mezclan.
+- **Prod no tiene plan B:** si le faltan sus claves, la app se detiene; nunca usa las de testing.
+- **Las migraciones llegan primero a testing** y después a prod, con `scripts/db-push.sh`, que en prod pide confirmación y respalda antes.
+- El backend de Go tendrá un despliegue por ambiente cuando se despliegue (CP8).
+
 ## Próximos pasos (punto 2)
 
 1. Crear el proyecto en Supabase, aplicar la migración y activar Sign in with Apple.

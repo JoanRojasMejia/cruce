@@ -84,7 +84,7 @@ struct SettingsView: View {
                     }
                 }
 
-                Text("Cruce \(appVersion)")
+                Text(appVersion)
                     .textStyle(.secondary)
                     .foregroundStyle(CruceColor.textSecondary)
                     .frame(maxWidth: .infinity)
@@ -98,11 +98,14 @@ struct SettingsView: View {
         .screenBackground()
     }
 
+    /// "Cruce 1.0 (1) · testing": fuera de prod dice el ambiente (CRUCE_ENVIRONMENT en el Info.plist).
     private var appVersion: String {
         let info = Bundle.main.infoDictionary
-        let version = info?["CFBundleShortVersionString"] as? String ?? "1.0"
-        let build = info?["CFBundleVersion"] as? String ?? "1"
-        return "\(version) (\(build))"
+        return AppVersion.line(
+            version: info?["CFBundleShortVersionString"] as? String ?? "1.0",
+            build: info?["CFBundleVersion"] as? String ?? "1",
+            environment: info?["CRUCE_ENVIRONMENT"] as? String
+        )
     }
 
     private var divider: some View {

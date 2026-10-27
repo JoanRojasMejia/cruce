@@ -2,3 +2,21 @@
 // (ignorado por git; copia `ios/Config.example.xcconfig`). Si falta, la app compila igual
 // y al arrancar falla con un mensaje claro.
 #include? "../../Config.xcconfig"
+
+// Un ambiente por configuración: Debug → local, Staging → testing y Release → prod.
+// Cada uno tiene su identificador, nombre e ícono, así las tres apps conviven en el mismo iPhone.
+PRODUCT_BUNDLE_IDENTIFIER[config=Debug] = com.joanrojas.cruce.dev
+PRODUCT_BUNDLE_IDENTIFIER[config=Staging] = com.joanrojas.cruce.staging
+PRODUCT_BUNDLE_IDENTIFIER[config=Release] = com.joanrojas.cruce
+
+APP_DISPLAY_NAME[config=Debug] = Cruce Dev
+APP_DISPLAY_NAME[config=Staging] = Cruce Test
+APP_DISPLAY_NAME[config=Release] = Cruce
+
+APP_ICON_NAME[config=Debug] = AppIconDev
+APP_ICON_NAME[config=Staging] = AppIconTest
+APP_ICON_NAME[config=Release] = AppIcon
+
+APP_ENVIRONMENT[config=Debug] = local
+APP_ENVIRONMENT[config=Staging] = testing
+APP_ENVIRONMENT[config=Release] = prod

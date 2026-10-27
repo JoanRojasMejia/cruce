@@ -1,6 +1,6 @@
 # Cruce · app iOS (SwiftUI)
 
-iOS 17+, solo iPhone, modo claro. La app arranca con la sesión real (`AppStores.live()`): Debug habla con Supabase local y Release con la nube. Con `-screen <nombre>` (solo Debug) abre una pantalla con **datos de ejemplo** (`AppStores.sample`), sin backend. Los movimientos siguen en memoria hasta el CP5.
+iOS 17+, solo iPhone, modo claro. La app arranca con la sesión real (`AppStores.live()`) contra el Supabase de su ambiente (ver [Ambientes](#ambientes)). Con `-screen <nombre>` (solo Debug) abre una pantalla con **datos de ejemplo** (`AppStores.sample`), sin backend. Los movimientos siguen en memoria hasta el CP5.
 
 ## Abrir el proyecto
 
@@ -17,10 +17,10 @@ Antes de compilar, crea la configuración de Supabase (una sola vez; `Config.xcc
 cd ios
 cp Config.example.xcconfig Config.xcconfig
 supabase status -o env | rg ANON_KEY          # con `supabase start`: clave anónima local → Debug
-supabase projects api-keys --project-ref pqdjiecynyjnianslikp   # fila anon → Release
+supabase projects api-keys --project-ref pqdjiecynyjnianslikp   # fila anon de testing → Staging
 ```
 
-Pega cada clave en su línea de `Config.xcconfig`. La clave anónima es pública por diseño (la protege RLS); nunca pongas la `service_role`. Si falta la configuración, la app compila pero se detiene al arrancar con un mensaje que dice qué falta.
+Pega cada clave en su línea de `Config.xcconfig`. `Release` (prod) se queda con `pega-aqui…` hasta que exista el proyecto de prod: así la app de prod se detiene en vez de usar otro ambiente. La clave anónima es pública por diseño (la protege RLS); nunca pongas la `service_role`. Si falta la configuración, la app compila pero se detiene al arrancar con un mensaje que dice qué falta.
 
 En Xcode: **Signing & Capabilities → Team**, elige tu cuenta y corre en el simulador o en tu iPhone.
 Las pruebas de la lógica y del estado de la app no necesitan Xcode ni simulador (corren también en Linux, en la CI):
@@ -28,6 +28,28 @@ Las pruebas de la lógica y del estado de la app no necesitan Xcode ni simulador
 ```bash
 cd ios/Packages/CruceCore
 swift test                 # Swift Testing: saldo, pesos, fechas, repositorio, stores y navegación
+```
+
+## Ambientes
+
+Cada ambiente es una configuración de Xcode con su esquema. Elegir el ambiente es elegir el esquema en la barra de Xcode.
+
+| Esquema | Configuración | Ambiente | Supabase | Identificador | Nombre en el iPhone |
+|---|---|---|---|---|---|
+| `Cruce` | Debug | local | Docker (`supabase start`) | `com.joanrojas.cruce.dev` | Cruce Dev |
+| `Cruce Test` | Staging | testing | `pqdjiecynyjnianslikp` | `com.joanrojas.cruce.staging` | Cruce Test |
+| `Cruce Prod` | Release | prod | todavía no existe | `com.joanrojas.cruce` | Cruce |
+
+- El identificador, el nombre, el ícono y el ambiente de cada configuración están en `Cruce/Config/Cruce.xcconfig` (versionado). Las claves de Supabase, en `ios/Config.xcconfig` (ignorado).
+- Staging se compila como Release: sin `DEBUG`, sin `-screen` ni datos de ejemplo. Es la misma app que irá a prod, contra testing.
+- Fuera de prod, Ajustes dice el ambiente junto a la versión: "Cruce 1.0 (1) · testing".
+- Las tres apps se pueden instalar a la vez. **Con la cuenta gratuita de Apple** hay un límite de apps instaladas desde Xcode y de identificadores nuevos por semana. En el iPhone basta con "Cruce Test"; "Cruce Dev" vive en el simulador.
+- Desde la terminal: `xcodebuild -project Cruce.xcodeproj -scheme "Cruce Test" -destination 'platform=iOS Simulator,name=iPhone 16' build`.
+
+Los íconos de local y testing (`AppIconDev`, `AppIconTest`) salen del ícono de prod con una franja en tinta. Para regenerarlos, desde `ios/Cruce/Resources/Assets.xcassets`:
+
+```bash
+for pair in Dev:DEV Test:TEST; do name=${pair%%:*}; label=${pair##*:}; magick -size 1024x1024 xc:'#FFD12E' \( AppIcon.appiconset/AppIcon-1024.png -resize 760x760 \) -gravity north -geometry +0+20 -composite -gravity northwest -fill '#111111' -draw 'rectangle 0,800 1024,1024' -font ../Fonts/Archivo-Black.ttf -pointsize 150 -kerning 12 -fill '#FFD12E' -gravity south -annotate +0+30 "$label" -alpha off -define png:exclude-chunks=date,time AppIcon$name.appiconset/AppIcon$name-1024.png; done
 ```
 
 ## Entrar en local (código por correo)
@@ -63,13 +85,14 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 |---|---|
 | `Cruce/DesignSystem` | Tokens de la guía de estilo: colores, tipografía Archivo, radios, bordes, sombras, espaciados, botones e ilustraciones. |
 | `Cruce/Components` | Piezas reutilizables: tarjeta carpeta, fila de movimiento, chips, segmentado, teclado, avatar, logo. |
-| `Cruce/App` | `CruceApp` (raíz de composición), `AppStores` y `.cruceStores(_:)`, `AppStores.sample` (solo Debug), `RootView`/`MainView`, `DebugScreen` y `SupabaseConfig` (lee la URL y la clave del `Info.plist`). |
+| `Cruce/App` | `CruceApp` (raíz de composición), `AppStores` y `.cruceStores(_:)`, `AppStores.sample` (solo Debug), `RootView`/`MainView`, `DebugScreen` y `SupabaseConfig.load()` (detiene la app si faltan la URL o la clave). |
 | `Cruce/Data` | `SupabaseAuthService`, `SupabaseAccountDirectory` y `SupabaseParcheRepository`: la sesión, el perfil y los parches con supabase-swift, con un solo `SupabaseClient`. Los parches se leen con una sola consulta (RLS) y se escriben solo con las funciones de la base. |
-| `Cruce/Config` | `Cruce.xcconfig`, que incluye `ios/Config.xcconfig` si existe. |
+| `Cruce/Config` | `Cruce.xcconfig`: identificador, nombre, ícono y ambiente de cada configuración; incluye `ios/Config.xcconfig` si existe. |
 | `Cruce/Screens` | Las pantallas del canvas, cada una con su `#Preview`; `Screens/Parches` tiene las de parches (lista, nuevo, código, detalle, gasto, pago, cerrar y tickets). |
 | `Cruce/Resources` | Fuentes Archivo (licencia OFL), ilustraciones @2x/@3x, ícono de la app. |
 | `Packages/CruceCore/Sources/CruceCore/Models` | `Member`, `Movement`, `SplitRule`, `MovementCategory`. |
-| `Packages/CruceCore/Sources/CruceCore/Domain` | Lógica pura: saldo neto (`BalanceCalculator`), formato de pesos (`Money`), fechas en español. |
+| `Packages/CruceCore/Sources/CruceCore/Domain` | Lógica pura: saldo neto (`BalanceCalculator`), formato de pesos (`Money`), fechas en español y la línea de la versión con el ambiente (`AppVersion`). |
+| `Packages/CruceCore/Sources/CruceCore/Config` | `SupabaseConfig`: lee la URL y la clave del `Info.plist`; un valor vacío o de plantilla cuenta como faltante. |
 | `Packages/CruceCore/Sources/CruceCore/Data` | `LedgerRepository` (interfaz, `delete` es borrado suave) e `InMemoryLedgerRepository`; `AuthService` y `AccountDirectory` (sesión y perfil) con sus dobles en memoria. En el CP5 entra `SupabaseLedgerRepository`. |
 | `Packages/CruceCore/Sources/CruceCore/State` | Estado de la app, `@MainActor @Observable`: `SessionStore` (sesión y etapa), `LedgerStore` (movimientos, saldo y acciones), `Router` (pila de navegación) y `Route`. |
 | `Packages/CruceCore/Sources/CruceCore/Parches` | Parches: reparto (`Allocation`), modelos, `ParcheCalculator`, `ParcheDetail`, tickets, `ParcheRepository` con su backend en memoria, `ParcheRemote` (JSON de Supabase, parámetros y errores), `ParcheStore` y `PendingStore` (`FilePendingStore` guarda la cola sin conexión en `Application Support/Cruce/parches.json`). |

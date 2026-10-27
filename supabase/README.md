@@ -23,12 +23,43 @@ Con la [CLI de Supabase](https://supabase.com/docs/guides/cli) (`brew install su
 supabase start           # base local con Docker (la primera vez descarga varias imágenes)
 supabase db reset        # aplica las migraciones en local
 supabase test db         # corre las pruebas de supabase/tests
-
-supabase link --project-ref <tu-ref>
-supabase db push         # aplica en el proyecto en la nube
 ```
 
 `config.toml` ya está en el repo; no hace falta `supabase init`.
+
+## Ambientes
+
+| Ambiente | Dónde | Identificador del proyecto |
+|---|---|---|
+| local | Docker (`supabase start`) | — |
+| testing | Nube, Oregon | `pqdjiecynyjnianslikp` |
+| prod | Nube | todavía no existe |
+
+- Los identificadores de los proyectos están en `supabase/ambientes.env` (versionado: no son secretos). Los scripts los leen con `scripts/lib/ambiente.sh`.
+- Los scripts vinculan el proyecto del ambiente que nombras en cada corrida. **No uses `supabase link` y `supabase db push` a mano**: el vínculo guardado en `supabase/.temp` no dice a qué ambiente apunta.
+- Las migraciones llegan siempre primero a testing y después a prod.
+
+```bash
+scripts/db-push.sh testing      # muestra las migraciones pendientes y las aplica en testing
+scripts/db-push.sh prod         # pide escribir "prod", respalda prod y después aplica
+scripts/backup-db.sh testing    # respaldo en backups/<fecha>_<hora>_testing/
+scripts/backup-db.sh --local    # respaldo de la base local
+```
+
+Cada proyecto tiene su propia contraseña de la base: la pide el CLI, o la lee de `SUPABASE_DB_PASSWORD`. Antes, una sola vez, `supabase login`.
+
+**Proyectos pausados:** en el plan gratis, Supabase pausa un proyecto tras una semana sin uso. Si testing no responde, reactívalo desde el panel (Project → Restore). Tarda unos minutos.
+
+**Plantilla del correo:** cada proyecto tiene la suya. Pega `supabase/templates/codigo.html` en el panel de cada uno (Auth → Emails, en "Magic Link" y en "Confirm signup").
+
+### Crear prod (antes de la primera versión en TestFlight)
+
+1. En el panel de Supabase, crea el proyecto `cruce-prod` en la misma organización y región que testing, y guarda la contraseña de la base en tu gestor de contraseñas.
+2. Llena `PROD_PROJECT_REF` en `supabase/ambientes.env` con su identificador y súbelo en un commit.
+3. `scripts/db-push.sh prod` para aplicar las migraciones (el primer respaldo sale vacío de datos).
+4. Pega la plantilla del correo (ver arriba).
+5. En `ios/Config.xcconfig`, llena `SUPABASE_URL[config=Release]` con `https:/$()/<ref>.supabase.co` y `SUPABASE_ANON_KEY[config=Release]` con la clave anon de `supabase projects api-keys --project-ref <ref>`.
+6. Compila el esquema `Cruce Prod` y entra con tu correo.
 
 ## Pruebas
 

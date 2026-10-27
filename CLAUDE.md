@@ -61,22 +61,23 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 
 ---
 
-## 2. Estado actual (26 oct 2026)
+## 2. Estado actual (27 oct 2026)
 
 | Parte | Estado | ¿Verificado? |
 |---|---|---|
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
 | App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
-| Inicio de sesión (CP3) | Por correo con un código de 6 dígitos (supabase-swift 2.55.4), sesión persistente, perfil y etapa de entrada según la sesión real. Sign in with Apple queda para cuando se pague la membresía | En local sí: pasos de la tarea 4.2 de `inicio-sesion-correo`. En la nube falta pegar la plantilla del correo y probar con los correos de Jesús y Joan |
-| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores, sesión, navegación y parches) | 154 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
+| Inicio de sesión (CP3) | Por correo con un código de 6 dígitos (supabase-swift 2.55.4), sesión persistente, perfil y etapa de entrada según la sesión real. Sign in with Apple queda para cuando se pague la membresía | En local sí: pasos de la tarea 4.2 de `inicio-sesion-correo`. En la nube falta, en testing, pegar la plantilla del correo y probar con los correos de Jesús y Joan |
+| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores, sesión, navegación y parches) | 159 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
 | Parches | Lógica en CruceCore (reparto, saldos, `ParcheStore` con cola sin conexión), pantallas nuevas (17 entradas `-screen` en Debug), tickets para compartir y `SupabaseParcheRepository` conectado en `AppStores.live()`. Migración `20261026095551_parches.sql` aplicada en local y en la nube (26 oct 2026) | Sí: pgTAP (`06_parches.sql`), `swift test` y, contra Supabase local, el repositorio real con tres cuentas (crear, unirse, sin la app, cuatro repartos, pagos, reclamar lugar, cerrar, pasar al cruce, avisos) y la app en el simulador mostrando "Tus parches" |
-| Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) y `parches.sql` aplicadas en local y en la nube (26 oct 2026) | Sí: 163 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión, y parches) y revisión de seguridad hecha |
+| Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon, que es el ambiente de testing). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) y `parches.sql` aplicadas en local y en la nube (26 oct 2026) | Sí: 163 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión, y parches) y revisión de seguridad hecha |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
 | Integración continua (GitHub Actions) | `ci.yml`: backend, base de datos y lógica, cada uno solo si cambió su carpeta; `ios.yml` compila la app a mano | Local: cada paso corre en la Mac (Linux con `swift:6.4` en Docker) y `actionlint` no reporta errores. En GitHub: corridas en verde desde el 26 oct 2026 |
-| Respaldos de la base de datos | `scripts/backup-db.sh` (nube) y `--local`; quedan en `backups/`, fuera de git | `--local` sí; nube sí (primer respaldo el 26 oct 2026). Mientras la nube no tenga datos reales no se respalda antes de cada migración |
+| Ambientes (cambio `ambientes`) | Tres: local (Debug, esquema `Cruce`), testing (Staging, `Cruce Test`, el proyecto actual) y prod (Release, `Cruce Prod`; el proyecto se crea antes de TestFlight). Cada app tiene su identificador, nombre e ícono; `scripts/db-push.sh` sube migraciones por ambiente | Los tres esquemas compilan y conviven en el simulador; Ajustes dice "· local"; prod sin claves se detiene. Los scripts se corrieron contra testing (27 oct 2026). Falta ver "· testing" en Ajustes al entrar con un correo |
+| Respaldos de la base de datos | `scripts/backup-db.sh testing`, `prod` o `--local`; quedan en `backups/<fecha>_<hora>_<ambiente>/`, fuera de git | `--local` sí; nube sí (primer respaldo el 26 oct 2026). Mientras la nube no tenga datos reales no se respalda antes de cada migración |
 
-**CP0, CP1 y CP2 cerrados; CP3 hecho por correo** (falta el paso en la nube con el dueño). Lo siguiente es el CP4: vincular a los dos.
+**CP0, CP1 y CP2 cerrados; CP3 hecho por correo** (falta el paso en la nube con el dueño, ahora en testing). Lo siguiente es el CP4: vincular a los dos.
 
 ---
 
@@ -112,7 +113,8 @@ cruce/
 │   └── Packages/CruceCore/   Paquete local con la lógica pura (la app lo usa con `import CruceCore`)
 │       ├── Sources/CruceCore/
 │       │   ├── Models/       Member, Movement, SplitRule, MovementCategory
-│       │   ├── Domain/       BalanceCalculator, Money, DateText
+│       │   ├── Domain/       BalanceCalculator, Money, DateText, AppVersion (versión con el ambiente)
+│       │   ├── Config/       SupabaseConfig (lee la URL y la clave del Info.plist)
 │       │   ├── Data/         LedgerRepository e InMemoryLedgerRepository (borrado suave); AuthService,
 │       │   │                 AccountDirectory y sus dobles en memoria
 │       │   ├── State/        SessionStore, LedgerStore, Router y Route (estado de la app)
@@ -128,6 +130,7 @@ cruce/
 ├── supabase/
 │   ├── migrations/           20261024000000_init.sql, 20261026060520_endurecer_rls.sql y
 │   │                         20261026095551_parches.sql
+│   ├── ambientes.env         Identificador del proyecto de testing y de prod
 │   └── tests/                Pruebas pgTAP (01_saldo a 06_parches)
 ├── openspec/                 Registro de specs y cambios (OpenSpec, ver §9)
 │   ├── config.yaml           Esquema spec-driven, artefactos en español
@@ -163,7 +166,7 @@ open Cruce.xcodeproj                        # para correr con ⌘R y ver las vis
 - Si `xcodebuild` dice "Unable to find a device matching" aunque el simulador exista (pasa cuando hay varios iOS instalados), usa su identificador: `-destination 'id=<UDID>'`.
 - Para instalarla en un iPhone físico: Xcode → Signing & Capabilities → Team.
 - **Cada vez que agregues o muevas archivos, vuelve a correr `xcodegen`.**
-- **Abrir una pantalla directo (solo Debug):** `xcrun simctl launch <udid> com.joanrojas.cruce -screen <nombre>` y luego `xcrun simctl io <udid> screenshot captura.png`. Los nombres están en `App/DebugScreen.swift` (`homeTheyOwe`, `add`, `history`, `settle`…). Sirve para comparar contra `docs/design/screens/` sin tocar la pantalla.
+- **Abrir una pantalla directo (solo Debug):** `xcrun simctl launch <udid> com.joanrojas.cruce.dev -screen <nombre>` y luego `xcrun simctl io <udid> screenshot captura.png`. Los nombres están en `App/DebugScreen.swift` (`homeTheyOwe`, `add`, `history`, `settle`…). Sirve para comparar contra `docs/design/screens/` sin tocar la pantalla.
 
 ### Backend
 ```bash
@@ -174,7 +177,8 @@ curl localhost:8080/healthz
 ```
 
 ### Configuración de la app (Supabase)
-- `ios/Config.xcconfig` (ignorado por git) define `SUPABASE_URL` y `SUPABASE_ANON_KEY` para Debug (local, `http://127.0.0.1:54321`) y Release (la nube). Se crea copiando `ios/Config.example.xcconfig`; los pasos están en `ios/README.md`. La clave anónima es pública por diseño; la `service_role` nunca va ahí.
+- **Tres ambientes, uno por configuración de Xcode:** Debug (esquema `Cruce`) → local, Staging (`Cruce Test`) → testing (`pqdjiecynyjnianslikp`) y Release (`Cruce Prod`) → prod, que todavía no existe. Identificador, nombre, ícono y ambiente de cada uno están en `ios/Cruce/Config/Cruce.xcconfig`; la tabla está en `ios/README.md`. Staging se compila como Release (sin `DEBUG` ni `-screen`).
+- `ios/Config.xcconfig` (ignorado por git) define `SUPABASE_URL` y `SUPABASE_ANON_KEY` por configuración: Debug (local, `http://127.0.0.1:54321`), Staging (testing) y Release (prod, con `pega-aqui…` hasta que exista: la app de prod se detiene en vez de usar otro ambiente). Se crea copiando `ios/Config.example.xcconfig`; los pasos están en `ios/README.md`. La clave anónima es pública por diseño; la `service_role` nunca va ahí.
 - En Debug la app arranca con la sesión real contra Supabase local; con `-screen <nombre>` usa los datos de ejemplo.
 - Para entrar en local, levanta Supabase **sin excluir `mailpit`** y lee el código en `http://127.0.0.1:54324` (o con su API, ver `ios/README.md`).
 
@@ -188,11 +192,13 @@ supabase test db       # 163 pruebas pgTAP de supabase/tests
 ### Respaldo de la base de datos
 El plan Free de Supabase no hace respaldos automáticos. Desde la raíz del repo:
 ```bash
-supabase login && supabase link     # una sola vez: tu sesión y el proyecto de la nube
-scripts/backup-db.sh                # respalda la nube en backups/<AAAA-MM-DD_HHMMSS>/
+supabase login                      # una sola vez: tu sesión
+scripts/backup-db.sh testing        # respalda testing en backups/<AAAA-MM-DD_HHMMSS>_testing/
 scripts/backup-db.sh --local        # respalda la base local (con supabase start)
+scripts/db-push.sh testing          # sube las migraciones a testing (prod pide confirmación y respalda antes)
 ```
-- Deja `schema.sql` y `data.sql` en una carpeta nueva con fecha y hora; si un volcado falla, no deja nada a medias.
+- Los scripts vinculan el proyecto del ambiente que nombras (identificadores en `supabase/ambientes.env`); no uses `supabase link` ni `supabase db push` a mano. Detalle y pasos para crear prod en `supabase/README.md`.
+- Deja `schema.sql` y `data.sql` en una carpeta nueva con fecha, hora y ambiente; si un volcado falla, no deja nada a medias.
 - **Cuándo:** una vez por semana durante la beta y siempre antes de aplicar una migración en la nube.
 - `backups/` está en `.gitignore` porque tiene datos personales: nunca se sube ni va a la CI. La contraseña de la base la pide el CLI (o la lee de la variable de entorno `SUPABASE_DB_PASSWORD`); nunca se escribe en el repo.
 
@@ -327,7 +333,9 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
   Corrígelos sin cambiar el comportamiento ni el diseño.
 - **Fuentes:** los `.ttf` se convirtieron desde los `woff2` de Fontsource y se les renombró la tabla de nombres. Los nombres PostScript esperados son `Archivo-Medium`, `Archivo-SemiBold`, `Archivo-Bold`, `Archivo-ExtraBold` y `Archivo-Black`. Verifica que carguen; si se ve la fuente del sistema, revisa `UIAppFonts` en `project.yml`.
 - **Sign in with Apple** requiere la membresía de Apple Developer (de pago), igual que las notificaciones push y TestFlight. Con una cuenta gratuita la app solo se puede instalar desde Xcode y deja de abrir a los 7 días. Por eso se entra por correo con un código; Sign in with Apple, con el botón oficial `SignInWithAppleButton`, es una función posterior.
-- **Correo en la nube:** el SMTP por defecto de Supabase solo envía a miembros de la organización y 2 correos por hora. Alcanza para Jesús y Joan en beta; con más personas hace falta SMTP propio. La plantilla del código (`supabase/templates/codigo.html`) hay que pegarla a mano en el panel (Auth → Emails); no se usa `supabase config push`.
+- **Cuenta gratuita y tres apps:** las tres apps (Cruce Dev, Cruce Test y Cruce) cuentan para el límite de apps instaladas desde Xcode y de identificadores nuevos por semana. En el iPhone basta con Cruce Test.
+- **Testing se pausa:** en el plan gratis, Supabase pausa un proyecto tras una semana sin uso; se reactiva desde el panel.
+- **Correo en la nube:** el SMTP por defecto de Supabase solo envía a miembros de la organización y 2 correos por hora. Alcanza para Jesús y Joan en beta; con más personas hace falta SMTP propio. La plantilla del código (`supabase/templates/codigo.html`) hay que pegarla a mano en el panel de cada proyecto (Auth → Emails); no se usa `supabase config push`.
 - **La migración ya está en la nube:** desde ahora no se edita `20261024000000_init.sql`; cualquier cambio va en una migración nueva.
 - **`redeem_invite` devuelve `jsonb`** (`ok`, `error`, `message`) en vez de lanzar errores, por el límite de 5 intentos fallidos por hora. La app debe mostrar `message`.
 - **No implementado todavía:** "Cambiar monto" (pago parcial), exportar CSV, desvincular, editar perfil, reparto por defecto, el ajuste del recordatorio y el deslizar para volver con la barra de navegación oculta.
