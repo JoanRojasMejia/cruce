@@ -5,12 +5,15 @@ select plan(9);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'joan@example.com'),
-  ('22222222-2222-2222-2222-222222222222', 'jesus@example.com');
+  ('22222222-2222-2222-2222-222222222222', 'jesus@example.com'),
+  ('33333333-3333-3333-3333-333333333333', 'ana@example.com');
 insert into public.profiles (id, display_name) values
   ('11111111-1111-1111-1111-111111111111', 'Joan'),
-  ('22222222-2222-2222-2222-222222222222', 'Jesús');
+  ('22222222-2222-2222-2222-222222222222', 'Jesús'),
+  ('33333333-3333-3333-3333-333333333333', 'Ana');
 
--- Cuenta 1: el ejemplo canónico. Cuenta 2: casos de reparto y redondeo.
+-- Cuenta 1 (Joan y Jesús): el ejemplo canónico. Cuenta 2 (Joan y Ana): casos de reparto y redondeo.
+-- Son personas distintas porque dos personas tienen como máximo un cruce entre ellas.
 insert into public.ledgers (id, created_by) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111');
@@ -18,7 +21,7 @@ insert into public.ledger_members (ledger_id, user_id, tike_variant, avatar_colo
   ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'rosa', 'yellow'),
   ('aaaaaaaa-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'verde', 'violet'),
   ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'rosa', 'yellow'),
-  ('aaaaaaaa-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'verde', 'violet');
+  ('aaaaaaaa-0000-0000-0000-000000000002', '33333333-3333-3333-3333-333333333333', 'verde', 'violet');
 
 insert into public.movements (id, ledger_id, payer_id, amount, concept, split_type, other_share_percent, created_by) values
   ('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 60000, 'Cena', 'equal', 50, '11111111-1111-1111-1111-111111111111'),

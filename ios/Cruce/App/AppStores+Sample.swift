@@ -12,15 +12,28 @@
             movements: [Movement] = MockData.movements(),
             userID: UUID? = nil,
             pendingEmail: String? = nil,
+            joinCode: String? = nil,
             parcheBackend: InMemoryParcheBackend? = nil
         ) -> AppStores {
             let other = viewer.id == MockData.joan.id ? MockData.jesus : MockData.joan
+            // Con `joinCode`, la pantalla de unirse arranca con ese código y lo revisa contra una base en memoria donde
+            // `other` ya invitó con `CRZ-4821`; por eso hace falta una sesión abierta.
+            let directory =
+                joinCode == nil
+                ? InMemoryAccountDirectory()
+                : InMemoryAccountDirectory(
+                    profiles: [
+                        Profile(id: viewer.id, displayName: viewer.name),
+                        Profile(id: other.id, displayName: other.name),
+                    ],
+                    invitesFrom: [other.id])
             // Sesión con dobles en memoria: cualquier correo recibe el código 123456, sin red.
             let session = SessionStore(
                 phase: phase, me: viewer, partner: other, inviteCode: "CRZ-4821",
-                auth: InMemoryAuthService(code: "123456"), directory: InMemoryAccountDirectory(),
-                userID: userID, pendingEmail: pendingEmail
+                auth: InMemoryAuthService(code: "123456"), directory: directory,
+                userID: joinCode == nil ? userID : (userID ?? viewer.id), pendingEmail: pendingEmail
             )
+            session.pendingJoinCode = joinCode
             // La lista se fija al construir, para no depender de la tarea `load()`.
             let ledger = LedgerStore(
                 session: session,

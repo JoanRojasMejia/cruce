@@ -66,6 +66,10 @@ supabase start -x realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtim
    `curl -s http://127.0.0.1:54324/api/v1/message/<ID> | jq -r .Text`.
 3. Escribe el código; la primera vez la app pide tu nombre y crea el perfil.
 
+Levanta Supabase desde la raíz del repo: si no, no carga `config.toml` y el correo llega con el enlace de Supabase en vez del código.
+
+Para probar invitar y unirse con una sola app, la otra persona puede actuar por la API (`/auth/v1/otp`, `/auth/v1/verify` con el código de mailpit y `/rest/v1/rpc/redeem_invite`). En Debug, `-screen join` y `-screen joinInvalid` abren la pantalla de unirse con un código válido o inválido, sin backend.
+
 El correo usa `supabase/templates/codigo.html` (`config.toml` la asigna a enlace mágico y confirmación). En la nube, cada proyecto necesita SMTP propio para poder editar la plantilla y pegarla en el panel; los pasos están en `supabase/README.md`.
 
 ## Formato
@@ -93,7 +97,7 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 | `Packages/CruceCore/Sources/CruceCore/Models` | `Member`, `Movement`, `SplitRule`, `MovementCategory`. |
 | `Packages/CruceCore/Sources/CruceCore/Domain` | Lógica pura: saldo neto (`BalanceCalculator`), formato de pesos (`Money`), fechas en español y la línea de la versión con el ambiente (`AppVersion`). |
 | `Packages/CruceCore/Sources/CruceCore/Config` | `SupabaseConfig`: lee la URL y la clave del `Info.plist`; un valor vacío o de plantilla cuenta como faltante. |
-| `Packages/CruceCore/Sources/CruceCore/Data` | `LedgerRepository` (interfaz, `delete` es borrado suave) e `InMemoryLedgerRepository`; `AuthService` y `AccountDirectory` (sesión y perfil) con sus dobles en memoria. En el CP5 entra `SupabaseLedgerRepository`. |
+| `Packages/CruceCore/Sources/CruceCore/Data` | `LedgerRepository` (interfaz, `delete` es borrado suave) e `InMemoryLedgerRepository`; `AuthService` y `AccountDirectory` (sesión, perfil y vinculación) con sus dobles en memoria; `CruceLink`, `InviteCheck` y `CruceRemote` (el JSON de `my_cruces`, `preview_invite` y `redeem_invite`). En el CP5 entra `SupabaseLedgerRepository`. |
 | `Packages/CruceCore/Sources/CruceCore/State` | Estado de la app, `@MainActor @Observable`: `SessionStore` (sesión y etapa), `LedgerStore` (movimientos, saldo y acciones), `Router` (pila de navegación) y `Route`. |
 | `Packages/CruceCore/Sources/CruceCore/Parches` | Parches: reparto (`Allocation`), modelos, `ParcheCalculator`, `ParcheDetail`, tickets, `ParcheRepository` con su backend en memoria, `ParcheRemote` (JSON de Supabase, parámetros y errores), `ParcheStore` y `PendingStore` (`FilePendingStore` guarda la cola sin conexión en `Application Support/Cruce/parches.json`). |
 | `Packages/CruceCore/Sources/CruceCore/Fixtures` | `MockData`: datos de ejemplo; en la app solo se usan en Debug y en las vistas previas. |

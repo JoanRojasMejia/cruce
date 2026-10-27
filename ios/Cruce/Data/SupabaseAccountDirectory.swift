@@ -2,7 +2,9 @@ import CruceCore
 import Foundation
 import Supabase
 
-/// Perfil y cuenta compartida de quien entró, leídos de `profiles` y `ledger_members` (con RLS).
+/// Perfil y cruces de quien entró. El perfil se lee de `profiles` (con RLS); para vincular se usan solo las funciones de
+/// la base (`my_cruces`, `create_ledger_with_invite`, `preview_invite` y `redeem_invite`), que usan la sesión abierta.
+/// La traducción del JSON vive en `CruceRemote` (CruceCore), probada con `swift test`.
 struct SupabaseAccountDirectory: AccountDirectory {
     let client: SupabaseClient
 
@@ -29,14 +31,23 @@ struct SupabaseAccountDirectory: AccountDirectory {
         return rows.first.map { Profile(id: $0.id, displayName: $0.displayName) }
     }
 
-    func hasLedger(_ userID: UUID) async throws -> Bool {
-        let response =
-            try await client
-            .from("ledger_members")
-            .select("ledger_id", head: true, count: .exact)
-            .eq("user_id", value: userID)
-            .execute()
-        return (response.count ?? 0) > 0
+    func cruces(for userID: UUID) async throws -> [CruceLink] {
+        try CruceRemote.cruceLinks(from: try await client.rpc("my_cruces").execute().data)
+    }
+
+    func inviteCode(for userID: UUID) async throws -> String {
+        let data = try await client.rpc("create_ledger_with_invite").execute().data
+        return try JSONDecoder().decode(String.self, from: data)
+    }
+
+    func previewInvite(_ code: String, for userID: UUID) async throws -> InviteCheck {
+        try CruceRemote.inviteCheck(
+            from: try await client.rpc("preview_invite", params: ["p_code": code]).execute().data)
+    }
+
+    func redeemInvite(_ code: String, for userID: UUID) async throws -> InviteCheck {
+        try CruceRemote.inviteCheck(
+            from: try await client.rpc("redeem_invite", params: ["p_code": code]).execute().data)
     }
 
     func createProfile(_ profile: Profile) async throws {

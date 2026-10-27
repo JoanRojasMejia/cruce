@@ -125,10 +125,11 @@ struct EnterCodeView: View {
         switch ParcheStore.codeKind(code) {
         case .cruce:
             if session.phase == .main {
-                problem =
-                    "Ya tienes tu cruce con \(session.partner.name). Los códigos CRZ- sirven para unirse a un cruce."
+                // Unirse a otro cruce teniendo ya uno llega con el CP4b ("Tus cruces").
+                problem = "Pronto vas a poder tener más de un cruce."
             } else {
-                // El código del cruce se escribe en su propia pantalla.
+                // El código del cruce se escribe en su propia pantalla, que arranca con él.
+                session.pendingJoinCode = SessionStore.inviteCode(from: code)
                 router.popToRoot()
                 session.phase = .join
             }

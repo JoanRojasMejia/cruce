@@ -8,11 +8,12 @@ El plan de trabajo, con los checkpoints, está en [`docs/ROADMAP.md`](docs/ROADM
 
 ## 1. Qué es Cruce
 
-Una app de iPhone para que **dos amigos, Joan y Jesús**, lleven sus cuentas compartidas en un solo libro.
+Una app de iPhone para llevar las cuentas compartidas con tus amigos: con cada uno, un solo libro y un solo saldo. Empezó con **Joan y Jesús**, que son los primeros usuarios.
 
 - **Problema:** hoy anotan las deudas por separado ("él me debe 30.000", "yo le debo 60.000") y no las pueden cruzar.
 - **Solución:** cada gasto se compensa automáticamente contra lo que el otro debe, y la app muestra siempre **un único saldo neto**: quién le debe a quién y cuánto.
 - **El cruce es entre dos personas.** La cuenta permanente (el "cruce") es siempre de dos; no se le agregan más personas.
+- **Varios cruces por persona, uno por pareja** (decidido el 27 oct 2026). Cada quien puede tener un cruce con cada amigo (con Jesús, con Ana, con su hermano), pero nunca dos cruces con la misma persona. Con un solo cruce, el inicio es ese cruce, como en el diseño; con dos o más, el inicio muestra "Tus cruces" con el saldo de cada uno y al tocar uno se abre su inicio. "Invitar a alguien" crea un cruce nuevo con su código `CRZ-`. Se implementa en el CP4 (la regla en la base) y el CP4b (la lista); hasta entonces la app asume uno solo.
 - **Parches (implementados, cambio `parches`):** grupos de varias personas con inicio y fin (un viaje, una cena), donde también se cruzan cuentas y al final se salda todo. Son aparte del cruce y no lo cambian; al cerrar un parche, lo que dos personas se deben directamente puede pasar a su cruce como un movimiento. Quien no tiene la app participa igual ("sin la app") y luego puede quedarse con su lugar con un código `SOY-`; al parche se entra con un código `PCH-`.
 - **Todo el texto en español (Colombia).** Moneda: pesos colombianos, formato `$30.000`.
 
@@ -24,6 +25,7 @@ Todas las pantallas usan estas palabras; no se mezclan sinónimos ("grupo", "via
 |---|---|---|
 | La app, la marca | **Cruce** | "Cruce · Parche Santa Marta" |
 | La cuenta permanente de dos | **tu cruce con Joan** | "Pasar a tu cruce con Joan" |
+| Todos los cruces de una persona | **tus cruces** | "Tus cruces", "Invitar a alguien" |
 | El grupo con inicio y fin | **parche** | "Nuevo parche", "Parche Santa Marta", "Cerrar el parche", "Parche cerrado" |
 | Las personas de un parche | **los del parche** | "4 personas en el parche" |
 | Quien no tiene la app | **sin la app** | "Carlos (sin la app)". No se dice "invitado": "invitar" ya es mandar el código del cruce |
@@ -68,16 +70,17 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 | Diseño (opción A, 20 pantallas y guía de estilo) | Cerrado | Sí. Capturas en `docs/design/screens/` |
 | App iOS con todas las pantallas y datos de ejemplo | Compila, corre y se ve como el diseño (CP1) | Sí: capturas de las 20 pantallas en iPhone 16, SE y Pro Max, y con texto grande. Probada en un iPhone 17 Pro físico (cuenta gratuita de Apple) |
 | Inicio de sesión (CP3) | Por correo con un código de 6 dígitos (supabase-swift 2.55.4), sesión persistente, perfil y etapa de entrada según la sesión real. Sign in with Apple queda para cuando se pague la membresía | En local sí: pasos de la tarea 4.2 de `inicio-sesion-correo`. En testing (27 oct 2026), con SMTP de Gmail y la plantilla: Joan entró en "Cruce Test" con el código que llegó por correo. Falta Jesús |
-| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores, sesión, navegación y parches) | 159 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
+| Pruebas de Swift (saldo, pesos, fechas, repositorio, stores, sesión, navegación y parches) | 178 pruebas de Swift Testing en verde, en el paquete `CruceCore` | Sí: `swift test`, sin Xcode ni simulador, en la Mac y en Linux (`swift:6.4`) |
 | Parches | Lógica en CruceCore (reparto, saldos, `ParcheStore` con cola sin conexión), pantallas nuevas (17 entradas `-screen` en Debug), tickets para compartir y `SupabaseParcheRepository` conectado en `AppStores.live()`. Migración `20261026095551_parches.sql` aplicada en local y en la nube (26 oct 2026) | Sí: pgTAP (`06_parches.sql`), `swift test` y, contra Supabase local, el repositorio real con tres cuentas (crear, unirse, sin la app, cuatro repartos, pagos, reclamar lugar, cerrar, pasar al cruce, avisos) y la app en el simulador mostrando "Tus parches" |
-| Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon, que es el ambiente de testing). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) y `parches.sql` aplicadas en local y en la nube (26 oct 2026) | Sí: 163 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión, y parches) y revisión de seguridad hecha |
+| Base de datos (Supabase) | `init.sql` aplicada en local y en la nube (proyecto `cruce`, Oregon, que es el ambiente de testing). `endurecer_rls.sql` (políticas solo para `authenticated`, `(select auth.uid())` e índices) y `parches.sql` aplicadas en local y en la nube (26 oct 2026). `vincular_cruces.sql` (un cruce por pareja, un cruce pendiente por persona, `preview_invite` y `my_cruces`) aplicada en local y en testing (27 oct 2026) | Sí: 190 pruebas pgTAP en verde (saldo, reglas, vinculación, RLS y RLS endurecido, también sin sesión, parches y vincular cruces) y revisión de seguridad hecha |
+| Vincular (CP4, cambio `vincular-cruces`) | Invitar muestra el código real y pasa sola a "Conectados" (revisa cada 3 s); unirse valida con la base y muestra "Cuenta de Joan"; nombres, colores y recibo salen de la base. La sesión guarda la lista de cruces; la app usa el más reciente hasta el CP4b | En local sí: Joan invita en el simulador y Jesús se une por la API; Ana se une en el simulador al código de Pedro (válido e inválido). La migración ya está en testing; falta vincular a Joan y Jesús en "Cruce Test" |
 | Backend de Go (`/healthz` y webhook) | Listo | Sí: `go vet` y `go test` pasan |
 | Git | Iniciado (rama `main`) | — |
 | Integración continua (GitHub Actions) | `ci.yml`: backend, base de datos y lógica, cada uno solo si cambió su carpeta; `ios.yml` compila la app a mano | Local: cada paso corre en la Mac (Linux con `swift:6.4` en Docker) y `actionlint` no reporta errores. En GitHub: corridas en verde desde el 26 oct 2026 |
 | Ambientes (cambio `ambientes`) | Tres: local (Debug, esquema `Cruce`), testing (Staging, `Cruce Test`, el proyecto actual) y prod (Release, `Cruce Prod`; el proyecto se crea antes de TestFlight). Cada app tiene su identificador, nombre e ícono; `scripts/db-push.sh` sube migraciones por ambiente | Los tres esquemas compilan y conviven en el simulador; Ajustes dice "· local"; prod sin claves se detiene. Los scripts se corrieron contra testing (27 oct 2026). Joan entró en "Cruce Test" con el código del correo. "· testing" en Ajustes se verá cuando el inicio exista en testing (CP4) |
 | Respaldos de la base de datos | `scripts/backup-db.sh testing`, `prod` o `--local`; quedan en `backups/<fecha>_<hora>_<ambiente>/`, fuera de git | `--local` sí; nube sí (primer respaldo el 26 oct 2026). Mientras la nube no tenga datos reales no se respalda antes de cada migración |
 
-**CP0, CP1 y CP2 cerrados; CP3 hecho por correo** (en testing ya entró Joan; falta Jesús). Lo siguiente es el CP4: vincular a los dos.
+**CP0, CP1 y CP2 cerrados; CP3 hecho por correo** (en testing ya entró Joan; falta Jesús). CP4 hecho en local y migrado en testing (falta vincular a Joan y Jesús en "Cruce Test"). Lo siguiente es el CP4b: varios cruces en la app.
 
 ---
 
@@ -116,7 +119,8 @@ cruce/
 │       │   ├── Domain/       BalanceCalculator, Money, DateText, AppVersion (versión con el ambiente)
 │       │   ├── Config/       SupabaseConfig (lee la URL y la clave del Info.plist)
 │       │   ├── Data/         LedgerRepository e InMemoryLedgerRepository (borrado suave); AuthService,
-│       │   │                 AccountDirectory y sus dobles en memoria
+│       │   │                 AccountDirectory y sus dobles en memoria; Cruces (CruceLink, InviteCheck
+│       │   │                 y CruceRemote, el JSON de la vinculación)
 │       │   ├── State/        SessionStore, LedgerStore, Router y Route (estado de la app)
 │       │   ├── Parches/      Allocation (reparto), modelos, ParcheCalculator, ParcheDetail, ParcheTicket,
 │       │   │                 ParcheRepository (+ backend en memoria), ParcheRemote (JSON de Supabase),
@@ -128,10 +132,10 @@ cruce/
 │   ├── cmd/api/main.go
 │   └── internal/{config,httpapi,notify}
 ├── supabase/
-│   ├── migrations/           20261024000000_init.sql, 20261026060520_endurecer_rls.sql y
-│   │                         20261026095551_parches.sql
+│   ├── migrations/           20261024000000_init.sql, 20261026060520_endurecer_rls.sql,
+│   │                         20261026095551_parches.sql y 20261027065544_vincular_cruces.sql
 │   ├── ambientes.env         Identificador del proyecto de testing y de prod
-│   └── tests/                Pruebas pgTAP (01_saldo a 06_parches)
+│   └── tests/                Pruebas pgTAP (01_saldo a 07_vincular_cruces)
 ├── openspec/                 Registro de specs y cambios (OpenSpec, ver §9)
 │   ├── config.yaml           Esquema spec-driven, artefactos en español
 │   ├── specs/                Cómo se comporta la app hoy (fuente de verdad)
@@ -180,13 +184,13 @@ curl localhost:8080/healthz
 - **Tres ambientes, uno por configuración de Xcode:** Debug (esquema `Cruce`) → local, Staging (`Cruce Test`) → testing (`pqdjiecynyjnianslikp`) y Release (`Cruce Prod`) → prod, que todavía no existe. Identificador, nombre, ícono y ambiente de cada uno están en `ios/Cruce/Config/Cruce.xcconfig`; la tabla está en `ios/README.md`. Staging se compila como Release (sin `DEBUG` ni `-screen`).
 - `ios/Config.xcconfig` (ignorado por git) define `SUPABASE_URL` y `SUPABASE_ANON_KEY` por configuración: Debug (local, `http://127.0.0.1:54321`), Staging (testing) y Release (prod, con `pega-aqui…` hasta que exista: la app de prod se detiene en vez de usar otro ambiente). Se crea copiando `ios/Config.example.xcconfig`; los pasos están en `ios/README.md`. La clave anónima es pública por diseño; la `service_role` nunca va ahí.
 - En Debug la app arranca con la sesión real contra Supabase local; con `-screen <nombre>` usa los datos de ejemplo.
-- Para entrar en local, levanta Supabase **sin excluir `mailpit`** y lee el código en `http://127.0.0.1:54324` (o con su API, ver `ios/README.md`).
+- Para entrar en local, levanta Supabase **desde la raíz del repo** (si no, no carga `config.toml` y el correo llega con el enlace de Supabase en vez del código) y **sin excluir `mailpit`**, y lee el código en `http://127.0.0.1:54324` (o con su API, ver `ios/README.md`).
 
 ### Supabase (local)
 ```bash
 supabase start         # levanta Postgres, Auth y Realtime en Docker (config.toml ya está en el repo)
 supabase db reset      # aplica supabase/migrations
-supabase test db       # 163 pruebas pgTAP de supabase/tests
+supabase test db       # 190 pruebas pgTAP de supabase/tests
 ```
 
 ### Respaldo de la base de datos
@@ -291,14 +295,19 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 
 ### Piezas clave de la app
 - **Cuatro stores** (`@MainActor @Observable`, en `CruceCore/State/` y `CruceCore/Parches/`), sin ViewModels por pantalla ni coordinador:
-  - **`SessionStore`**: `phase` (etapa del flujo de entrada), `me`, `partner`, `inviteCode`, `member(_:)`, la sesión (`userID`, `pendingEmail`, `error`, `isWorking`, `isReady`) y las acciones `refresh()` (calcula la etapa: sin sesión → onboarding; sin perfil → pedir el nombre; sin `ledger_members` → invitar; con cuenta → inicio), `sendCode(to:)`, `resendCode()`, `verify(code:)`, `createProfile(name:)` y `signOut()`. Recibe un `AuthService` y un `AccountDirectory`.
+  - **`SessionStore`**: `phase` (etapa del flujo de entrada), `me`, `partner` (la otra persona del cruce más reciente), `cruces` (los completos, del más reciente al más viejo), `inviteCode`, `invitePreview`, `pendingJoinCode`, `member(_:)`, la sesión (`userID`, `pendingEmail`, `error`, `isWorking`, `isReady`) y las acciones:
+    - `refresh()` calcula la etapa: sin sesión → onboarding; sin perfil → pedir el nombre; sin un cruce completo → invitar (un cruce pendiente no cuenta); con cruce → inicio. Toma el color y el recibo de `me` del cruce más reciente; sin cruces, amarillo y rosa.
+    - `sendCode(to:)`, `resendCode()`, `verify(code:)`, `createProfile(name:)` y `signOut()` (que también olvida `me`, los cruces y los códigos).
+    - Vincular: `loadInviteCode()`, `checkCode(_:)` (vista previa), `join(code:)` (pasa a `.connected`) y `checkForPartner()` (la pantalla de invitar la llama cada 3 s).
+    
+    Recibe un `AuthService` y un `AccountDirectory`.
   - **`LedgerStore`**: todos los movimientos (también los eliminados) y las lecturas de los vigentes (`visibleMovements`, `movement(_:)`, `isEmpty`, `net`, `balance`, `phrase(forNet:)`…), `lastSaved` (abre la hoja "Gasto guardado"), `lastSettlement` (abre "A paz y salvo"), `isOffline`, `pendingSyncCount` y las acciones `load`, `save`, `delete`, `settle` y `retrySync`. Lee `me`/`partner` del `SessionStore` en el momento.
   - **`Router`**: `path: [Route]`, `push`, `pop` y `popToRoot`.
   - **`ParcheStore`**: los parches de quien entró (`parches`, `unseenTotal`, saldos y frases), y las acciones crear, unirse, reclamar lugar, agregar sin la app, anotar/editar/borrar gasto, anotar/confirmar pago, cerrar y pasar al cruce. Los gastos y pagos sin conexión quedan en una cola (`pending`) guardada en disco con `FilePendingStore` y se reintentan (idempotentes por `id`). Recibe un `ParcheRepository` y un `PendingStore`; se carga al arrancar y cada vez que cambia `session.userID`.
   - Las acciones que cruzan stores quedan explícitas en la vista: "Cerrar sesión" (`router.popToRoot()` y `session.signOut()`), guardar un movimiento (`router.pop()` y `ledger.save`) y "Volver al inicio" en "A paz y salvo" (`router.popToRoot()`).
-- **`AppStores`** y **`.cruceStores(_:)`** (`App/AppStores.swift`): agrupa los cuatro stores y los inyecta en el `Environment` con un solo modificador; lo usan `CruceApp` (la raíz de composición), `DebugScreen` y cada `#Preview`. `AppStores.live()` es el arranque real (Release, y Debug sin `-screen`): sesión y parches con Supabase, sin movimientos (CP5) y sin código de invitación (CP4).
+- **`AppStores`** y **`.cruceStores(_:)`** (`App/AppStores.swift`): agrupa los cuatro stores y los inyecta en el `Environment` con un solo modificador; lo usan `CruceApp` (la raíz de composición), `DebugScreen` y cada `#Preview`. `AppStores.live()` es el arranque real (Release, y Debug sin `-screen`): sesión, vinculación y parches con Supabase, y sin movimientos (CP5).
 - **`AppStores.sample(phase:viewer:movements:)`** (`App/AppStores+Sample.swift`, solo Debug): datos de ejemplo para la app en Debug, `DebugScreen` y las vistas previas, con `inviteCode = "CRZ-4821"`. `MockData` reproduce el canvas: desde la vista de Joan, "Jesús te debe $20.000".
-- **`AuthService`** y **`AccountDirectory`** (`CruceCore/Data/AuthService.swift`): la frontera con Supabase Auth y con `profiles`/`ledger_members`. En la app los implementan `SupabaseAuthService` y `SupabaseAccountDirectory` (`ios/Cruce/Data/`), con un solo `SupabaseClient` creado en `AppStores.live()`; en pruebas y vistas previas, `InMemoryAuthService` (código `123456`) e `InMemoryAccountDirectory`. CruceCore no depende de supabase-swift.
+- **`AuthService`** y **`AccountDirectory`** (`CruceCore/Data/AuthService.swift`): la frontera con Supabase Auth, con `profiles` y con la vinculación. `AccountDirectory` da el perfil, `cruces(for:)` (`my_cruces()`), `inviteCode(for:)` (`create_ledger_with_invite()`), `previewInvite` (`preview_invite`) y `redeemInvite` (`redeem_invite`); el JSON se traduce en `CruceRemote`, probado con `swift test`. En la app los implementan `SupabaseAuthService` y `SupabaseAccountDirectory` (`ios/Cruce/Data/`), con un solo `SupabaseClient` creado en `AppStores.live()`; en pruebas y vistas previas, `InMemoryAuthService` (código `123456`) e `InMemoryAccountDirectory`. CruceCore no depende de supabase-swift.
 - **`ParcheRepository`** (`CruceCore/Parches/`): la frontera de parches. En la app la implementa `SupabaseParcheRepository` (`ios/Cruce/Data/`): lee con una sola consulta de `parches` con todo embebido (RLS solo deja ver los parches propios) y escribe solo con las funciones de la base (`create_parche`, `save_parche_expense`…). La traducción del JSON, los parámetros y los errores (`hint` → `ParcheRepositoryError`, sin red → `.offline`) viven en `ParcheRemote`, probado con `swift test`. En pruebas y Debug, `InMemoryParcheRepository`.
 - **`LedgerRepository`** (`CruceCore/Data/`): es la frontera con el backend. Hoy la implementa `InMemoryLedgerRepository` (un actor); en el CP5 entra `SupabaseLedgerRepository` con la misma interfaz. `delete(id:)` es **borrado suave**: marca `Movement.deletedAt` (igual a `movements.deleted_at`) y conserva el movimiento; `BalanceCalculator` y las lecturas del `LedgerStore` ignoran los eliminados.
 
@@ -338,6 +347,7 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
 - **Correo en la nube:** El plan gratis de Supabase no deja editar la plantilla con su correo por defecto (que además trae un enlace, no el código), así que cada proyecto necesita SMTP propio. Testing usa SMTP de Gmail con una cuenta solo para Cruce (contraseña de aplicación, unos 500 correos al día; Gmail avisa que puede caer en spam); prod necesitará un proveedor transaccional con dominio propio. La plantilla (`supabase/templates/codigo.html`) se pega a mano en el panel de cada proyecto; no se usa `supabase config push`. Pasos en `supabase/README.md`.
 - **La migración ya está en la nube:** desde ahora no se edita `20261024000000_init.sql`; cualquier cambio va en una migración nueva.
 - **`redeem_invite` devuelve `jsonb`** (`ok`, `error`, `message`) en vez de lanzar errores, por el límite de 5 intentos fallidos por hora. La app debe mostrar `message`.
+- **Varios cruces:** la base y la sesión ya los manejan (CP4: un cruce por pareja, `SessionStore.cruces`), pero las pantallas todavía usan solo el más reciente (`SessionStore.partner`, `LedgerStore` sin cruce elegido) y con un cruce, "Tengo un código" con `CRZ-` responde "Pronto vas a poder tener más de un cruce". Lo resuelve el CP4b.
 - **No implementado todavía:** "Cambiar monto" (pago parcial), exportar CSV, desvincular, editar perfil, reparto por defecto, el ajuste del recordatorio y el deslizar para volver con la barra de navegación oculta.
 
 ---

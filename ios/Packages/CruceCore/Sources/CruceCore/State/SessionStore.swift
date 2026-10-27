@@ -1,8 +1,9 @@
 import Foundation
 import Observation
 
-/// Quién usa la app, con quién comparte la cuenta y en qué etapa del flujo de entrada va.
-/// La etapa sale de la sesión real con `refresh()`: entrar con el código por correo, crear el perfil y cerrar sesión.
+/// Quién usa la app, sus cruces y en qué etapa del flujo de entrada va.
+/// La etapa sale de la sesión real con `refresh()`: entrar con el código por correo, crear el perfil, invitar o unirse
+/// a un cruce y cerrar sesión.
 @MainActor
 @Observable
 public final class SessionStore {
@@ -23,6 +24,8 @@ public final class SessionStore {
         case invalidName
         case tooManyRequests
         case network
+        /// La base rechazó el código `CRZ-`; trae su mensaje en español.
+        case inviteRejected(String)
 
         public var message: String {
             switch self {
@@ -31,6 +34,7 @@ public final class SessionStore {
             case .invalidName: "Tu nombre debe tener entre 1 y 40 caracteres."
             case .tooManyRequests: "Pediste muchos códigos seguidos. Espera un momento y vuelve a intentarlo."
             case .network: "No pudimos conectarnos. Revisa tu conexión y vuelve a intentarlo."
+            case .inviteRejected(let message): message
             }
         }
     }
@@ -39,12 +43,23 @@ public final class SessionStore {
     public static let maxNameLength = 40
     /// Dígitos del código que llega por correo (`otp_length` en `supabase/config.toml`).
     public static let codeLength = 6
+    /// Dígitos del código para unirse a un cruce (`CRZ-4821`).
+    public static let inviteDigits = 4
 
     public var phase: Phase
+    /// Quien usa la app. Su color y su recibo salen del cruce más reciente.
     public var me: Member
+    /// La otra persona del cruce más reciente. Mientras no haya cruces es un marcador que ninguna pantalla muestra.
+    /// (El CP4b lo cambia por el cruce abierto.)
     public var partner: Member
-    /// Código para invitar al otro. `nil` mientras no exista (lo trae el CP4).
+    /// Código `CRZ-` del cruce pendiente, para invitar. `nil` hasta `loadInviteCode()`.
     public var inviteCode: String?
+    /// Los cruces completos, del más reciente al más viejo.
+    public private(set) var cruces: [CruceLink] = []
+    /// De quién es el código que se está escribiendo para unirse (`checkCode`).
+    public var invitePreview: InviteCheck?
+    /// Código `CRZ-` que llegó por "Tengo un código", para que la pantalla de unirse arranque con él.
+    public var pendingJoinCode: String?
 
     /// El usuario con la sesión abierta, o `nil` si nadie ha entrado.
     public private(set) var userID: UUID?
@@ -89,7 +104,8 @@ public final class SessionStore {
     }
 
     /// Calcula la etapa desde la sesión real: sin usuario, onboarding; sin perfil, pedir el nombre;
-    /// sin cuenta compartida, invitar; con cuenta, inicio. Si no se puede leer, conserva la etapa y avisa.
+    /// sin un cruce completo, invitar (un cruce pendiente no cuenta); con cruce, inicio.
+    /// Si no se puede leer, conserva la etapa y avisa.
     public func refresh() async {
         defer { isReady = true }
         guard let user = await auth.currentUserID() else {
@@ -104,7 +120,8 @@ public final class SessionStore {
                 return
             }
             me = Member(id: user, name: profile.displayName, avatarColor: me.avatarColor, tikeVariant: me.tikeVariant)
-            phase = try await directory.hasLedger(user) ? .main : .invite
+            apply(try await directory.cruces(for: user))
+            phase = cruces.isEmpty ? .invite : .main
         } catch {
             self.error = .network
         }
@@ -168,6 +185,81 @@ public final class SessionStore {
         return ok
     }
 
+    // MARK: - Vincular
+
+    /// Trae el código del cruce pendiente (lo crea si no hay). Pedirlo otra vez devuelve el mismo.
+    public func loadInviteCode() async {
+        guard let user = userID else { return }
+        await perform {
+            inviteCode = try await directory.inviteCode(for: user)
+        }
+    }
+
+    /// Dice de quién es el código (4 dígitos, o completo con `CRZ-`) sin unirse. Con menos dígitos no consulta.
+    public func checkCode(_ code: String) async {
+        invitePreview = nil
+        guard let user = userID, let full = Self.inviteCode(from: code) else { return }
+        await perform {
+            invitePreview = try await directory.previewInvite(full, for: user)
+        }
+    }
+
+    /// Se une al cruce de ese código. Si sale bien, carga los cruces y pasa a "Conectados";
+    /// si no, deja el mensaje de la base en `error` y sigue en la misma etapa.
+    @discardableResult
+    public func join(code: String) async -> Bool {
+        guard let user = userID, let full = Self.inviteCode(from: code) else {
+            error = .inviteRejected(CruceRemote.invalidMessage)
+            return false
+        }
+        var joined = false
+        await perform {
+            switch try await directory.redeemInvite(full, for: user) {
+            case .valid:
+                apply(try await directory.cruces(for: user))
+                pendingJoinCode = nil
+                invitePreview = nil
+                phase = .connected
+                joined = true
+            case .rejected(_, let message):
+                error = .inviteRejected(message)
+            }
+        }
+        return joined
+    }
+
+    /// Mientras se espera en la pantalla de invitar, revisa si la otra persona ya se unió y, si sí, pasa a
+    /// "Conectados". Si falla la red no hace nada: se vuelve a revisar en unos segundos.
+    public func checkForPartner() async {
+        guard phase == .invite, let user = userID,
+            let links = try? await directory.cruces(for: user), !links.isEmpty
+        else { return }
+        apply(links)
+        phase = .connected
+    }
+
+    /// `CRZ-` y 4 dígitos a partir de lo que se escribió, o `nil` si no son 4 dígitos.
+    public static func inviteCode(from text: String) -> String? {
+        var digits = text.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if digits.hasPrefix("CRZ-") { digits.removeFirst(4) }
+        guard digits.count == inviteDigits, digits.allSatisfy(\.isASCIIDigit) else { return nil }
+        return "CRZ-" + digits
+    }
+
+    /// Guarda los cruces y toma `me` (color y recibo) y `partner` del más reciente. Sin cruces, `me` queda
+    /// amarillo y rosa: quien no tiene cruce es quien va a crear el suyo al invitar.
+    private func apply(_ links: [CruceLink]) {
+        cruces = links
+        guard let latest = links.first else {
+            me.avatarColor = .yellow
+            me.tikeVariant = .rosa
+            return
+        }
+        me.avatarColor = latest.myAvatarColor
+        me.tikeVariant = latest.myTikeVariant
+        partner = latest.partner
+    }
+
     /// Cierra la sesión y vuelve al onboarding, aunque falle la red (la sesión guardada se borra igual).
     /// La navegación la limpia quien llama (`Router.popToRoot()`).
     public func signOut() async {
@@ -175,6 +267,12 @@ public final class SessionStore {
         userID = nil
         pendingEmail = nil
         error = nil
+        // Quien entre después no hereda el nombre ni los colores de esta persona.
+        me = Member(name: "Tú", avatarColor: .yellow, tikeVariant: .rosa)
+        cruces = []
+        inviteCode = nil
+        invitePreview = nil
+        pendingJoinCode = nil
         phase = .onboarding
     }
 
@@ -187,6 +285,7 @@ public final class SessionStore {
     }
 
     /// Corre una llamada con `isWorking` y traduce su error a un `Problem`.
+    @discardableResult
     private func perform(_ work: () async throws -> Void) async -> Bool {
         isWorking = true
         error = nil

@@ -20,6 +20,8 @@ struct AppStores {
             // Emite la sesión guardada al arrancar aunque haya vencido; `currentUserID()` la renueva.
             options: SupabaseClientOptions(auth: .init(emitLocalSessionAsInitialSession: true))
         )
+        // `me` y `partner` son marcadores hasta `refresh()`: el nombre, el color y el recibo salen del perfil y del cruce
+        // más reciente (`my_cruces`). Sin cruces, ninguna pantalla muestra `partner`.
         let session = SessionStore(
             phase: .onboarding,
             me: Member(name: "Tú", avatarColor: .yellow, tikeVariant: .rosa),

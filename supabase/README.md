@@ -4,14 +4,19 @@ Base de datos, inicio de sesión y tiempo real.
 
 ## Qué hay en la migración inicial
 
-- **Tablas:** `profiles`, `ledgers` (la cuenta compartida), `ledger_members` (máximo 2), `movements`, `invites` e `invite_attempts` (intentos fallidos de canje, solo para el límite).
+- **Tablas:** `profiles`, `ledgers` (la cuenta compartida), `ledger_members` (máximo 2 por cuenta; una persona puede estar en varias, una por pareja), `movements`, `invites` e `invite_attempts` (intentos fallidos de canje, solo para el límite).
 - **Montos:** `bigint` en pesos enteros. `owed_by_other` se calcula sola: lo que quien no pagó le debe a quien pagó.
 - **Saldo:** la vista `ledger_balances` suma los movimientos. `net > 0` significa que el otro le debe a ese usuario.
 - **Regla de colores:** quien crea la cuenta queda con recibo `rosa` y avatar amarillo; quien se une, con `verde` y violeta.
 - **Seguridad:** RLS en todas las tablas; cada persona solo ve las cuentas de las que es miembro.
 - **Funciones para la app:**
   - `create_ledger_with_invite()` → crea la cuenta y devuelve un código tipo `CRZ-4821` (vence en 24 h).
-  - `redeem_invite(p_code)` → une a la segunda persona. Devuelve `{"ok": true, "ledger_id": …}` o `{"ok": false, "error": "invalid" | "own" | "too_many_attempts", "message": …}`; máximo 5 intentos fallidos por hora.
+  - `redeem_invite(p_code)` → une a la segunda persona. Devuelve `{"ok": true, "ledger_id": …, "inviter_name": …}` o `{"ok": false, "error": "invalid" | "own" | "too_many_attempts" | "already_linked", "message": …}`; máximo 5 intentos fallidos por hora.
+  - Desde `20261027065544_vincular_cruces.sql` (CP4):
+    - **Un cruce por pareja:** el trigger `ledger_members_one_cruce_per_pair` rechaza a dos personas que ya comparten un cruce ("Ya tienen un cruce entre los dos", `23505`), y las funciones lo avisan antes con `already_linked` ("Ya tienes un cruce con Joan"), sin contarlo como intento fallido.
+    - `create_ledger_with_invite()` devuelve el código del **único cruce pendiente** de quien llama; si venció, genera otro para ese mismo cruce. Abrir la pantalla de invitar varias veces no crea cuentas vacías.
+    - `preview_invite(p_code)` → `{"ok": true, "inviter_name": "Joan"}` o el mismo error que daría canjearlo. No une a nadie; los códigos inválidos cuentan para el límite de intentos.
+    - `my_cruces()` → los cruces completos de quien llama (con quién, y colores y recibo de cada lado), del que se completó más recientemente al más viejo. Respeta RLS.
 - **Eliminar** es un borrado suave (`deleted_at`), para poder avisarle al otro.
 - **Tiempo real** activado para `movements`.
 
@@ -75,6 +80,9 @@ Son pruebas [pgTAP](https://pgtap.org) en `supabase/tests/`. Cada archivo corre 
 | `02_reglas.sql` | Máximo dos personas, quien paga es miembro, saldar es "todo es del otro" |
 | `03_vinculacion.sql` | `create_ledger_with_invite` y `redeem_invite`: formato, colores, vencimiento, códigos usados, propios e inexistentes, límite de 5 intentos fallidos por hora |
 | `04_rls.sql` | Un tercero no ve ni escribe nada ajeno; nadie anota a nombre de otro ni se agrega como miembro directamente |
+| `05_rls_endurecido.sql` | Las políticas son solo para `authenticated`, usan `(select auth.uid())` y tienen sus índices; sin sesión no se ve nada |
+| `06_parches.sql` | Parches: crear, unirse, sin la app, repartos, pagos, reclamar lugar, cerrar, pasar al cruce y RLS |
+| `07_vincular_cruces.sql` | Un solo cruce pendiente por persona, vista previa del código, el nombre al unirse, un cruce por pareja (también directo en la tabla), cruces con personas distintas, `my_cruces` (también con RLS) y el límite de intentos con la vista previa |
 
 Para actuar como una persona, las pruebas usan `set local role authenticated` y fijan `request.jwt.claims` con su `sub`, que es lo que lee `auth.uid()`.
 

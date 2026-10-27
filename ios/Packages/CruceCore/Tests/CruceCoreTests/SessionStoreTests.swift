@@ -75,11 +75,15 @@ struct SessionStoreTests {
     @Test("Con cuenta compartida, va al inicio")
     func refreshWithLedgerIsMain() async {
         let user = UUID()
-        let directory = InMemoryAccountDirectory(
-            profiles: [Profile(id: user, displayName: "Joan")], ledgerMembers: [user])
+        let friend = UUID()
+        let directory = InMemoryAccountDirectory(profiles: [
+            Profile(id: user, displayName: "Joan"), Profile(id: friend, displayName: "Jesús"),
+        ])
+        await directory.link(user, friend)
         let session = makeSession(auth: InMemoryAuthService(signedIn: user), directory: directory)
         await session.refresh()
         #expect(session.phase == .main)
+        #expect(session.partner.name == "Jesús")
     }
 
     @Test("Si no se pueden leer los datos, conserva la etapa y avisa")

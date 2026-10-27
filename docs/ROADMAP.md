@@ -13,8 +13,8 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 - [ ] **Persistencia local para el modo sin conexión:** SwiftData o archivo JSON (CP7).
 - [ ] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? (CP11).
 - [ ] **Pruebas de captura:** ¿se agrega `swift-snapshot-testing`? (CP12).
-- [ ] **Una cuenta por persona:** ¿una persona puede pertenecer a más de una cuenta compartida? Hoy la base lo permite y la app asume una sola (CP4).
-- [ ] **Borrar la cuenta de usuario:** Apple lo exige; falta definir qué pasa con la cuenta compartida y los movimientos del otro (CP11 o CP13).
+- [x] **Una cuenta por persona:** ¿una persona puede pertenecer a más de una cuenta compartida? *Decidido el 27 oct 2026: **varios cruces, uno por pareja**. Con uno solo el inicio es ese cruce; con varios, el inicio muestra "Tus cruces". La regla va en el CP4 y la lista en el CP4b.*
+- [ ] **Borrar la cuenta de usuario:** Apple lo exige; falta definir qué pasa con sus cruces y los movimientos de los otros (CP11 o CP13).
 
 ---
 
@@ -85,16 +85,28 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** Joan y Jesús pueden iniciar sesión en dos simuladores y la sesión sobrevive a cerrar la app.
 
 ## CP4 · Vincular a los dos
-- [ ] `InviteView` llama a `create_ledger_with_invite()` y muestra el código real.
-- [ ] `JoinView` valida con `redeem_invite(code)` y muestra el nombre real de quien invitó.
-- [ ] `InviteView` pasa a "Conectados" sola cuando el otro se une (tiempo real sobre `ledger_members`).
-- [ ] `Member.tikeVariant` y `avatarColor` salen de `ledger_members` (regla rosa y verde de verdad).
-- [ ] Mensajes de error en español: código vencido, usado o inválido.
+*Hecho en local en el cambio `vincular-cruces` (27 oct 2026). En vez de tiempo real, la pantalla de invitar revisa cada 3 segundos (el tiempo real llega en el CP6). La migración ya está en testing (27 oct 2026); falta vincular a Joan y Jesús en "Cruce Test".*
+- [x] Regla en la base: dos personas tienen como máximo un cruce entre ellas (migración nueva; `redeem_invite` responde con un error claro si ya existe ese cruce).
+- [x] `InviteView` llama a `create_ledger_with_invite()` y muestra el código real.
+- [x] `JoinView` valida con `redeem_invite(code)` y muestra el nombre real de quien invitó.
+- [x] `InviteView` pasa a "Conectados" sola cuando el otro se une (tiempo real sobre `ledger_members`).
+- [x] `Member.tikeVariant` y `avatarColor` salen de `ledger_members` (regla rosa y verde de verdad).
+- [x] Mensajes de error en español: código vencido, usado o inválido.
 
 **Hecho cuando:** con dos simuladores, uno invita, el otro se une y los dos llegan al inicio vacío.
 
+## CP4b · Varios cruces
+- [ ] La sesión conoce todos los cruces de quien entró (con quién, colores y recibo de cada uno), no un solo `partner`.
+- [ ] El inicio: con un cruce, ese cruce (el diseño actual); con dos o más, "Tus cruces" con el saldo de cada uno, y al tocar uno se abre su inicio.
+- [ ] "Invitar a alguien" desde el inicio y desde Ajustes crea un cruce nuevo con su código `CRZ-`; "Tengo un código" también acepta `CRZ-`.
+- [ ] Los movimientos, el historial, saldar y Ajustes trabajan sobre el cruce abierto.
+- [ ] "¿Lo pasas a tu cruce?" al cerrar un parche ofrece el cruce con cada persona que tenga la app.
+- [ ] Pruebas de los stores con dos cruces y capturas de "Tus cruces".
+
+**Hecho cuando:** Joan tiene un cruce con Jesús y otro con una tercera cuenta, ve los dos en "Tus cruces" con su saldo, y lo que anota en uno no aparece en el otro.
+
 ## CP5 · Movimientos contra Supabase
-- [ ] `SupabaseLedgerRepository: LedgerRepository` con cargar, guardar (insert/update) y eliminar (borrado suave).
+- [ ] `SupabaseLedgerRepository: LedgerRepository` con cargar, guardar (insert/update) y eliminar (borrado suave), siempre sobre el cruce abierto.
 - [ ] Mapeo de `SplitRule` ↔ `split_type` + `other_share_percent`, y de `Movement.Kind` ↔ `kind`.
 - [ ] El saldo se sigue calculando en la app; agregar una verificación en debug contra `ledger_balances`.
 - [ ] Pruebas del mapeo (Codable) con JSON de ejemplo.

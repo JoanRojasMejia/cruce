@@ -280,8 +280,8 @@ private struct TermsText: View {
 struct InviteView: View {
     @Environment(SessionStore.self) private var session
     @Environment(Router.self) private var router
-    /// El código viene de la sesión (en el CP4 lo genera `create_ledger_with_invite` de Supabase).
-    /// Mientras no exista se muestra un marcador con el mismo estilo.
+    /// El código del cruce pendiente (`create_ledger_with_invite`): pedirlo otra vez devuelve el mismo.
+    /// Mientras llega se muestra un marcador con el mismo estilo.
     private var code: String { session.inviteCode ?? "CRZ-····" }
     @State private var copied = false
 
@@ -332,9 +332,14 @@ struct InviteView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            // Simulación: en la app real esto cambia solo cuando el amigo canjea el código.
+            if session.inviteCode == nil, let problem = session.error {
+                ProblemNote(text: problem.message)
+            }
+
+            // Con sesión real la pantalla pasa sola a "Conectados" (ver `.task`); el botón solo simula en los datos
+            // de ejemplo, sin sesión.
             Button {
-                session.phase = .connected
+                if session.userID == nil { session.phase = .connected }
             } label: {
                 HStack(spacing: 12) {
                     HStack(spacing: 0) {
@@ -395,59 +400,116 @@ struct InviteView: View {
         .padding(.top, 8)
         .padding(.bottom, 16)
         .screenBackground()
+        .task {
+            // Trae el código y, mientras la pantalla esté abierta, revisa cada 3 segundos si el otro ya se unió.
+            // SwiftUI cancela la tarea al salir. El tiempo real de verdad llega en el CP6.
+            guard session.userID != nil else { return }
+            await session.loadInviteCode()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(3))
+                await session.checkForPartner()
+            }
+        }
+    }
+}
+
+/// Aviso de un problema bajo un campo: fondo rosa, borde delgado y el mensaje en texto.
+private struct ProblemNote: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.archivo(14, .bold))
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .neoSurface(fill: CruceColor.pink, radius: Radius.input, border: BorderWidth.thin)
     }
 }
 
 /// Unirse con un código (pantalla 15, lo ve quien recibe la invitación).
 struct JoinView: View {
-    /// Quien invita es el otro miembro de la sesión; en el CP4 sale de `redeem_invite`.
+    /// Con los 4 dígitos, la base dice de quién es el código (`preview_invite`); unirse lo canjea (`redeem_invite`).
     @Environment(SessionStore.self) private var session
     @State private var digits = ""
     @FocusState private var focused: Bool
 
+    /// Nombre de quien invitó si el código sirve.
+    private var inviterName: String? {
+        if case .valid(let name) = session.invitePreview { return name }
+        return nil
+    }
+
+    /// Lo que se muestra si el código no sirve: el rechazo de la vista previa o el error al unirse.
+    private var problem: String? {
+        if case .rejected(_, let message) = session.invitePreview { return message }
+        return digits.count == SessionStore.inviteDigits ? session.error?.message : nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            BackButton { session.phase = .invite }
+            BackButton {
+                session.pendingJoinCode = nil
+                session.invitePreview = nil
+                session.phase = .invite
+            }
 
             VStack(alignment: .leading, spacing: 10) {
                 // Salto explícito: iOS 17 reparte las líneas distinto ("Únete con / un código").
-                Text("Únete con un\ncódigo").textStyle(.title1Compact)
+                // fixedSize: con el teclado abierto y la tarjeta del código, los textos no se cortan ("Únete con un…").
+                Text("Únete con un\ncódigo").textStyle(.title1Compact).fixedSize(horizontal: false, vertical: true)
                 Text("Pídele el código a tu amigo. Lo encuentra en su app, en la pantalla para invitar.")
                     .textStyle(.bodyLarge)
                     .foregroundStyle(CruceColor.textBody)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             codeField
 
-            if digits.count == 4 {
-                // TODO punto 2: validar con `redeem_invite` antes de mostrar la cuenta.
+            if let name = inviterName {
                 FolderCard(tab: "CÓDIGO VÁLIDO", tabColor: CruceColor.green, tabWidth: 160) {
                     HStack(spacing: 14) {
-                        Avatar(member: session.partner, size: 56)
+                        // Quien invita creó el cruce: amarillo y rosa.
+                        Avatar(member: Member(name: name, avatarColor: .yellow, tikeVariant: .rosa), size: 56)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Cuenta de \(session.partner.name)").font(.archivo(18, .extraBold))
-                            Text("Vas a llevar las cuentas con \(session.partner.name).")
+                            Text("Cuenta de \(name)").font(.archivo(18, .extraBold))
+                            Text("Vas a llevar las cuentas con \(name).")
                                 .textStyle(.secondary)
                                 .foregroundStyle(CruceColor.textSecondary)
                         }
                     }
                 }
                 .transition(.opacity)
+            } else if let problem {
+                ProblemNote(text: problem)
+                    .transition(.opacity)
             }
 
             Spacer(minLength: 0)
 
-            Button("Unirme a la cuenta de \(session.partner.name)") { session.phase = .connected }
-                .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
-                .disabled(digits.count < 4)
+            Button(inviterName.map { "Unirme a la cuenta de \($0)" } ?? "Unirme") {
+                Task { await session.join(code: digits) }
+            }
+            .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
+            .disabled(inviterName == nil || session.isWorking)
         }
         .foregroundStyle(CruceColor.ink)
         .padding(.horizontal, Spacing.screen)
         .padding(.top, 8)
         .padding(.bottom, 16)
         .screenBackground()
-        .animation(.easeOut(duration: 0.2), value: digits.count == 4)
-        .onAppear { focused = true }
+        .animation(.easeOut(duration: 0.2), value: session.invitePreview)
+        .onAppear {
+            focused = true
+            if let pending = session.pendingJoinCode {
+                digits = String(pending.dropFirst(4))
+            }
+        }
+        .task(id: digits) {
+            // Con los 4 dígitos pregunta de quién es; con menos, borra la respuesta anterior.
+            await session.checkCode(digits)
+        }
     }
 
     /// "CRZ – 4 8 2 1": un campo oculto alimenta las cuatro cajas.
@@ -559,6 +621,9 @@ struct ConnectedView: View {
     }
     #Preview("Entrar: nombre") { SignUpView().cruceStores(.sample(phase: .signUp, userID: MockData.joan.id)) }
     #Preview("Invitar") { InviteView().cruceStores(.sample(phase: .invite)) }
-    #Preview("Unirse") { JoinView().cruceStores(.sample(phase: .join, viewer: MockData.jesus)) }
+    #Preview("Unirse") { JoinView().cruceStores(.sample(phase: .join, viewer: MockData.jesus, joinCode: "CRZ-4821")) }
+    #Preview("Unirse: código inválido") {
+        JoinView().cruceStores(.sample(phase: .join, viewer: MockData.jesus, joinCode: "CRZ-0000"))
+    }
     #Preview("Conectados") { ConnectedView().cruceStores(.sample(phase: .connected)) }
 #endif

@@ -16,6 +16,7 @@
 5. **El saldo nunca se guarda.** Se calcula sumando movimientos. Saldar es un movimiento más (`kind = settlement`, reparto "todo es del otro").
 6. **Eliminar es borrado suave** (`deleted_at`) para poder avisarle al otro y, si hace falta, deshacer.
 7. **Recibo rosa o verde** según quién usa la app: se guarda en `ledger_members.tike_variant` (rosa = quien creó la cuenta).
+8. **Varios cruces, uno por pareja.** Cada `ledger` tiene exactamente dos miembros y una persona puede estar en varios; la base impide dos cruces entre las mismas dos personas. El color y el recibo son por cruce (quien crea ese cruce es amarillo y rosa), así que alguien puede ser rosa en un cruce y verde en otro. Los parches pasan la deuda directa al cruce con esa persona (`move_parche_debt_to_cruce` ya lo busca por pareja).
 
 ## Ambientes
 
