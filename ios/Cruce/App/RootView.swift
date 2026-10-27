@@ -17,7 +17,11 @@ struct RootView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: session.phase)
         .task {
-            if !session.isReady { await session.refresh() }
+            // Sin red, lo guardado abre el inicio al instante; `refresh()` después lo confirma con la base.
+            if !session.isReady {
+                await session.restore()
+                await session.refresh()
+            }
         }
     }
 
@@ -80,15 +84,22 @@ struct MainView: View {
         .fullScreenCover(item: $session.lastLinked) { _ in
             ConnectedView()
         }
-        // Al cambiar los cruces (o al arrancar) se cargan los movimientos de cada uno.
-        .task(id: session.cruces.map(\.id)) {
+        // Al arrancar, al cambiar los cruces y al volver a la app: se cargan los movimientos de cada cruce y se siguen
+        // los cambios en tiempo real mientras la app esté activa. SwiftUI cancela la tarea anterior y cierra los canales.
+        .task(id: FollowKey(cruces: session.cruces.map(\.id), isActive: scenePhase == .active)) {
+            guard scenePhase == .active else { return }
+            // Primero lo guardado en el teléfono (para abrir sin red), después la base y el tiempo real.
+            await ledger.restore()
             await ledger.load()
-        }
-        // Al volver a la app se recargan los movimientos (lo que el otro anotó mientras tanto).
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await ledger.load() } }
+            await ledger.follow()
         }
     }
+}
+
+/// Cuándo volver a cargar y a escuchar: cambian los cruces o la app vuelve al primer plano.
+private struct FollowKey: Equatable {
+    let cruces: [UUID]
+    let isActive: Bool
 }
 
 /// Invitar con su propia pila: quien todavía no tiene cruce llega desde aquí a "Tengo un código" y a sus parches.

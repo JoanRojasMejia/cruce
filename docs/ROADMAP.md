@@ -10,7 +10,7 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 
 - [ ] **Membresía de Apple Developer:** ¿se paga ya? La necesitan Sign in with Apple, las notificaciones push (CP9) y TestFlight (CP13). Por ahora no se paga: el CP3 se hizo con inicio de sesión por correo (código de 6 dígitos) y Sign in with Apple queda como función posterior.
 - [ ] **Hosting del backend de Go:** Fly.io, Render, Railway u otro (CP8).
-- [ ] **Persistencia local para el modo sin conexión:** SwiftData o archivo JSON (CP7).
+- [x] **Persistencia local para el modo sin conexión:** *Decidido el 27 oct 2026: archivo JSON (`Application Support/Cruce/movimientos.json`), con el mismo patrón que la cola de parches.*
 - [ ] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? (CP11).
 - [ ] **Pruebas de captura:** ¿se agrega `swift-snapshot-testing`? (CP12).
 - [x] **Una cuenta por persona:** ¿una persona puede pertenecer a más de una cuenta compartida? *Decidido el 27 oct 2026: **varios cruces, uno por pareja**. Con uno solo el inicio es ese cruce; con varios, el inicio muestra "Tus cruces". La regla va en el CP4 y la lista en el CP4b.*
@@ -117,17 +117,19 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** lo que anota uno aparece en el otro al recargar, y el saldo coincide en los dos.
 
 ## CP6 · Tiempo real
-- [ ] Suscripción a `movements` del ledger (insert, update y delete suave).
-- [ ] `LedgerStore` aplica los cambios sin recargar todo y sin duplicados.
-- [ ] Reconexión cuando la app vuelve al primer plano.
+*Hecho en local en el cambio `tiempo-real` (27 oct 2026): un canal de Realtime por cruce y cambios aplicados por `id`. Falta probarlo en testing.*
+- [x] Suscripción a `movements` del ledger (insert, update y delete suave).
+- [x] `LedgerStore` aplica los cambios sin recargar todo y sin duplicados.
+- [x] Reconexión cuando la app vuelve al primer plano.
 
 **Hecho cuando:** si Jesús anota un gasto, el inicio de Joan cambia en segundos sin tocar nada.
 
 ## CP7 · Modo sin conexión
-- [ ] Detectar la red con `NWPathMonitor`; `LedgerStore.isOffline` refleja la realidad.
-- [ ] Persistencia local de los movimientos (según la decisión abierta) y cola de pendientes.
-- [ ] Reintentar automáticamente al volver la red; "Reintentar" en `OfflineView` fuerza el envío.
-- [ ] Conflictos: si se editó en los dos lados, gana el último `updated_at`.
+*Hecho en local en el cambio `sin-conexion` (27 oct 2026), con archivo JSON en el teléfono. También abre la app sin red (la sesión se guarda en `sesion.json`). Falta probarlo en testing con modo avión.*
+- [x] Detectar la red con `NWPathMonitor`; `LedgerStore.isOffline` refleja la realidad.
+- [x] Persistencia local de los movimientos (según la decisión abierta) y cola de pendientes.
+- [x] Reintentar automáticamente al volver la red; "Reintentar" en `OfflineView` fuerza el envío.
+- [x] Conflictos: si se editó en los dos lados, gana el último cambio que llega a la base (decisión del cambio `sin-conexion`: no se comparan `updated_at`).
 
 **Hecho cuando:** en modo avión se pueden anotar gastos, y al volver la red se sincronizan sin perder ni duplicar nada.
 

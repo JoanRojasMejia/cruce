@@ -18,7 +18,15 @@ public enum ParcheRemote {
 
     /// `timestamptz` de PostgREST (`2026-10-26T10:00:00.123456+00:00`, con o sin fracción) a `Date`, sin perder
     /// los microsegundos.
+    /// También acepta el formato de Supabase Realtime (`2026-10-26 10:00:00.123456+00`): espacio en vez de `T` y zona
+    /// sin minutos.
     public static func parseTimestamp(_ text: String) -> Date? {
+        var text = text.replacingOccurrences(of: " ", with: "T")
+        if let sign = text.lastIndex(where: { $0 == "+" || $0 == "-" }), sign > (text.firstIndex(of: "T") ?? sign),
+            text[text.index(after: sign)...].count == 2
+        {
+            text += ":00"
+        }
         var base = text
         var fraction = 0.0
         if let dot = text.firstIndex(of: "."), let tIndex = text.firstIndex(of: "T"), dot > tIndex {

@@ -279,6 +279,7 @@ private struct TermsText: View {
 /// Invitar al amigo con un código (pantalla 14, lo ve quien crea la cuenta).
 struct InviteView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
     @Environment(Router.self) private var router
     /// El código del cruce pendiente (`create_ledger_with_invite`): pedirlo otra vez devuelve el mismo.
     /// Mientras llega se muestra un marcador con el mismo estilo.
@@ -417,9 +418,14 @@ struct InviteView: View {
 
         // Mientras no haya cruce, los ajustes no existen: cerrar sesión va aquí.
         if session.userID != nil {
-            Button("Cerrar sesión") { Task { await session.signOut() } }
-                .buttonStyle(.neoLink)
-                .frame(maxWidth: .infinity)
+            Button("Cerrar sesión") {
+                Task {
+                    await ledger.reset()
+                    await session.signOut()
+                }
+            }
+            .buttonStyle(.neoLink)
+            .frame(maxWidth: .infinity)
         }
     }
 }

@@ -100,18 +100,19 @@ struct LedgerStoreTests {
         #expect(store.isOffline)
     }
 
-    @Test("Reintentar limpia lo pendiente y vuelve a cargar")
-    func retrySyncClearsAndReloads() async {
+    @Test("Reintentar envía lo pendiente y vuelve a cargar, sin perder el gasto")
+    func retrySyncSendsAndReloads() async {
         let stored = expense(jesus, 50_000)
         let repository = FailingLedgerRepository(movements: [stored])
         let store = LedgerStore(session: session(), repository: repository)
-        await store.save(expense(joan, 10_000))
+        let new = expense(joan, 10_000)
+        await store.save(new)
         #expect(store.isOffline)
         await repository.recover()
         await store.retrySync()
         #expect(!store.isOffline)
         #expect(store.pendingSyncCount == 0)
-        #expect(store.visibleMovements == [stored])
+        #expect(Set(store.visibleMovements) == [stored, new])
     }
 
     @Test("Las lecturas usan a quien tiene la sesión en ese momento")

@@ -13,6 +13,13 @@ public protocol LedgerRepository: Sendable {
     func delete(id: UUID, in cruce: UUID) async throws
 }
 
+/// Errores del repositorio que no son falta de red. Cualquier otro error se trata como sin conexión y lo pendiente se
+/// reintenta.
+public enum LedgerRepositoryError: Error, Equatable, Sendable {
+    /// La base rechazó el cambio (por ejemplo, un dato inválido): reintentarlo no sirve.
+    case rejected
+}
+
 /// Repositorio en memoria, para la app mientras no haya backend, las vistas previas y las pruebas.
 public actor InMemoryLedgerRepository: LedgerRepository {
     private var storage: [UUID: [UUID: Movement]]

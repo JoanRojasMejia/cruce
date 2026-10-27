@@ -8,6 +8,8 @@ struct AppStores {
     let ledger: LedgerStore
     let router: Router
     let parches: ParcheStore
+    /// Solo en el arranque real; los datos de ejemplo no escuchan la red.
+    var network: NetworkMonitor?
 
     /// Arranque real: la sesión con Supabase Auth (local en Debug, la nube en Release), un solo `SupabaseClient`
     /// para la autenticación y los datos, con los movimientos de cada cruce en Supabase. La etapa sale de `session.refresh()`.
@@ -28,16 +30,25 @@ struct AppStores {
             partner: Member(name: "Tu amigo", avatarColor: .violet, tikeVariant: .verde),
             auth: SupabaseAuthService(client: client),
             directory: SupabaseAccountDirectory(client: client),
+            // Lo último que supo la sesión, para abrir la app sin red (`Application Support/Cruce/sesion.json`).
+            cache: FileSessionCache.standard(),
             isReady: false
         )
-        let ledger = LedgerStore(session: session, repository: SupabaseLedgerRepository(client: client))
+        let ledger = LedgerStore(
+            session: session, repository: SupabaseLedgerRepository(client: client),
+            feed: SupabaseMovementFeed(client: client),
+            // Los movimientos y la cola sin conexión se guardan en `Application Support/Cruce/movimientos.json`.
+            localStore: FileLedgerLocalStore.standard())
         // Los parches van con Supabase; la cola sin conexión y las respuestas a "¿Lo pasas a tu cruce?" se guardan
         // en `Application Support/Cruce/parches.json` para que sobrevivan a cerrar la app.
         let parches = ParcheStore(
             session: session,
             repository: SupabaseParcheRepository(client: client),
             pendingStore: FilePendingStore.standard())
-        return AppStores(session: session, ledger: ledger, router: Router(), parches: parches)
+        // Al volver la red se envía lo pendiente y se recarga.
+        let network = NetworkMonitor()
+        network.start(updating: ledger)
+        return AppStores(session: session, ledger: ledger, router: Router(), parches: parches, network: network)
     }
 }
 

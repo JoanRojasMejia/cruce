@@ -84,7 +84,11 @@ struct SettingsView: View {
                     actionRow("Cerrar sesión", systemImage: "rectangle.portrait.and.arrow.right") {
                         // Cruza dos stores: primero se limpia la navegación y luego se cierra la sesión.
                         router.popToRoot()
-                        Task { await session.signOut() }
+                        // También se borra lo guardado en el teléfono, para que quien entre después no lo vea.
+                        Task {
+                            await ledger.reset()
+                            await session.signOut()
+                        }
                     }
                 }
 

@@ -2,7 +2,7 @@ import Foundation
 
 /// Un cruce completo (de dos personas) de quien usa la app: con quién es y qué color y recibo tiene cada uno.
 /// El color y el recibo son por cruce: quien creó ese cruce es amarillo y rosa, y quien se unió, violeta y verde.
-public struct CruceLink: Identifiable, Equatable, Sendable {
+public struct CruceLink: Identifiable, Codable, Equatable, Sendable {
     /// El id del cruce (`ledgers.id`).
     public let id: UUID
     public var partner: Member

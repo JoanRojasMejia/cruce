@@ -85,6 +85,8 @@ public final class SessionStore {
 
     private let auth: any AuthService
     private let directory: any AccountDirectory
+    /// Lo último que supo la sesión, para abrir sin red; `nil` en las vistas previas.
+    private let cache: (any SessionCache)?
 
     public init(
         phase: Phase,
@@ -94,6 +96,7 @@ public final class SessionStore {
         cruces: [CruceLink] = [],
         auth: any AuthService = InMemoryAuthService(),
         directory: any AccountDirectory = InMemoryAccountDirectory(),
+        cache: (any SessionCache)? = nil,
         isReady: Bool = true,
         userID: UUID? = nil,
         pendingEmail: String? = nil
@@ -104,6 +107,7 @@ public final class SessionStore {
         self.inviteCode = inviteCode
         self.auth = auth
         self.directory = directory
+        self.cache = cache
         self.isReady = isReady
         self.userID = userID
         self.pendingEmail = pendingEmail
@@ -135,9 +139,29 @@ public final class SessionStore {
             me = Member(id: user, name: profile.displayName, avatarColor: me.avatarColor, tikeVariant: me.tikeVariant)
             apply(try await directory.cruces(for: user))
             phase = cruces.isEmpty ? .invite : .main
+            error = nil
+            await saveSnapshot()
         } catch {
             self.error = .network
         }
+    }
+
+    /// Al arrancar, antes de `refresh()`: si hay lo último guardado (con cruces), abre la app en el inicio con eso,
+    /// aunque no haya red. `refresh()` después lo confirma o lo corrige.
+    public func restore() async {
+        guard let cache, let snapshot = try? await cache.load(), !snapshot.cruces.isEmpty else { return }
+        userID = snapshot.userID
+        me = snapshot.me
+        cruces = snapshot.cruces
+        open(snapshot.openCruceID ?? snapshot.cruces[0].id)
+        phase = .main
+        isReady = true
+    }
+
+    /// Guarda lo que se sabe ahora (solo con sesión y cruces).
+    private func saveSnapshot() async {
+        guard let cache, let user = userID, !cruces.isEmpty else { return }
+        try? await cache.save(SessionSnapshot(userID: user, me: me, cruces: cruces, openCruceID: openCruceID))
     }
 
     /// Pide el código para ese correo. Devuelve `true` si se envió; si no, deja el problema en `error`.
@@ -303,6 +327,7 @@ public final class SessionStore {
     /// La navegación la limpia quien llama (`Router.popToRoot()`).
     public func signOut() async {
         try? await auth.signOut()
+        try? await cache?.save(nil)
         userID = nil
         pendingEmail = nil
         error = nil

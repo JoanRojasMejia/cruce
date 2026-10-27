@@ -8,8 +8,9 @@ import Supabase
 
 /// Los movimientos de cada cruce en la tabla `movements` (RLS: solo los de los cruces de quien entró).
 /// Guardar es `upsert` por `id`: el `id` lo genera la app, así un reintento no duplica. Eliminar es borrado suave
-/// (`deleted_at`). El JSON se traduce en `MovementRemote` (CruceCore), donde está probado. Los errores se lanzan tal
-/// cual: `LedgerStore` los trata como sin conexión.
+/// (`deleted_at`). El JSON se traduce en `MovementRemote` (CruceCore), donde está probado. Si la base rechaza un cambio
+/// (`PostgrestError`), lanza `LedgerRepositoryError.rejected` para que salga de la cola; cualquier otro error (sin red)
+/// se lanza tal cual y `LedgerStore` lo reintenta.
 struct SupabaseLedgerRepository: LedgerRepository {
     let client: SupabaseClient
 
@@ -30,20 +31,33 @@ struct SupabaseLedgerRepository: LedgerRepository {
     }
 
     func save(_ movement: Movement, in cruce: UUID) async throws {
-        try await client
-            .from("movements")
-            .upsert(MovementRemote.row(for: movement, cruce: cruce), onConflict: "id")
-            .execute()
+        try await write {
+            try await client
+                .from("movements")
+                .upsert(MovementRemote.row(for: movement, cruce: cruce), onConflict: "id")
+                .execute()
+        }
     }
 
     func delete(id: UUID, in cruce: UUID) async throws {
         // La fecha del borrado es la del teléfono, la misma que `LedgerStore` ya puso en el movimiento.
-        try await client
-            .from("movements")
-            .update(["deleted_at": ParcheRemote.timestamp(.now)])
-            .eq("id", value: id)
-            .eq("ledger_id", value: cruce)
-            .execute()
+        try await write {
+            try await client
+                .from("movements")
+                .update(["deleted_at": ParcheRemote.timestamp(.now)])
+                .eq("id", value: id)
+                .eq("ledger_id", value: cruce)
+                .execute()
+        }
+    }
+
+    /// Un rechazo de la base (`PostgrestError`) es `.rejected`; lo demás (sin red) sigue igual para reintentarlo.
+    private func write(_ operation: () async throws -> some Any) async throws {
+        do {
+            _ = try await operation()
+        } catch is PostgrestError {
+            throw LedgerRepositoryError.rejected
+        }
     }
 
     #if DEBUG

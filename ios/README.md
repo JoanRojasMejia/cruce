@@ -1,6 +1,6 @@
 # Cruce · app iOS (SwiftUI)
 
-iOS 17+, solo iPhone, modo claro. La app arranca con la sesión real (`AppStores.live()`) contra el Supabase de su ambiente (ver [Ambientes](#ambientes)). Con `-screen <nombre>` (solo Debug) abre una pantalla con **datos de ejemplo** (`AppStores.sample`), sin backend. Los movimientos de cada cruce viven en Supabase (CP5): deslizar hacia abajo en el inicio o en "Tus cruces" trae lo que anotó la otra persona.
+iOS 17+, solo iPhone, modo claro. La app arranca con la sesión real (`AppStores.live()`) contra el Supabase de su ambiente (ver [Ambientes](#ambientes)). Con `-screen <nombre>` (solo Debug) abre una pantalla con **datos de ejemplo** (`AppStores.sample`), sin backend. Los movimientos de cada cruce viven en Supabase (CP5) y en el teléfono (CP7: se puede anotar sin red y se envían al volver): lo que anota la otra persona aparece solo, en tiempo real (CP6), y deslizar hacia abajo en el inicio o en "Tus cruces" vuelve a cargar todo.
 
 ## Abrir el proyecto
 
@@ -57,7 +57,7 @@ for pair in Dev:DEV Test:TEST; do name=${pair%%:*}; label=${pair##*:}; magick -s
 Se entra con un código de 6 dígitos que llega al correo, sin contraseña. En local el correo no sale: lo atrapa mailpit.
 
 ```bash
-supabase start -x realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor   # sin excluir mailpit
+supabase start -x storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor   # sin excluir mailpit ni realtime
 ```
 
 1. En la app (Debug), escribe cualquier correo (por ejemplo `joan@example.com`) y toca **Enviarme el código**.
@@ -132,6 +132,6 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 ## Pendiente
 
 - Sign in with Apple (función posterior: requiere la membresía de Apple Developer y su botón oficial `SignInWithAppleButton`).
-- Movimientos: tiempo real (CP6) y cola sin conexión guardada en el teléfono (CP7); hoy, lo que no se pudo guardar se pierde al recargar.
+- Sin conexión: si se edita el mismo movimiento en los dos iPhone, gana el último cambio que llega a la base.
 - "Cambiar monto" en Saldar (pago parcial), exportar CSV y desvincular.
 - Parches: sin tiempo real (se ve lo nuevo al abrir o deslizar para recargar), sin notificaciones push, y el movimiento que crea "pasar al cruce" se ve en el cruce al recargar. La cola sin conexión es una por teléfono, no por cuenta.
