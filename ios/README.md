@@ -38,7 +38,7 @@ Cada ambiente es una configuración de Xcode con su esquema. Elegir el ambiente 
 |---|---|---|---|---|---|
 | `Cruce` | Debug | local | Docker (`supabase start`) | `com.joanrojas.cruce.dev` | Cruce Dev |
 | `Cruce Test` | Staging | testing | `pqdjiecynyjnianslikp` | `com.joanrojas.cruce.staging` | Cruce Test |
-| `Cruce Prod` | Release | prod | todavía no existe | `com.joanrojas.cruce` | Cruce |
+| `Cruce Prod` | Release | prod | `xykjqysqfgsfqgslieds` | `com.joanrojas.cruce` | Cruce |
 
 - El identificador, el nombre, el ícono y el ambiente de cada configuración están en `Cruce/Config/Cruce.xcconfig` (versionado). Las claves de Supabase, en `ios/Config.xcconfig` (ignorado).
 - Staging se compila como Release: sin `DEBUG`, sin `-screen` ni datos de ejemplo. Es la misma app que irá a prod, contra testing.

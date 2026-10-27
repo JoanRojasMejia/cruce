@@ -38,7 +38,7 @@ supabase test db         # corre las pruebas de supabase/tests
 |---|---|---|
 | local | Docker (`supabase start`) | — |
 | testing | Nube, Oregon | `pqdjiecynyjnianslikp` |
-| prod | Nube | todavía no existe |
+| prod | Nube | `xykjqysqfgsfqgslieds` |
 
 - Los identificadores de los proyectos están en `supabase/ambientes.env` (versionado: no son secretos). Los scripts los leen con `scripts/lib/ambiente.sh`.
 - Los scripts vinculan el proyecto del ambiente que nombras en cada corrida. **No uses `supabase link` y `supabase db push` a mano**: el vínculo guardado en `supabase/.temp` no dice a qué ambiente apunta.
