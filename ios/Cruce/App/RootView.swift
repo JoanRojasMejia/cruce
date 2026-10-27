@@ -38,6 +38,7 @@ struct RootView: View {
 
 /// Flujo principal con navegación por pila. La raíz es "Tus cruces" con dos o más cruces y, si no, el inicio del único.
 struct MainView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
     @Environment(Router.self) private var router
@@ -82,6 +83,10 @@ struct MainView: View {
         // Al cambiar los cruces (o al arrancar) se cargan los movimientos de cada uno.
         .task(id: session.cruces.map(\.id)) {
             await ledger.load()
+        }
+        // Al volver a la app se recargan los movimientos (lo que el otro anotó mientras tanto).
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await ledger.load() } }
         }
     }
 }

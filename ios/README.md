@@ -1,6 +1,6 @@
 # Cruce · app iOS (SwiftUI)
 
-iOS 17+, solo iPhone, modo claro. La app arranca con la sesión real (`AppStores.live()`) contra el Supabase de su ambiente (ver [Ambientes](#ambientes)). Con `-screen <nombre>` (solo Debug) abre una pantalla con **datos de ejemplo** (`AppStores.sample`), sin backend. Los movimientos siguen en memoria hasta el CP5.
+iOS 17+, solo iPhone, modo claro. La app arranca con la sesión real (`AppStores.live()`) contra el Supabase de su ambiente (ver [Ambientes](#ambientes)). Con `-screen <nombre>` (solo Debug) abre una pantalla con **datos de ejemplo** (`AppStores.sample`), sin backend. Los movimientos de cada cruce viven en Supabase (CP5): deslizar hacia abajo en el inicio o en "Tus cruces" trae lo que anotó la otra persona.
 
 ## Abrir el proyecto
 
@@ -132,6 +132,6 @@ Se nombran las dos carpetas en vez de `ios/` para no revisar el código que Xcod
 ## Pendiente
 
 - Sign in with Apple (función posterior: requiere la membresía de Apple Developer y su botón oficial `SignInWithAppleButton`).
-- `SupabaseLedgerRepository` con tiempo real y cola para el modo sin conexión.
+- Movimientos: tiempo real (CP6) y cola sin conexión guardada en el teléfono (CP7); hoy, lo que no se pudo guardar se pierde al recargar.
 - "Cambiar monto" en Saldar (pago parcial), exportar CSV y desvincular.
-- Parches: sin tiempo real (se ve lo nuevo al abrir o deslizar para recargar), sin notificaciones push, y el movimiento que crea "pasar al cruce" solo se ve en el inicio cuando entre `SupabaseLedgerRepository` (CP5). La cola sin conexión es una por teléfono, no por cuenta.
+- Parches: sin tiempo real (se ve lo nuevo al abrir o deslizar para recargar), sin notificaciones push, y el movimiento que crea "pasar al cruce" se ve en el cruce al recargar. La cola sin conexión es una por teléfono, no por cuenta.

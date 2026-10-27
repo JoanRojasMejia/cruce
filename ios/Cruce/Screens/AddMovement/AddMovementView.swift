@@ -59,6 +59,10 @@ struct AddMovementView: View {
                 payerPicker
                 NeoTextField(label: "Concepto", text: $concept, placeholder: "Ej. Cena viernes", focus: $editingConcept)
                     .submitLabel(.done)
+                    // La base acepta conceptos de hasta 80 caracteres (`movements.concept`).
+                    .onChange(of: concept) { _, newValue in
+                        if newValue.count > 80 { concept = String(newValue.prefix(80)) }
+                    }
                 categoryPicker
                 splitPicker
                 previewCard

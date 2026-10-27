@@ -10,7 +10,7 @@ struct AppStores {
     let parches: ParcheStore
 
     /// Arranque real: la sesión con Supabase Auth (local en Debug, la nube en Release), un solo `SupabaseClient`
-    /// para la autenticación y los datos, y sin movimientos hasta el CP5. La etapa sale de `session.refresh()`.
+    /// para la autenticación y los datos, con los movimientos de cada cruce en Supabase. La etapa sale de `session.refresh()`.
     @MainActor
     static func live() -> AppStores {
         let config = SupabaseConfig.load()
@@ -30,7 +30,7 @@ struct AppStores {
             directory: SupabaseAccountDirectory(client: client),
             isReady: false
         )
-        let ledger = LedgerStore(session: session, repository: InMemoryLedgerRepository())
+        let ledger = LedgerStore(session: session, repository: SupabaseLedgerRepository(client: client))
         // Los parches van con Supabase; la cola sin conexión y las respuestas a "¿Lo pasas a tu cruce?" se guardan
         // en `Application Support/Cruce/parches.json` para que sobrevivan a cerrar la app.
         let parches = ParcheStore(

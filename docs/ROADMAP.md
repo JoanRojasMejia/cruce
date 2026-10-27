@@ -107,11 +107,12 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** Joan tiene un cruce con Jesús y otro con una tercera cuenta, ve los dos en "Tus cruces" con su saldo, y lo que anota en uno no aparece en el otro.
 
 ## CP5 · Movimientos contra Supabase
-- [ ] `SupabaseLedgerRepository: LedgerRepository` con cargar, guardar (insert/update) y eliminar (borrado suave), siempre sobre el cruce abierto.
-- [ ] Mapeo de `SplitRule` ↔ `split_type` + `other_share_percent`, y de `Movement.Kind` ↔ `kind`.
-- [ ] El saldo se sigue calculando en la app; agregar una verificación en debug contra `ledger_balances`.
-- [ ] Pruebas del mapeo (Codable) con JSON de ejemplo.
-- [ ] Inyectar el repositorio real en `AppStores.live()` (raíz de composición en `CruceApp`); los datos de ejemplo ya quedan solo para Debug y las vistas previas (`AppStores.sample`).
+*Hecho en local en el cambio `movimientos-supabase` (27 oct 2026): también deslizar para recargar, recarga al volver a la app y la deuda de los parches en el cruce. Falta probarlo en testing con Joan y Jesús. Lo no guardado sin conexión se pierde al recargar hasta el CP7.*
+- [x] `SupabaseLedgerRepository: LedgerRepository` con cargar, guardar (insert/update) y eliminar (borrado suave), siempre sobre el cruce abierto.
+- [x] Mapeo de `SplitRule` ↔ `split_type` + `other_share_percent`, y de `Movement.Kind` ↔ `kind`.
+- [x] El saldo se sigue calculando en la app; agregar una verificación en debug contra `ledger_balances`.
+- [x] Pruebas del mapeo (Codable) con JSON de ejemplo.
+- [x] Inyectar el repositorio real en `AppStores.live()` (raíz de composición en `CruceApp`); los datos de ejemplo ya quedan solo para Debug y las vistas previas (`AppStores.sample`).
 
 **Hecho cuando:** lo que anota uno aparece en el otro al recargar, y el saldo coincide en los dos.
 

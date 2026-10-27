@@ -5,6 +5,7 @@ import SwiftUI
 /// al tocarla se abre el inicio de ese cruce. Sin captura en el canvas: se arma con las piezas de "Tus parches".
 struct CruceListView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
     @Environment(Router.self) private var router
 
     var body: some View {
@@ -42,6 +43,8 @@ struct CruceListView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
+        // Deslizar hacia abajo recarga los saldos de todos los cruces.
+        .refreshable { await ledger.load() }
         .screenBackground()
     }
 }

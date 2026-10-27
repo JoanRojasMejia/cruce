@@ -37,6 +37,8 @@ struct HomeView: View {
                 .frame(minHeight: proxy.size.height, alignment: .top)
             }
             .scrollIndicators(.hidden)
+            // Deslizar hacia abajo trae lo que anotó la otra persona (el tiempo real llega en el CP6).
+            .refreshable { await ledger.load() }
         }
         .screenBackground()
     }

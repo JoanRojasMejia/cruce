@@ -83,6 +83,7 @@ Son pruebas [pgTAP](https://pgtap.org) en `supabase/tests/`. Cada archivo corre 
 | `05_rls_endurecido.sql` | Las políticas son solo para `authenticated`, usan `(select auth.uid())` y tienen sus índices; sin sesión no se ve nada |
 | `06_parches.sql` | Parches: crear, unirse, sin la app, repartos, pagos, reclamar lugar, cerrar, pasar al cruce y RLS |
 | `07_vincular_cruces.sql` | Un solo cruce pendiente por persona, vista previa del código, el nombre al unirse, un cruce por pareja (también directo en la tabla), cruces con personas distintas, `my_cruces` (también con RLS) y el límite de intentos con la vista previa |
+| `08_movimientos.sql` | Movimientos desde la app (rol `authenticated`): los dos del cruce editan y eliminan (borrado suave), nadie anota a nombre de otro, un tercero no ve ni toca nada (ni poniendo de pagador a un miembro) y guardar dos veces el mismo `id` deja una sola fila |
 
 Para actuar como una persona, las pruebas usan `set local role authenticated` y fijan `request.jwt.claims` con su `sub`, que es lo que lee `auth.uid()`.
 
