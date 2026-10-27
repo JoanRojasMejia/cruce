@@ -66,7 +66,7 @@ supabase start -x realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtim
    `curl -s http://127.0.0.1:54324/api/v1/message/<ID> | jq -r .Text`.
 3. Escribe el código; la primera vez la app pide tu nombre y crea el perfil.
 
-El correo usa `supabase/templates/codigo.html` (`config.toml` la asigna a enlace mágico y confirmación). En la nube hay que pegar la misma plantilla en el panel (Auth → Emails), y el SMTP de Supabase solo envía 2 correos por hora a miembros de la organización.
+El correo usa `supabase/templates/codigo.html` (`config.toml` la asigna a enlace mágico y confirmación). En la nube, cada proyecto necesita SMTP propio para poder editar la plantilla y pegarla en el panel; los pasos están en `supabase/README.md`.
 
 ## Formato
 

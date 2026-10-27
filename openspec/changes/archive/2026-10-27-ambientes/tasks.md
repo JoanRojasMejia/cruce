@@ -9,13 +9,13 @@
 - [x] 2.1 En `ios/project.yml`, agregar la configuración `Staging` de tipo release y los esquemas `Cruce Test` (Staging) y `Cruce Prod` (Release). El esquema `Cruce` sigue con Debug. Usar `Cruce/Config/Cruce.xcconfig` en las tres configuraciones. Verificar que `xcodegen` genera el proyecto y que `xcodebuild -list` muestra las tres configuraciones y los tres esquemas.
 - [x] 2.2 En `Cruce/Config/Cruce.xcconfig`, definir por configuración `PRODUCT_BUNDLE_IDENTIFIER`, `APP_DISPLAY_NAME`, `ASSETCATALOG_COMPILER_APPICON_NAME` y `APP_ENVIRONMENT`, y quitar de `project.yml` los valores fijos que se pisan. En el `Info.plist`, usar `CFBundleDisplayName = $(APP_DISPLAY_NAME)` y agregar `CRUCE_ENVIRONMENT = $(APP_ENVIRONMENT)`. Verificar con `xcodebuild -showBuildSettings` en cada configuración que el identificador, el nombre y el ambiente son los esperados.
 - [x] 2.3 Generar `AppIconDev` y `AppIconTest` desde `AppIcon-1024.png`, con una franja en tinta con "DEV" o "TEST" en Archivo Black, y dejar el comando de ImageMagick en `ios/README.md`. Verificar mirando los dos PNG y el ícono de la app en el simulador.
-- [ ] 2.4 Mostrar en `SettingsView` la línea de la versión con la función de 1.1, leyendo `CRUCE_ENVIRONMENT`. Verificar con una captura de Ajustes en el simulador: con Debug dice "· local" y con Staging dice "· testing". *Hecho: Debug muestra "Cruce 1.0 (1) · local" y el `Info.plist` de Staging trae `CRUCE_ENVIRONMENT = testing`. Falta la captura de Ajustes en Staging, que pide entrar a testing con un correo de verdad: se hace en el paso del CP3 en la nube.*
-- [ ] 2.5 Actualizar `ios/Config.example.xcconfig`: `Debug` va a local, `Staging` a testing (`pqdjiecynyjnianslikp`) y `Release` a prod, con `pega-aqui…` y la nota de que prod todavía no existe. Mover las claves de nube del `ios/Config.xcconfig` local de `Release` a `Staging`. Agregar a las pruebas de `SupabaseConfig.read` el caso "sin claves no toma otras". Verificar:
+- [x] 2.4 Mostrar en `SettingsView` la línea de la versión con la función de 1.1, leyendo `CRUCE_ENVIRONMENT`. Verificar con una captura de Ajustes en el simulador: con Debug dice "· local" y con Staging dice "· testing". *Hecho: Debug muestra "Cruce 1.0 (1) · local" y el `Info.plist` de Staging trae `CRUCE_ENVIRONMENT = testing`. En Staging no se llega a Ajustes sin una cuenta vinculada (CP4), así que la línea "· testing" en pantalla queda para el CP4; la regla está probada con `swift test` y el valor del `Info.plist` se revisó.*
+- [x] 2.5 Actualizar `ios/Config.example.xcconfig`: `Debug` va a local, `Staging` a testing (`pqdjiecynyjnianslikp`) y `Release` a prod, con `pega-aqui…` y la nota de que prod todavía no existe. Mover las claves de nube del `ios/Config.xcconfig` local de `Release` a `Staging`. Agregar a las pruebas de `SupabaseConfig.read` el caso "sin claves no toma otras". Verificar:
   - Staging en el simulador entra a testing y pide el código por correo;
   - Release en el simulador se detiene con el mensaje "Falta SUPABASE_URL…";
   - las pruebas pasan.
 
-  *Hecho: Release se detiene con "Fatal error: Falta SUPABASE_URL…" y las pruebas de `SupabaseConfig` pasan (la lectura pasó a CruceCore para poder probarla). Staging arranca contra testing sin errores. Falta pedir el código por correo en Staging, que se hace en el paso del CP3 en la nube.*
+  *Hecho: Release se detiene con "Fatal error: Falta SUPABASE_URL…" y las pruebas de `SupabaseConfig` pasan (la lectura pasó a CruceCore para poder probarla). Staging arranca contra testing sin errores. El 27 oct 2026 Joan instaló "Cruce Test" en su iPhone y entró con el código que llegó por correo (con SMTP de Gmail en testing; ver `supabase/README.md`).*
 - [x] 2.6 Cambiar a `com.joanrojas.cruce.dev` el identificador en el comentario de `DebugScreen`, en los comandos `simctl` de CLAUDE.md §4 y en `ios/README.md`. Documentar en `ios/README.md` los tres esquemas y el límite de la cuenta gratuita. Verificar:
   - `xcrun simctl launch <udid> com.joanrojas.cruce.dev -screen history` abre el historial;
   - `rg -n "com\.joanrojas\.cruce\b" ios CLAUDE.md` ya no encuentra comandos con el identificador viejo;
@@ -60,5 +60,5 @@
 ## Workflow follow-up
 
 - Joan, opcional: renombrar el proyecto `cruce` a `cruce-testing` en el panel de Supabase.
-- Hacer el paso del CP3 en la nube contra testing: pegar la plantilla del correo y entrar con los correos de Joan y Jesús.
+- Hacer el paso del CP3 en la nube contra testing: SMTP propio, plantilla y entrar con los correos de Joan y Jesús. *Joan entró el 27 oct 2026; falta Jesús.*
 - Archivar el cambio con `openspec archive ambientes` cuando se cumpla el "Hecho cuando" y proponer el commit.

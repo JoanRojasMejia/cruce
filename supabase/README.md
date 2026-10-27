@@ -50,14 +50,18 @@ Cada proyecto tiene su propia contraseña de la base: la pide el CLI, o la lee d
 
 **Proyectos pausados:** en el plan gratis, Supabase pausa un proyecto tras una semana sin uso. Si testing no responde, reactívalo desde el panel (Project → Restore). Tarda unos minutos.
 
-**Plantilla del correo:** cada proyecto tiene la suya. Pega `supabase/templates/codigo.html` en el panel de cada uno (Auth → Emails, en "Magic Link" y en "Confirm signup").
+**Correo con el código:** El plan gratis de Supabase no deja editar la plantilla con su correo por defecto (que además trae un enlace, no el código), así que cada proyecto necesita SMTP propio.
+
+1. **SMTP propio** (Authentication → Emails → SMTP Settings → Enable custom SMTP). Testing usa una cuenta de Gmail solo para Cruce con una contraseña de aplicación: host `smtp.gmail.com`, puerto `587`, usuario y remitente = la dirección completa, nombre `Cruce`. La contraseña la escribe el dueño en el panel; nunca va en el repo. Gmail permite unos 500 correos al día; con SMTP propio el límite de Supabase sube a 30 por hora y ya no está restringido a miembros de la organización.
+2. **Plantilla:** pega `supabase/templates/codigo.html` en "Magic link or OTP" y en "Confirm signup" (pestaña Source), con el asunto `Tu código para entrar a Cruce`. Para copiarla sin dañar las tildes: `LANG=en_US.UTF-8 pbcopy < supabase/templates/codigo.html` (en Nushell: `with-env {LANG: "en_US.UTF-8"} { open --raw supabase/templates/codigo.html | pbcopy }`). El preview del panel muestra `{{ .Token }}` sin reemplazar; es normal.
+3. **Email OTP Length** en `6` (Authentication → Sign In / Providers → Email).
 
 ### Crear prod (antes de la primera versión en TestFlight)
 
 1. En el panel de Supabase, crea el proyecto `cruce-prod` en la misma organización y región que testing, y guarda la contraseña de la base en tu gestor de contraseñas.
 2. Llena `PROD_PROJECT_REF` en `supabase/ambientes.env` con su identificador y súbelo en un commit.
 3. `scripts/db-push.sh prod` para aplicar las migraciones (el primer respaldo sale vacío de datos).
-4. Pega la plantilla del correo (ver arriba).
+4. Configura el SMTP propio y la plantilla del correo (ver arriba). Para prod conviene un proveedor transaccional (por ejemplo Resend) con un dominio propio verificado, en vez de Gmail.
 5. En `ios/Config.xcconfig`, llena `SUPABASE_URL[config=Release]` con `https:/$()/<ref>.supabase.co` y `SUPABASE_ANON_KEY[config=Release]` con la clave anon de `supabase projects api-keys --project-ref <ref>`.
 6. Compila el esquema `Cruce Prod` y entra con tu correo.
 

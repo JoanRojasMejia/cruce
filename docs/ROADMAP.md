@@ -73,7 +73,7 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 **Hecho cuando:** las pruebas SQL pasan en local y la migración está aplicada en la nube.
 
 ## CP3 · Inicio de sesión
-*Hecho por correo en el cambio `inicio-sesion-correo` (26 oct 2026), sin membresía de Apple. Falta un paso con el dueño: pegar la plantilla del correo en el panel del proyecto de testing y probar con los correos de Jesús y Joan en la app "Cruce Test" (cambio `ambientes`).*
+*Hecho por correo en el cambio `inicio-sesion-correo` (26 oct 2026), sin membresía de Apple. En testing (27 oct 2026) se configuró SMTP de Gmail y la plantilla, y Joan entró en "Cruce Test" con el código del correo. Falta que Jesús entre para cumplir el "Hecho cuando".*
 - [x] Agregar `supabase-swift` vía SPM en `project.yml`. *Versión fija 2.55.4, solo en el target de la app.*
 - [x] Configuración en `Config.xcconfig` (no en el código): `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
 - [x] Protocolo `AuthService` y su implementación con Supabase; sesión persistente entre aperturas.
