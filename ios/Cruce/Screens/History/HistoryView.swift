@@ -22,7 +22,8 @@ struct HistoryView: View {
         // `List` para tener deslizar con "Eliminar" (también para VoiceOver); sin separadores ni fondo, para verse igual
         // que el resto de la app.
         List {
-            ScreenHeader(title: "Historial") {
+            // Volver con el router: dentro de una fila de `List`, `dismiss` no cierra la pantalla.
+            ScreenHeader(title: "Historial", onBack: { router.pop() }) {
                 Badge(text: ledger.phrase(forNet: ledger.net), fill: badgeColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)

@@ -54,31 +54,22 @@ struct AddMovementView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-                ScreenHeader(title: editing == nil ? "Nuevo movimiento" : "Editar movimiento")
-                amountCard
-                payerPicker
-                NeoTextField(label: "Concepto", text: $concept, placeholder: "Ej. Cena viernes", focus: $editingConcept)
-                    .submitLabel(.done)
-                    // La base acepta conceptos de hasta 80 caracteres (`movements.concept`).
-                    .onChange(of: concept) { _, newValue in
-                        if newValue.count > 80 { concept = String(newValue.prefix(80)) }
+        GeometryReader { proxy in
+            ScrollView {
+                content
+                    // Ocupa al menos el alto visible, para que tocar el espacio vacío de abajo también baje el teclado.
+                    .frame(minHeight: proxy.size.height, alignment: .top)
+                    // Tocar el espacio vacío baja el teclado del sistema y vuelve a mostrar el del monto. Va en el
+                    // fondo, no en el contenedor, para que tocar el campo del concepto no le quite el foco.
+                    .background {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture { editingConcept = false }
                     }
-                categoryPicker
-                splitPicker
-                previewCard
-                // Mientras se escribe el concepto, el teclado del sistema reemplaza al numérico.
-                if !editingConcept {
-                    AmountKeypad(digits: $digits)
-                }
             }
-            .padding(.horizontal, Spacing.screen)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
         }
-        .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.interactively)
         // Solo el botón queda fijo: el teclado numérico va en el contenido, debajo de la vista previa,
         // para que nunca la tape. En pantallas chicas se llega con scroll.
         .safeAreaInset(edge: .bottom) {
@@ -94,8 +85,36 @@ struct AddMovementView: View {
             .padding(.bottom, 8)
             .background(CruceColor.cream)
         }
+        // Elegir quién pagó, la categoría o el reparto también baja el teclado.
+        .onChange(of: payerID) { editingConcept = false }
+        .onChange(of: category) { editingConcept = false }
+        .onChange(of: splitMode) { editingConcept = false }
         .screenBackground()
         .foregroundStyle(CruceColor.ink)
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScreenHeader(title: editing == nil ? "Nuevo movimiento" : "Editar movimiento")
+            amountCard
+            payerPicker
+            NeoTextField(label: "Concepto", text: $concept, placeholder: "Ej. Cena viernes", focus: $editingConcept)
+                .submitLabel(.done)
+                // La base acepta conceptos de hasta 80 caracteres (`movements.concept`).
+                .onChange(of: concept) { _, newValue in
+                    if newValue.count > 80 { concept = String(newValue.prefix(80)) }
+                }
+            categoryPicker
+            splitPicker
+            previewCard
+            // Mientras se escribe el concepto, el teclado del sistema reemplaza al numérico.
+            if !editingConcept {
+                AmountKeypad(digits: $digits)
+            }
+        }
+        .padding(.horizontal, Spacing.screen)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Secciones
@@ -116,6 +135,9 @@ struct AddMovementView: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .neoSurface(fill: CruceColor.yellow, radius: Radius.card, shadow: ShadowOffset.m)
+        // Tocar el monto mientras se escribe el concepto baja el teclado y muestra el teclado del monto.
+        .contentShape(Rectangle())
+        .onTapGesture { editingConcept = false }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Monto \(Money.format(amount))")
     }
