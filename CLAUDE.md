@@ -228,7 +228,7 @@ scripts/db-push.sh testing          # sube las migraciones a testing (prod pide 
 
 ## 5. Diseño
 
-- **Fuente de verdad visual:** el canvas "Cruce — 3 propuestas" en Claude, página **"Opción A · flujo completo"**: https://claude.ai/code/artifact/5771f196-d1c4-4797-928a-4cd74aa50c18 (es privado del dueño; el agente no puede abrirlo).
+- **Fuente de verdad visual:** el canvas "Cruce — 3 propuestas" en Claude, página **"Opción A · flujo completo"**: https://claude.ai/code/artifact/5771f196-d1c4-4797-928a-4cd74aa50c18 (es privado de Joan). El agente lo lee y lo edita con la herramienta de Artifacts (`read` y `publish` con su `url`). Es un canvas de tipo Design: `project/canvas.json` es el índice y cada pantalla es un archivo `project/<nombre>.dc.html`.
 - **Referencia para el agente:** `docs/design/screens/*.png` (a 390×844 @2x) y `docs/design/screens/00-Guia-Estilo.png`.
 - **Estilo:** neobrutalista juguetón. Fondo crema, bordes negros gruesos, sombras sólidas desplazadas (sin blur), tarjetas tipo carpeta con pestaña de color y tipografía grotesca muy bold.
 - **Los tokens viven en `ios/Cruce/DesignSystem/`.** No inventes colores ni tamaños: usa `CruceColor`, `TextStyleToken`, `Radius`, `BorderWidth`, `ShadowOffset` y `Spacing`. Si cambias el diseño, actualiza también `docs/diseno.md`.
