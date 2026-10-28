@@ -127,12 +127,19 @@ struct NeoSegmented<Option: Hashable>: View {
     let title: (Option) -> String
     var height: CGFloat = 34
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var pill
+
     var body: some View {
         HStack(spacing: 3) {
             ForEach(options, id: \.self) { option in
                 let selected = option == selection
                 Button {
-                    selection = option
+                    // La pastilla negra se desliza de lado hasta la opción elegida (sin movimiento si se pidió
+                    // reducirlo en Accesibilidad).
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.8)) {
+                        selection = option
+                    }
                 } label: {
                     Text(title(option))
                         .font(.archivo(13, selected ? .extraBold : .bold))
@@ -140,13 +147,22 @@ struct NeoSegmented<Option: Hashable>: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .frame(maxWidth: .infinity, minHeight: height)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(selected ? CruceColor.ink : .clear))
+                        // Marca dónde está cada opción, para que la pastilla sepa a dónde ir.
+                        .matchedGeometryEffect(id: option, in: pill)
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
-        .padding(3)
+        // Una sola pastilla que viaja entre las opciones: así no se desvanece a mitad de camino.
+        .background {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(CruceColor.ink)
+                .matchedGeometryEffect(id: selection, in: pill, isSource: false)
+        }
+        // El borde se dibuja hacia adentro: el relleno lo cubre y deja 2,5 pt libres alrededor del segmento elegido,
+        // como en el diseño.
+        .padding(BorderWidth.regular + 2.5)
         .neoSurface(radius: Radius.input)
     }
 }
