@@ -371,18 +371,19 @@ public final class ParcheStore {
     }
 
     /// "Tengo un código": `PCH-` se une al parche y `SOY-` se queda con el lugar. Los `CRZ-` van al cruce
-    /// (la pantalla los distingue con `codeKind(_:)`).
+    /// (la pantalla los distingue con `codeKind(_:)`). Dice cómo se llegó, para mostrar la pantalla de llegada.
     @discardableResult
-    public func enter(code: String) async -> ParcheDetail? {
+    public func enter(code: String) async -> ParcheArrival? {
         switch ParcheCode.kind(of: code) {
         case .parche:
-            return await join(code: code)
+            return await join(code: code).map { ParcheArrival(kind: .joined, detail: $0) }
         case .place:
-            return await perform {
+            let detail: ParcheDetail? = await perform {
                 let detail = try await repository.claimPlace(code: ParcheCode.normalize(code))
                 upsert(detail)
                 return detail
             }
+            return detail.map { ParcheArrival(kind: .claimedPlace, detail: $0) }
         case .cruce, nil:
             error = .invalidCode
             return nil

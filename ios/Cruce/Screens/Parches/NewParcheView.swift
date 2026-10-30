@@ -137,9 +137,10 @@ struct EnterCodeView: View {
                 session.phase = .join
             }
         case .parche, .place:
-            if let detail = await parches.enter(code: code) {
+            if let arrival = await parches.enter(code: code) {
+                // "Tengo un código" se reemplaza por la llegada; desde ahí, "Ver el parche".
                 router.pop()
-                router.push(.parche(detail.id))
+                router.push(.parcheArrival(parcheID: arrival.detail.id, kind: arrival.kind))
             } else {
                 problem = parches.error?.message ?? ParcheStore.Problem.invalidCode.message
             }

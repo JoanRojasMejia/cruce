@@ -41,3 +41,17 @@ El botón de compartir del encabezado del detalle SHALL abrir una hoja con el c�
 #### Scenario: Ticket del parche desde la hoja
 - **WHEN** Joan toca "Compartir el ticket del parche" en la hoja
 - **THEN** la hoja se cierra y se abre el ticket del parche
+
+### Requirement: Llegada con un código PCH
+Después de entrar a un parche con un código `PCH-` desde "Tengo un código", la app SHALL mostrar "Entraste a <parche>" con las personas del parche, tu saldo en el parche (con la frase y el signo) y un botón "Ver el parche" que abre su detalle.
+
+#### Scenario: Ana entra a Santa Marta
+- **WHEN** Ana escribe `PCH-SM4R7A` en "Tengo un código" y toca "Entrar"
+- **THEN** ve "Entraste a Santa Marta", a Joan, Jesús y Carlos (sin la app), "Estás a paz y salvo" con $0 y "Ver el parche"
+
+### Requirement: Llegada con un código SOY
+Después de quedarse con un lugar con un código `SOY-`, la app SHALL mostrar "Ahora eres <nombre> en <parche>", con el avatar del lugar pasando de punteado (sin la app) a sólido, y un texto que diga que sus gastos y pagos en el parche lo siguen. Con "Reducir movimiento" activado, el avatar MUST aparecer sólido sin animación.
+
+#### Scenario: Carlos se queda con su lugar
+- **WHEN** Carlos instala la app y escribe `SOY-K7QX2M` en "Tengo un código"
+- **THEN** ve "Ahora eres Carlos en Santa Marta", su avatar pasa de punteado a sólido, "Debes $172.000" con −$172.000 y "Ver el parche"

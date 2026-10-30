@@ -66,4 +66,13 @@ struct RouterTests {
         router.pop()
         #expect(router.path == [.parche(id)])
     }
+
+    @Test("Después de entrar con un código, la llegada reemplaza a \"Tengo un código\"")
+    func arrivalReplacesEnterCode() {
+        let id = UUID()
+        let router = Router(path: [.parches, .enterCode])
+        router.pop()
+        router.push(.parcheArrival(parcheID: id, kind: .claimedPlace))
+        #expect(router.path == [.parches, .parcheArrival(parcheID: id, kind: .claimedPlace)])
+    }
 }

@@ -161,6 +161,7 @@ struct RouteDestinations: ViewModifier {
         case .parcheTicket(let parcheID, let participantID):
             ParcheTicketView(parcheID: parcheID, participantID: participantID)
         case .enterCode: EnterCodeView()
+        case .parcheArrival(let parcheID, let kind): ParcheArrivalView(parcheID: parcheID, kind: kind)
         }
     }
 }

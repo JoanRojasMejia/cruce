@@ -137,7 +137,10 @@ struct ParcheStoreTests {
 
         let carlosStore = world.store(world.carlos)
         let claimCode = try #require(carlos.claimCode)
-        let claimed = try #require(await carlosStore.enter(code: claimCode))
+        let arrival = try #require(await carlosStore.enter(code: claimCode))
+        #expect(arrival.kind == .claimedPlace)
+        #expect(arrival.name == "Carlos", "Ahora eres Carlos en el parche")
+        let claimed = arrival.detail
         #expect(claimed.me?.id == carlos.id, "El mismo lugar, sin crear una persona nueva")
         #expect(claimed.participants.count == 3)
         #expect(claimed.me?.claimCode == nil)
@@ -149,6 +152,18 @@ struct ParcheStoreTests {
         #expect(phrases.contains("Carlos ahora tiene la app"))
         // El código ya no sirve.
         #expect(await world.store(world.joan).enter(code: try #require(carlos.claimCode)) == nil)
+    }
+
+    @Test("Entrar con un PCH- llega al parche como uno más, con su nombre")
+    func enterWithParcheCodeArrivesAsJoined() async throws {
+        let world = ParcheWorld()
+        let (_, _, parche, _) = try await santaMarta(world)
+        let joan = world.store(world.joan)
+        let arrival = try #require(await joan.enter(code: parche.parche.code))
+        #expect(arrival.kind == .joined)
+        #expect(arrival.detail.id == parche.id)
+        #expect(arrival.name == arrival.detail.me?.displayName)
+        #expect(arrival.detail.participants.count == 4)
     }
 
     @Test("Ya estaba en el parche: no puede quedarse con el lugar de Carlos")

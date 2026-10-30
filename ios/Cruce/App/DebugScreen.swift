@@ -11,7 +11,8 @@
         case add, saved, history, detail, delete, settle, success, offline, settings
         case cruceSettings, profile, defaultSplit, settleAmount, successPartial, unlink, unlinkSettled, crucesClosed,
             cruceClosed
-        case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheShare, parcheActivity,
+        case parches, parchesEmpty, parcheNew, parcheCode, parcheArrival, parcheArrivalPlace, parcheDetail,
+            parcheDetailEnd, parcheShare, parcheActivity,
             parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
@@ -85,6 +86,9 @@
             case .parchesEmpty: return stores(path: [.parches], parcheBackend: InMemoryParcheBackend())
             case .parcheNew: return stores(path: [.newParche])
             case .parcheCode: return stores(path: [.enterCode])
+            case .parcheArrival, .parcheArrivalPlace:
+                // Ana (de `MockData`) no está en "Santa Marta": entra con el código en `rootOverride`.
+                return .sample(viewer: MockData.ana)
             case .parcheDetail, .parcheDetailEnd, .parcheOffline:
                 return stores(path: [.parche(MockParches.santaMartaID)])
             case .parcheShare: return .sample()
@@ -167,6 +171,18 @@
                     ParcheDetailView(parcheID: MockParches.santaMartaID, startsAtBottom: true)
                         .toolbar(.hidden, for: .navigationBar)
                 }
+            case .parcheArrival, .parcheArrivalPlace:
+                RootView()
+                    .task {
+                        // Entra de verdad (en memoria) y abre la llegada, como desde "Tengo un código".
+                        await stores.parches.load()
+                        let code = self == .parcheArrival ? "PCH-SM4R7A" : "SOY-K7QX2M"
+                        if let arrival = await stores.parches.enter(code: code) {
+                            stores.router.path = [
+                                .parcheArrival(parcheID: arrival.detail.id, kind: arrival.kind)
+                            ]
+                        }
+                    }
             case .parcheShare:
                 NavigationStack {
                     ParcheDetailView(parcheID: MockParches.santaMartaID, sharing: true)

@@ -43,6 +43,8 @@ public enum Route: Hashable, Sendable {
     case parcheTicket(parcheID: UUID, participantID: UUID?)
     /// "Tengo un código": `CRZ-`, `PCH-` o `SOY-`.
     case enterCode
+    /// Llegada después de entrar con un código: "Entraste a…" (`PCH-`) o "Ahora eres… en…" (`SOY-`).
+    case parcheArrival(parcheID: UUID, kind: ParcheArrival.Kind)
 }
 
 extension Route {
