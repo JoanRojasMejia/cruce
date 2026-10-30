@@ -59,6 +59,7 @@ Joan los deja para cuando la app se abra a más personas:
 - [ ] Recorrido en el simulador de los flujos pedidos (tarea 5.1 del cambio).
 - [x] Subir las siete migraciones a testing y a prod con `scripts/db-push.sh` (30 oct 2026).
 - [ ] Probar la app en "Cruce Test" con Joan, Jesús y una tercera cuenta.
+- [ ] Probar `usuarios-y-cuenta` y `teclado-de-montos` en "Cruce Test": elegir y cambiar el @usuario, borrar una cuenta de prueba (también una que esté en un parche) y anotar montos con el teclado acoplado.
 - [x] Agregar las imágenes de `il-09` a `il-21` (PNG @2x y @3x), el 30 oct 2026.
 
 **Límites conocidos:** con una versión anterior de la app, lo que se pasa al cruce queda "por confirmar" hasta que alguien con la versión nueva lo acepte, y editar un gasto con ítems con nombre los guarda sin nombre. El enlace universal (`https://`) queda para el CP13. "Cómo pagarle a cada quien" e "Intentos con códigos de parche" están en las decisiones abiertas.

@@ -118,3 +118,11 @@ Solo seis momentos suenan y vibran; el resto de la app es silencioso. Los sonido
 | Borrar un gasto | Papelito: un barrido de ruido que baja | Toque suave |
 | Un código que no sirve | Bonk: dos notas graves | Error |
 | Cerrar el parche | Cierre: tres notas que bajan y se resuelven | Toque medio |
+
+## Teclado de montos
+
+- **El monto principal** es la tarjeta amarilla de arriba (`MainAmountCard`, 46 pt) y se escribe con el teclado de Cruce (`AmountKeypad`: 1–9, `000`, 0 y borrar). El cursor solo se ve mientras está activo.
+- **El teclado va acoplado abajo** (`AmountEntryScreen` y `AmountKeypadDock`, en `Components/AmountEntry.swift`): una bandeja `CruceColor.line` con borde de tinta arriba (`BorderWidth.regular`), "Listo" arriba a la derecha y el botón principal de la pantalla siempre visible. El contenido hace scroll por encima.
+- **Los montos secundarios** (cada pagador, cada ítem, la propina) usan el teclado numérico del sistema.
+- **Hasta 12 dígitos** en todos los montos principales, igual que `Money.parse`.
+- **VoiceOver:** cada tecla tiene su nombre ("Borrar", "Tres ceros") y, después de cada tecla, se anuncia el monto ("Monto: 60000 pesos", que VoiceOver lee como "sesenta mil pesos").

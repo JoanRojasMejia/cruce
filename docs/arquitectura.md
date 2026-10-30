@@ -38,3 +38,7 @@
 3. Cola local para movimientos pendientes cuando no hay conexión.
 4. Desplegar el backend y conectar el Database Webhook.
 5. Notificaciones push con APNs (requiere la membresía de Apple Developer).
+
+## Cuentas borradas (30 oct 2026)
+
+`delete_my_account()` borra el usuario de `auth.users`. El trigger `forget_account` (antes del borrado, así que también aplica si se borra desde el panel) cierra sus cruces, borra su cruce pendiente y su código, rechaza lo que estuviera por confirmar para pasar al cruce, marca sus lugares en los parches (`account_deleted_at`) y deja su perfil como **lápida**: el mismo `id`, "Cuenta borrada", sin @usuario, color ni correo y con `deleted_at`. Por eso `profiles` ya no tiene la llave foránea a `auth.users` (`profiles_id_fkey`): con `on delete cascade` el perfil se borraba y se llevaba a la persona de `ledger_members`, y los movimientos dejaban de cuadrar. Un perfil solo se crea con `id = auth.uid()` y una lápida no se puede editar.
