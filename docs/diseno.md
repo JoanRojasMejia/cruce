@@ -91,3 +91,30 @@ Pedidas en la revisión de diseño del 29 oct 2026. Los espacios ya existen en e
 | `il-21-codigo-invalido` | `invalidCode` | Error de código en "Tengo un código" | 120 pt |
 
 **Regla neutral:** los tickets y todo lo de parches usan ilustraciones neutrales, sin versión rosa o verde. La regla del recibo rosa o verde aplica solo a los cruces entre dos personas (`il-04` e `il-05`).
+
+## Entrada "Choque"
+
+La pantalla de arranque es el cuadro amarillo del logo (`LaunchLogo`: 96 pt, borde de 3 pt, sombra de 5 pt) sobre `LaunchBackground` (crema). `LaunchSplash` sigue desde ahí sin salto:
+
+| Tiempo | Qué pasa |
+|---|---|
+| 0–0,32 s | El logo se parte en sus dos flechas: la que baja en violeta y la que sube en lima. Se alejan 96 pt girando 16°. |
+| 0,32–0,67 s | Vuelven acelerando y chocan. |
+| 0,67–1,0 s | Vuelve el logo aplastado (1,32 × 0,78), rebota y queda; sale un anillo de tinta y la pantalla tiembla. |
+| 1,13–1,35 s | El logo se encoge girando 90°. |
+| 1,2–1,6 s | La pantalla se abre en dos como una puerta, con su canto de tinta, y deja ver la app. |
+
+Con "Reducir movimiento" solo se desvanece en 0,3 s.
+
+## Sonidos
+
+Solo seis momentos suenan y vibran; el resto de la app es silencioso. Los sonidos son cortos (0,2–0,6 s) y de juguete, sintetizados con `scripts/sonidos.py`.
+
+| Momento | Sonido | Vibración |
+|---|---|---|
+| Gasto guardado (cruce y parche) | Doble pop: dos pops que suben | Éxito |
+| Pago anotado (parcial o en un parche) | Moneda: dos notas cuadradas, como en un arcade | Éxito |
+| A paz y salvo | Arpegio: do, mi, sol, do | Éxito |
+| Borrar un gasto | Papelito: un barrido de ruido que baja | Toque suave |
+| Un código que no sirve | Bonk: dos notas graves | Error |
+| Cerrar el parche | Cierre: tres notas que bajan y se resuelven | Toque medio |

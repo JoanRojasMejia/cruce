@@ -121,17 +121,19 @@ cruce/
 │   │   │                     SupabaseLedgerRepository, SupabaseMovementFeed (tiempo real) y NetworkMonitor
 │   │   │                     (supabase-swift)
 │   │   ├── Config/           Cruce.xcconfig (incluye ios/Config.xcconfig, ignorado por git)
-│   │   ├── DesignSystem/     Colors, Typography, Metrics, NeoSurface, NeoButtonStyle, Illustration
+│   │   ├── DesignSystem/     Colors, Typography, Metrics, NeoSurface, NeoButtonStyle, Illustration,
+│   │   │                     Feedback (sonido y vibración de los seis momentos)
 │   │   ├── Components/       FolderCard, MovementRow, Controls (IconButton, Chip, NeoSegmented,
 │   │   │                     NeoTextField, NeoToggleStyle, PageDots, Badge, BeforeAfter),
-│   │   │                     AmountKeypad, Avatar, CategoryIcon, CruceLogo
+│   │   │                     AmountKeypad, Avatar, CategoryIcon, CruceLogo, LaunchSplash (entrada)
 │   │   ├── Screens/          Onboarding, Auth, Home, AddMovement, History, Detail, Settle,
 │   │   │                     Offline, Code ("Tengo un código", EnterCodeView), Settings (Ajustes de
 │   │   │                     la cuenta, CruceSettingsView y SettingsComponents) y Parches (lista,
 │   │   │                     nuevo, llegada, detalle, hoja para compartir, actividad, gasto, pago,
 │   │   │                     cerrar y tickets)
 │   │   └── Resources/        Fuentes Archivo (OFL), Assets.xcassets (ilustraciones @2x/@3x, con
-│   │                         espacios vacíos il-09 a il-21; AppIcon, AccentColor, LaunchBackground)
+│   │                         espacios vacíos il-09 a il-21; AppIcon, AccentColor, LaunchBackground,
+│   │                         LaunchLogo) y Sounds (los seis .caf)
 │   └── Packages/CruceCore/   Paquete local con la lógica pura (la app lo usa con `import CruceCore`)
 │       ├── Sources/CruceCore/
 │       │   ├── Models/       Member, Movement, SplitRule, MovementCategory
@@ -275,7 +277,7 @@ scripts/db-push.sh testing          # sube las migraciones a testing (prod pide 
 | 08 | Saldar cuentas | `SettleView` |
 | 09 | A paz y salvo | `SettleSuccessView` |
 | 10 | Sin conexión | `OfflineView` |
-| 19 | Ajustes, separado en dos (D3): los de la cuenta (perfil, notificaciones, recordatorios, invitar, cerrar sesión y versión) y los del cruce (con quién y desde cuándo, moneda, reparto por defecto, exportar y desvincular) | `SettingsView` (engrane de "Tus cruces") y `CruceSettingsView` (engrane de un cruce; con un solo cruce termina con la fila "Tu cuenta") |
+| 19 | Ajustes, separado en dos (D3): los de la cuenta (perfil, notificaciones, recordatorios, sonidos, invitar, cerrar sesión y versión) y los del cruce (con quién y desde cuándo, moneda, reparto por defecto, exportar y desvincular) | `SettingsView` (engrane de "Tus cruces") y `CruceSettingsView` (engrane de un cruce; con un solo cruce termina con la fila "Tu cuenta") |
 
 Varios cruces (sin captura en `docs/design/screens/`; se abren en Debug con `-screen <nombre>`):
 
@@ -325,6 +327,11 @@ Funciones del CP11 (sin captura en `docs/design/screens/`; se abren en Debug con
 `Assets.xcassets/Illustrations/il-0X-*.imageset`. El enum `Illustration` las mapea; `Illustration.balance(_:variant:)` aplica la regla rosa o verde. Los originales están en `~/Downloads/new-idea-proyect/ilustrations/`.
 
 Hay 15 espacios más, de `il-09-revisa-correo` a `il-21-codigo-invalido` (casos `checkEmail`, `newParche`, `parchesEmpty`, `parcheArrival`, `placeClaimed`, `placeClaimedMini`, `closeParche`, `ticketPending`, `cruceTransfer`, `cruceClosed`, `parcheSettled`, `groupTheyOweYou`, `groupYouOwe`, `paymentPending` e `invalidCode`). Todas tienen sus PNG @2x y @3x (30 oct 2026); si alguna llegara a faltar, `IllustrationView(fallback:)` dibuja la ilustración que esa pantalla usaba antes, o nada. Dónde va cada una y su tamaño: `docs/diseno.md`. Los tickets y todo lo de parches usan ilustraciones neutrales.
+
+### Sonidos y entrada (30 oct 2026)
+- **Sonido y vibración solo en seis momentos** (`Feedback.play(_:)`, `FeedbackMoment`): gasto guardado (cruce y parche), pago anotado (pago parcial y pago en un parche), a paz y salvo, borrar un gasto, un código que no sirve (también el del correo) y cerrar el parche. **Ningún otro botón suena ni vibra**; no agregues más sin preguntarle a Joan. Ajustes de la cuenta tiene el interruptor "Sonidos" (`@AppStorage("sonidos")`); apagado, queda la vibración. La sesión de audio es `.ambient`: respeta el modo silencio y no pausa la música.
+- **Los sonidos** (`Resources/Sounds/*.caf`) son sintetizados, sin licencias: `python3 scripts/sonidos.py <carpeta>` deja los WAV y `afconvert -f caff -d LEI16` los pasa a `.caf`.
+- **Entrada "Choque"** (`LaunchSplash`, en `RootView`): la pantalla de arranque de iOS muestra el cuadro del logo (`LaunchLogo`, generado con `swift scripts/logo-arranque.swift`, el mismo dibujo que `SplashTile`). Después el logo se parte en sus dos flechas (violeta y lima), que chocan; vuelve el logo y la pantalla se abre en dos. Dura 1,6 s, espera a que la sesión esté lista y con "Reducir movimiento" solo se desvanece. Solo al abrir la app; en Debug se ve con `-screen splash` (las demás `-screen` abren sin ella). iOS guarda la pantalla de arranque en caché: si no cambia, borra la app y vuelve a instalarla.
 
 ---
 
