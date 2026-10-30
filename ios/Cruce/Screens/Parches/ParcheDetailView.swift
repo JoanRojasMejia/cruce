@@ -323,7 +323,7 @@ struct ParcheDetailView: View {
             ParcheAvatar(participant: person, size: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name(person, in: detail)).textStyle(.rowTitle)
-                Text(balanceLine(balance.net, person: person, in: detail))
+                Text(parches.balanceLine(net: balance.net, for: person.id, in: detail))
                     .textStyle(.secondary)
                     .foregroundStyle(CruceColor.textSecondary)
             }
@@ -409,19 +409,6 @@ struct ParcheDetailView: View {
 
     private func name(_ person: ParcheParticipant, in detail: ParcheDetail) -> String {
         person.id == detail.myParticipantID ? "\(person.displayName) (tú)" : person.label
-    }
-
-    /// "Le deben $125.000 · a favor de Jesús", "Debes $33.000" o "A paz y salvo".
-    private func balanceLine(_ net: Int, person: ParcheParticipant, in detail: ParcheDetail) -> String {
-        let text = parches.balanceText(net: net, for: person.id, in: detail)
-        guard let favor = favorText(net: net, for: person.id, in: detail) else { return text }
-        return "\(text) · \(favor)"
-    }
-
-    private func favorText(net: Int, for participantID: UUID?, in detail: ParcheDetail) -> String? {
-        guard net > 0, let participantID else { return nil }
-        if participantID == detail.myParticipantID { return "a tu favor" }
-        return "a favor de \(detail.participant(participantID)?.displayName ?? "alguien")"
     }
 
     private func paymentText(_ payment: ParchePayment, in detail: ParcheDetail) -> String {

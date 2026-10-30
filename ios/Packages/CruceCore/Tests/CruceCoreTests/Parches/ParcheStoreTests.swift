@@ -814,6 +814,12 @@ struct ParcheStoreTests {
         #expect(jesus.balanceText(net: -110_000, for: me.id, in: detail) == "Debes $110.000")
         #expect(jesus.balanceText(net: 5_000, for: me.id, in: detail) == "Te deben $5.000")
         #expect(jesus.balanceText(net: 0, for: anaID, in: detail) == "A paz y salvo")
+        // La fila de "Saldos": a quien le deben no se le repite "a favor de" su propio nombre; a ti, "a tu favor".
+        #expect(jesus.balanceLine(net: 165_000, for: anaID, in: detail) == "Le deben $165.000")
+        #expect(jesus.balanceLine(net: 5_000, for: me.id, in: detail) == "Te deben $5.000 · a tu favor")
+        #expect(jesus.balanceLine(net: -110_000, for: anaID, in: detail) == "Debe $110.000")
+        #expect(jesus.balanceLine(net: -110_000, for: me.id, in: detail) == "Debes $110.000")
+        #expect(jesus.balanceLine(net: 0, for: anaID, in: detail) == "A paz y salvo")
         #expect(
             jesus.phrase(for: ParcheTransfer(fromID: anaID, toID: me.id, amount: 45_000), in: detail)
                 == "Ana te paga $45.000")

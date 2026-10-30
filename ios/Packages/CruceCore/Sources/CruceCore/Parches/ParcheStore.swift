@@ -171,6 +171,13 @@ public final class ParcheStore {
         return isMe ? "Estás a paz y salvo" : "A paz y salvo"
     }
 
+    /// La fila de "Saldos": "Le deben $358.500", "Te deben $5.000 · a tu favor", "Debe $43.500" o "A paz y salvo".
+    /// A otra persona no se le agrega "a favor de" su propio nombre: "Le deben" ya dice que el saldo es suyo.
+    public func balanceLine(net: Int, for participantID: UUID, in detail: ParcheDetail) -> String {
+        let text = balanceText(net: net, for: participantID, in: detail)
+        return net > 0 && participantID == detail.myParticipantID ? "\(text) · a tu favor" : text
+    }
+
     /// "Ana le paga $45.000 a Jesús", "Ana te paga $45.000" o "Le pagas $45.000 a Jesús".
     public func phrase(for transfer: ParcheTransfer, in detail: ParcheDetail) -> String {
         let amount = Money.format(transfer.amount)
