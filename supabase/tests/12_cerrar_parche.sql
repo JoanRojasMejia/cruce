@@ -3,7 +3,7 @@
 -- Se actúa como el rol authenticated con request.jwt.claims, igual que una petición real de la app.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(25);
 
 -- ─────────────────────────────────────────────────────────────
 -- Ayudas
@@ -29,8 +29,14 @@ $$;
 -- Estructura
 -- ─────────────────────────────────────────────────────────────
 select has_column('public', 'parches', 'created_by', 'parches guarda quién lo creó');
-select col_is_fk('public', 'parches', array['id', 'created_by'],
-  'created_by es un participante de ese mismo parche');
+-- Una sola relación entre parches y parche_participants (parche_participants.parche_id). Con otra, PostgREST no sabe
+-- cuál usar para `parches?select=…,parche_participants(*)` y responde PGRST201 (parches_sin_ambiguedad.sql).
+select is(
+  (select count(*) from pg_constraint
+    where contype = 'f'
+      and ((conrelid = 'public.parches'::regclass and confrelid = 'public.parche_participants'::regclass)
+        or (conrelid = 'public.parche_participants'::regclass and confrelid = 'public.parches'::regclass))),
+  1::bigint, 'Una sola llave foránea une parches y parche_participants');
 select is(
   (select count(*) from public.parches p
     where p.created_by is distinct from coalesce(
@@ -137,6 +143,15 @@ select ok((select status = 'closed' from public.parches where id = pg_temp.pid('
 reset role;
 select throws_ok($$update public.parches set created_by = null where id = current_setting('t.parche')::uuid$$,
   'P0001', 'No se puede cambiar quién creó el parche', 'Quien creó el parche no cambia');
+select is(
+  pg_temp.error_hint(format(
+    $$insert into public.parches (name, code, created_by) values ('Otro', public.generate_parche_code('PCH-'), %L)$$,
+    pg_temp.pid('jo'))),
+  'invalidData', 'created_by es un participante de ese mismo parche (no de otro)');
+delete from public.parche_participants
+ where parche_id = pg_temp.pid('cena') and id = (select created_by from public.parches where id = pg_temp.pid('cena'));
+select is((select created_by from public.parches where id = pg_temp.pid('cena')), null::uuid,
+  'Si se borra el participante que creó el parche, created_by queda en null');
 select lives_ok($$delete from public.parches where id = current_setting('t.cena')::uuid$$,
   'Borrar un parche borra a los suyos sin chocar con created_by');
 
