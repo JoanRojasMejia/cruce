@@ -15,6 +15,8 @@ struct ParchePaymentView: View {
     @State private var problem: String?
     /// El aviso de pago de más, mientras se decide si corregir o anotarlo de todas formas.
     @State private var overpayment: String?
+    /// Qué teclado está abierto: un pago siempre es nuevo, así que arranca el de Cruce (el monto).
+    @State private var focus = AmountEntryFocus.initial(isEditing: false)
 
     init(parcheID: UUID, overpayment: String? = nil) {
         self.parcheID = parcheID
@@ -30,13 +32,15 @@ struct ParchePaymentView: View {
     }
 
     private func content(_ detail: ParcheDetail) -> some View {
-        ScrollView {
+        // El monto va en la tarjeta amarilla arriba, como en el cruce, y se escribe con el teclado de Cruce acoplado
+        // abajo. Tocar una sugerencia de "Para saldar" la llena.
+        AmountEntryScreen(focus: $focus, amount: $amount) {
             VStack(alignment: .leading, spacing: 18) {
                 ScreenHeader(title: "Anotar un pago")
+                MainAmountCard(amount: amount, focus: $focus)
                 suggestions(detail)
                 picker("¿Quién pagó?", detail: detail, selection: $fromID)
                 picker("¿A quién le pagó?", detail: detail, selection: $toID, excluding: fromID)
-                MoneyField(label: "Monto", amount: $amount, height: 52)
                 if let from = fromID, let to = toID, from != to, amount > 0 {
                     Text(summary(from: from, to: to, in: detail))
                         .font(.archivo(14, .extraBold))
@@ -52,17 +56,10 @@ struct ParchePaymentView: View {
             .padding(.horizontal, Spacing.screen)
             .padding(.top, 8)
             .padding(.bottom, 16)
-        }
-        .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
+        } actions: {
             Button("Anotar el pago") { review(detail) }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
                 .disabled(fromID == nil || toID == nil || fromID == toID || amount == 0)
-                .padding(.horizontal, Spacing.screen)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-                .background(CruceColor.cream)
         }
         .screenBackground()
         .foregroundStyle(CruceColor.ink)

@@ -27,6 +27,8 @@
             parcheOffline, parcheUndo
         /// "Cena de Ana" cerrado con todos en $0 (A2-52) y "Santa Marta" visto por Carlos, que debe (A2-53).
         case parcheSettledAll, parcheYouOwe
+        /// "Editar movimiento": al editar no arranca ningún teclado (se abre al tocar la tarjeta del monto).
+        case editMovement
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
         static var current: DebugScreen? {
@@ -67,6 +69,10 @@
                 stores.router.push(.cruce(MockData.joanAnaCruceID))
                 return stores
             case .add: return stores(path: [.addMovement])
+            case .editMovement:
+                let stores = AppStores.sample()
+                stores.router.path = [.editMovement(stores.ledger.visibleMovements[0].id)]
+                return stores
             case .history: return stores(path: [.history])
             case .detail, .delete: return .sample()
             case .settle: return stores(path: [.settle])
