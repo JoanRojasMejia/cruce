@@ -36,8 +36,8 @@ struct ParcheExpenseView: View {
     @State private var concept = ""
     @State private var base = 0
     @State private var tip = 0
-    @State private var payerIDs: [UUID] = []
-    @State private var payerAmounts: [UUID: Int] = [:]
+    /// Quiénes pagaron y cuánto puso cada uno (la regla vive en CruceCore).
+    @State private var payersDraft = ParchePayersDraft(order: [], payerIDs: [])
     @State private var method: Method = .equalAll
     @State private var someIDs: Set<UUID> = []
     @State private var items: [ItemDraft] = []
@@ -91,7 +91,9 @@ struct ParcheExpenseView: View {
         .safeAreaInset(edge: .bottom) {
             Button(expenseID == nil ? "Guardar el gasto" : "Guardar cambios") { save(detail) }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
-                .disabled(base == 0 || concept.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(
+                    base == 0 || concept.trimmingCharacters(in: .whitespaces).isEmpty || !payersDraft.isBalanced
+                )
                 .padding(.horizontal, Spacing.screen)
                 .padding(.top, 10)
                 .padding(.bottom, 8)
@@ -107,6 +109,7 @@ struct ParcheExpenseView: View {
         .foregroundStyle(CruceColor.ink)
         .onChange(of: concept) { problem = nil }
         .onChange(of: base) { problem = nil }
+        .onChange(of: total) { _, newTotal in payersDraft.setTotal(newTotal) }
         .overlay { dialogs(detail) }
         .animation(.easeOut(duration: 0.15), value: confirmingDelete)
         .animation(.easeOut(duration: 0.15), value: duplicate?.message)
@@ -137,16 +140,14 @@ struct ParcheExpenseView: View {
     private func payersSection(_ detail: ParcheDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("¿Quién pagó? Puedes elegir a varios").textStyle(.fieldLabel)
-            peopleChips(detail, selected: Set(payerIDs)) { id in
-                if let index = payerIDs.firstIndex(of: id) {
-                    if payerIDs.count > 1 { payerIDs.remove(at: index) }
-                } else {
-                    payerIDs.append(id)
-                }
+            peopleChips(detail, selected: Set(payersDraft.payerIDs)) { id in
+                payersDraft.toggle(id)
+                problem = nil
             }
-            if payerIDs.count > 1 {
+            if payersDraft.hasSeveralPayers {
+                Text("¿Cuánto puso cada uno?").textStyle(.fieldLabel).padding(.top, 4)
                 VStack(spacing: 8) {
-                    ForEach(payerIDs, id: \.self) { id in
+                    ForEach(payersDraft.payerIDs, id: \.self) { id in
                         HStack(spacing: 10) {
                             Text(name(id, in: detail)).font(.archivo(14, .extraBold))
                             Spacer(minLength: 8)
@@ -158,8 +159,8 @@ struct ParcheExpenseView: View {
                         }
                     }
                 }
-                if paid != total {
-                    ParcheProblem(text: ParcheExpenseError.payersDoNotMatch(paid: paid, total: total).message)
+                if let mismatch = payersDraft.mismatchMessage {
+                    ParcheProblem(text: mismatch)
                 }
             }
         }
@@ -353,15 +354,6 @@ struct ParcheExpenseView: View {
 
     private var total: Int { base + base * tip / 100 }
 
-    private var paid: Int {
-        payerIDs.map { payerAmounts[$0] ?? 0 }.reduce(0, +)
-    }
-
-    private var payers: [ParchePayer] {
-        if payerIDs.count == 1, let id = payerIDs.first { return [ParchePayer(participantID: id, amount: total)] }
-        return payerIDs.map { ParchePayer(participantID: $0, amount: payerAmounts[$0] ?? 0) }
-    }
-
     private func split(_ detail: ParcheDetail) -> ParcheSplit {
         switch method {
         case .equalAll: return .equal(Set(detail.order))
@@ -380,7 +372,7 @@ struct ParcheExpenseView: View {
     }
 
     private func amountBinding(for id: UUID) -> Binding<Int> {
-        Binding(get: { payerAmounts[id] ?? 0 }, set: { payerAmounts[id] = $0 })
+        Binding(get: { payersDraft.amount(of: id) }, set: { payersDraft.setAmount($0, for: id) })
     }
 
     private func name(_ id: UUID, in detail: ParcheDetail) -> String {
@@ -402,13 +394,13 @@ struct ParcheExpenseView: View {
             uniqueKeysWithValues: everyone.enumerated().map { index, id in
                 (id, even + (index < 100 - even * everyone.count ? 1 : 0))
             })
-        payerIDs = detail.myParticipantID.map { [$0] } ?? Array(everyone.prefix(1))
+        payersDraft = ParchePayersDraft(
+            order: everyone, payerIDs: detail.myParticipantID.map { [$0] } ?? Array(everyone.prefix(1)))
         guard let expenseID, let expense = detail.expenses.first(where: { $0.id == expenseID }) else { return }
         concept = expense.concept
         base = expense.baseAmount
         tip = expense.tipPercent
-        payerIDs = expense.payers.map(\.participantID)
-        payerAmounts = Dictionary(expense.payers.map { ($0.participantID, $0.amount) }, uniquingKeysWith: +)
+        payersDraft = ParchePayersDraft(order: everyone, editing: expense.payers, total: expense.amount)
         switch expense.split {
         case .equal(let ids):
             if ids == Set(everyone) {
@@ -434,7 +426,7 @@ struct ParcheExpenseView: View {
         guard
             let expense = parches.validateExpense(
                 in: parcheID, editing: expenseID, concept: concept, base: base, tipPercent: tip,
-                split: split(detail), payers: payers)
+                split: split(detail), payers: payersDraft.payers)
         else {
             problem = parches.error?.message
             return
