@@ -2,7 +2,8 @@ import CruceCore
 import SwiftUI
 
 /// "Tus cruces": el inicio cuando hay dos o más cruces. Una fila por cruce con la otra persona y su saldo;
-/// al tocarla se abre el inicio de ese cruce. Sin captura en el canvas: se arma con las piezas de "Tus parches".
+/// al tocarla se abre el inicio de ese cruce. Los cruces cerrados (desvinculados) van aparte, en la sección "Cerrados"
+/// al final y en gris. Sin captura en el canvas: se arma con las piezas de "Tus parches".
 struct CruceListView: View {
     @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
@@ -21,22 +22,27 @@ struct CruceListView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                VStack(spacing: 10) {
-                    ForEach(session.cruces) { cruce in
-                        Button {
-                            session.open(cruce.id)
-                            router.push(.cruce(cruce.id))
-                        } label: {
-                            CruceRow(cruce: cruce)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                if !session.openCruces.isEmpty {
+                    rows(session.openCruces)
                 }
 
                 CruceEntryButtons()
 
                 HomeParchesSection()
                     .padding(.top, 4)
+
+                if !session.closedCruces.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Cerrados").textStyle(.sectionTitle)
+                            .accessibilityAddTraits(.isHeader)
+                        Text("Ya no se anota nada en ellos. Ábrelos para ver su historial.")
+                            .textStyle(.secondary)
+                            .foregroundStyle(CruceColor.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        rows(session.closedCruces)
+                    }
+                    .padding(.top, 4)
+                }
             }
             .padding(.horizontal, Spacing.screen)
             .padding(.top, 8)
@@ -47,10 +53,24 @@ struct CruceListView: View {
         .refreshable { await ledger.load() }
         .screenBackground()
     }
+
+    private func rows(_ cruces: [CruceLink]) -> some View {
+        VStack(spacing: 10) {
+            ForEach(cruces) { cruce in
+                Button {
+                    session.open(cruce.id)
+                    router.push(.cruce(cruce.id))
+                } label: {
+                    CruceRow(cruce: cruce)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
 }
 
 /// Una fila de "Tus cruces": la otra persona, la frase y el monto con signo. La dirección de la deuda va en texto,
-/// no solo en el color. Un cruce cerrado lleva la marca "Cerrado".
+/// no solo en el color. Un cruce cerrado va en gris (en la sección "Cerrados") y su nombre se ve completo.
 struct CruceRow: View {
     @Environment(LedgerStore.self) private var ledger
     let cruce: CruceLink
@@ -65,19 +85,11 @@ struct CruceRow: View {
         HStack(spacing: 12) {
             Avatar(member: cruce.partner, size: 44)
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text("Con \(cruce.partner.name)")
-                        .textStyle(.rowTitle)
-                        .lineLimit(1)
-                    // Desvinculado: sigue en la lista para ver su historial, al final y marcado.
-                    if cruce.isClosed {
-                        Text("Cerrado")
-                            .font(.archivo(11, .extraBold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .neoSurface(fill: CruceColor.pink, radius: 6, border: BorderWidth.thin)
-                    }
-                }
+                // Abierto, una línea; cerrado, el nombre completo aunque ocupe dos (ya no hay etiqueta que lo corte).
+                Text("Con \(cruce.partner.name)")
+                    .textStyle(.rowTitle)
+                    .lineLimit(cruce.isClosed ? nil : 1)
+                    .fixedSize(horizontal: false, vertical: cruce.isClosed)
                 Text(ledger.phrase(forNet: net, partner: cruce.partner))
                     .textStyle(.secondary)
                     .foregroundStyle(CruceColor.textSecondary)
@@ -101,9 +113,13 @@ struct CruceRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .neoSurface(radius: Radius.card, shadow: ShadowOffset.s)
-        .foregroundStyle(CruceColor.ink)
+        .neoSurface(
+            fill: cruce.isClosed ? CruceColor.neutral : CruceColor.surface, radius: Radius.card,
+            shadow: cruce.isClosed ? 0 : ShadowOffset.s
+        )
+        .foregroundStyle(cruce.isClosed ? CruceColor.textSecondary : CruceColor.ink)
         .accessibilityElement(children: .combine)
+        .accessibilityValue(cruce.isClosed ? "Cerrado" : "")
     }
 
     /// "a tu favor" o "a favor de Ana"; en $0 no dice nada (la frase ya dice que están a paz y salvo).

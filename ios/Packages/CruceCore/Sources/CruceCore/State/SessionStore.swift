@@ -61,6 +61,11 @@ public final class SessionStore {
     /// Abre "Conectados"; la vista lo vuelve `nil` al cerrarla.
     public var lastLinked: CruceLink?
 
+    /// Los cruces abiertos, del más reciente al más viejo: la lista principal de "Tus cruces".
+    public var openCruces: [CruceLink] { cruces.filter { !$0.isClosed } }
+    /// Los cruces cerrados (desvinculados): van aparte, en la sección "Cerrados" al final de "Tus cruces".
+    public var closedCruces: [CruceLink] { cruces.filter(\.isClosed) }
+
     /// El cruce abierto, o `nil` si no hay cruces.
     public var openCruce: CruceLink? {
         cruces.first { $0.id == openCruceID }

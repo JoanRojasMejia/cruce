@@ -131,6 +131,19 @@ struct SessionSettingsTests {
         #expect(fresh.partner.id == anaID)
     }
 
+    @Test("Tus cruces separa los abiertos de los cerrados (sección Cerrados al final)")
+    func openAndClosedSections() async {
+        let directory = makeDirectory()
+        await directory.link(joanID, anaID)
+        await directory.link(joanID, jesusID)
+        let joan = await session(joanID, directory)
+        #expect(joan.openCruces.map(\.partner.id) == [jesusID, anaID])
+        #expect(joan.closedCruces.isEmpty)
+        await joan.closeOpenCruce()
+        #expect(joan.openCruces.map(\.partner.id) == [anaID])
+        #expect(joan.closedCruces.map(\.partner.id) == [jesusID])
+    }
+
     @Test("Sin red, desvincular no cambia nada")
     func closeOffline() async {
         let directory = makeDirectory()

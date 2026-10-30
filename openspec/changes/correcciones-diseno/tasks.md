@@ -17,7 +17,7 @@
 - [x] 3.2 Detalle del parche más corto: hoja de "Los del parche" y código, actividad en su propia vista.
 - [x] 3.3 Llegada con `PCH-` y `SOY-`.
 - [x] 3.4 Una sola pantalla "Tengo un código", errores separados y enlace `cruce://codigo/…` (D2, D5).
-- [ ] 3.5 Cruces cerrados en la sección "Cerrados".
+- [x] 3.5 Cruces cerrados en la sección "Cerrados".
 - [ ] 3.6 El cruce abierto desde la lista no repite "Tus parches" (D8).
 
 ## 4. Detalles
