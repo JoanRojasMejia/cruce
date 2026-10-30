@@ -17,6 +17,20 @@ struct ParcheExpenseView: View {
             case .percentage: return "Por porcentaje"
             }
         }
+
+        /// Un ejemplo de una línea para cada forma de repartir que no es "Iguales entre todos".
+        var example: String {
+            switch self {
+            case .equalAll: return "Todos ponen lo mismo."
+            case .equalSome: return "Si Ana no tomó, el vino se reparte solo entre los demás."
+            case .items: return "Cada quien paga lo suyo: la mojarra de Carlos va solo a Carlos."
+            case .shares: return "Si Ana va con su pareja, ella cuenta 2 y los demás 1."
+            case .percentage: return "Jesús pone el 50 % y Ana y Joan el 25 % cada uno."
+            }
+        }
+
+        /// Las que se abren con "Otra forma de repartir".
+        static let others: [Method] = [.equalSome, .items, .shares, .percentage]
     }
 
     /// Un ítem del reparto por consumo, mientras se escribe.
@@ -41,6 +55,8 @@ struct ParcheExpenseView: View {
     /// Quiénes pagaron y cuánto puso cada uno (la regla vive en CruceCore).
     @State private var payersDraft = ParchePayersDraft(order: [], payerIDs: [])
     @State private var method: Method = .equalAll
+    /// "Otra forma de repartir" abierta (también al editar un gasto que no es en partes iguales entre todos).
+    @State private var showsOtherMethods = false
     @State private var someIDs: Set<UUID> = []
     @State private var items: [ItemDraft] = []
     @State private var shares: [UUID: Int] = [:]
@@ -174,9 +190,19 @@ struct ParcheExpenseView: View {
     private func methodSection(_ detail: ParcheDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reparto").textStyle(.fieldLabel)
+            // Lo común a la vista; las demás formas se abren con "Otra forma de repartir", cada una con su ejemplo.
             FlowLayout(spacing: 8) {
-                ForEach(Method.allCases, id: \.self) { option in
-                    Chip(title: option.title, isSelected: option == method) { method = option }
+                Chip(title: Method.equalAll.title, isSelected: !othersOpen) {
+                    method = .equalAll
+                    showsOtherMethods = false
+                }
+                Chip(title: "Otra forma de repartir", isSelected: othersOpen) { showsOtherMethods = true }
+            }
+            if othersOpen {
+                VStack(spacing: 8) {
+                    ForEach(Method.others, id: \.self) { option in
+                        methodOption(option)
+                    }
                 }
             }
             switch method {
@@ -196,6 +222,42 @@ struct ParcheExpenseView: View {
                 weightsEditor(detail, values: $percents, suffix: "%", range: 0...100)
             }
         }
+    }
+
+    /// Abierta si se pidió o si el gasto ya usa otra forma.
+    private var othersOpen: Bool { showsOtherMethods || method != .equalAll }
+
+    /// Una forma de repartir con su ejemplo de una línea; la elegida va marcada.
+    private func methodOption(_ option: Method) -> some View {
+        let selected = option == method
+        return Button {
+            method = option
+        } label: {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 18, weight: .bold))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(option.title).font(.archivo(15, .extraBold))
+                    Text(option.example)
+                        .textStyle(.secondary)
+                        .foregroundStyle(CruceColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(CruceColor.ink)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .neoSurface(
+                fill: selected ? CruceColor.yellow : CruceColor.surface, radius: Radius.button,
+                border: BorderWidth.thin
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func itemsEditor(_ detail: ParcheDetail) -> some View {

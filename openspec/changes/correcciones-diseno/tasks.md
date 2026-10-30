@@ -24,7 +24,7 @@
 
 - [x] 4.1 Un solo aviso sin conexión y "Sin enviar" con reloj; "Por confirmar" con estilo propio.
 - [x] 4.2 Gasto por consumo: título, nombre del ítem (migración), "Faltan $X por repartir" y "Borrar el gasto" como texto.
-- [ ] 4.3 Formas de reparto: "Iguales entre todos" y "Otra forma de repartir" con ejemplos.
+- [x] 4.3 Formas de reparto: "Iguales entre todos" y "Otra forma de repartir" con ejemplos.
 - [ ] 4.4 Deshacer al borrar un gasto durante 5 s (D6).
 - [ ] 4.5 Cuenta regresiva de 30 s para "Pedir otro código".
 - [ ] 4.6 Enlace del código `SOY-` en el ticket; Nequi o llave anotado en el ROADMAP.

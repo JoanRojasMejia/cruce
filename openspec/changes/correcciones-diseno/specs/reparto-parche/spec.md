@@ -42,3 +42,16 @@ Un gasto SHALL poder tener uno o varios pagadores con montos que sumen exactamen
 #### Scenario: El Hospedaje de Santa Marta
 - **WHEN** el Hospedaje de $600.000, repartido por partes 1/1/1/1, lo pagan Jesús con $400.000 y Joan con $200.000, junto con el resto de los gastos de Santa Marta
 - **THEN** los saldos son +$47.000 (Joan), +$125.000 (Jesús), $0 (Ana) y −$172.000 (Carlos)
+
+## ADDED Requirements
+
+### Requirement: Formas de reparto con un ejemplo
+Al anotar un gasto, la pantalla SHALL mostrar a la vista "Iguales entre todos" y "Otra forma de repartir". "Otra forma de repartir" MUST abrir las demás formas ("Iguales entre algunos", "Por consumo", "Por partes" y "Por porcentaje"), cada una con un ejemplo de una línea. Al editar un gasto que usa otra forma, las opciones SHALL verse abiertas con esa forma elegida.
+
+#### Scenario: Por partes con su ejemplo
+- **WHEN** Joan toca "Otra forma de repartir"
+- **THEN** ve "Por partes" con "Si Ana va con su pareja, ella cuenta 2 y los demás 1."
+
+#### Scenario: Editar un gasto por consumo
+- **WHEN** Joan abre el almuerzo repartido por consumo
+- **THEN** "Otra forma de repartir" está abierta y "Por consumo" está elegida
