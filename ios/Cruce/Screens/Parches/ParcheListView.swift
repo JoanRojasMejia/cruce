@@ -114,7 +114,7 @@ struct ParcheRow: View {
             Spacer(minLength: 8)
             HStack(spacing: -6) {
                 ForEach(Array(detail.participants.prefix(3).enumerated()), id: \.element.id) { index, person in
-                    ParcheAvatar(participant: person, index: detail.index(of: person.id), size: 30)
+                    ParcheAvatar(participant: person, size: 30)
                         .zIndex(Double(-index))
                 }
             }

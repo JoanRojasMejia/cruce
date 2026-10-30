@@ -9,27 +9,33 @@ import Supabase
 struct SupabaseAccountDirectory: AccountDirectory {
     let client: SupabaseClient
 
-    /// Una fila de `profiles`.
+    /// Una fila de `profiles`. Al crearla no se manda el color: la base elige uno al azar.
     private struct ProfileRow: Codable {
         let id: UUID
         let displayName: String
+        /// Opcional para seguir leyendo una base sin la migración de colores (queda amarillo).
+        var avatarColor: AvatarColor?
 
         enum CodingKeys: String, CodingKey {
             case id
             case displayName = "display_name"
+            case avatarColor = "avatar_color"
         }
     }
 
     func profile(for userID: UUID) async throws -> Profile? {
+        // Todas las columnas: así una base sin `avatar_color` todavía no rompe la entrada.
         let rows: [ProfileRow] =
             try await client
             .from("profiles")
-            .select("id, display_name")
+            .select()
             .eq("id", value: userID)
             .limit(1)
             .execute()
             .value
-        return rows.first.map { Profile(id: $0.id, displayName: $0.displayName) }
+        return rows.first.map {
+            Profile(id: $0.id, displayName: $0.displayName, avatarColor: $0.avatarColor ?? .yellow)
+        }
     }
 
     func cruces(for userID: UUID) async throws -> [CruceLink] {
@@ -60,6 +66,15 @@ struct SupabaseAccountDirectory: AccountDirectory {
             .execute()
     }
 
+    func updateAvatarColor(_ color: AvatarColor, for userID: UUID) async throws {
+        // Igual que el nombre: solo la fila propia. La base copia el color a sus lugares en los parches.
+        try await client
+            .from("profiles")
+            .update(["avatar_color": color.rawValue])
+            .eq("id", value: userID)
+            .execute()
+    }
+
     func setDefaultOtherPercent(_ percent: Int, in cruceID: UUID, for userID: UUID) async throws {
         // Solo `default_other_percent` tiene permiso de edición en `ledgers`, y RLS deja solo los cruces propios.
         try await client
@@ -78,7 +93,7 @@ struct SupabaseAccountDirectory: AccountDirectory {
         // La política "crear mi perfil" solo deja insertar la fila con `id = auth.uid()`.
         try await client
             .from("profiles")
-            .insert(ProfileRow(id: profile.id, displayName: profile.displayName))
+            .insert(ProfileRow(id: profile.id, displayName: profile.displayName, avatarColor: nil))
             .execute()
     }
 }

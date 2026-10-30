@@ -1,12 +1,12 @@
 import Foundation
 
-/// Un cruce completo (de dos personas) de quien usa la app: con quién es y qué color y recibo tiene cada uno.
-/// El color y el recibo son por cruce: quien creó ese cruce es amarillo y rosa, y quien se unió, violeta y verde.
+/// Un cruce completo (de dos personas) de quien usa la app: con quién es y qué recibo tiene cada uno.
+/// El recibo es por cruce: quien creó ese cruce ve el rosa y quien se unió, el verde. El color no: es el del perfil de
+/// cada persona (`partner.avatarColor`, y el propio en `SessionStore.me`).
 public struct CruceLink: Identifiable, Codable, Equatable, Sendable {
     /// El id del cruce (`ledgers.id`).
     public let id: UUID
     public var partner: Member
-    public var myAvatarColor: AvatarColor
     public var myTikeVariant: TikeVariant
     /// Cuándo se unió la segunda persona: el cruce más reciente es el que se completó último.
     public var linkedAt: Date
@@ -21,12 +21,11 @@ public struct CruceLink: Identifiable, Codable, Equatable, Sendable {
     public var isClosed: Bool { closedAt != nil }
 
     public init(
-        id: UUID, partner: Member, myAvatarColor: AvatarColor, myTikeVariant: TikeVariant, linkedAt: Date,
+        id: UUID, partner: Member, myTikeVariant: TikeVariant, linkedAt: Date,
         closedAt: Date? = nil, defaultOtherPercent: Int = CruceLink.standardOtherPercent
     ) {
         self.id = id
         self.partner = partner
-        self.myAvatarColor = myAvatarColor
         self.myTikeVariant = myTikeVariant
         self.linkedAt = linkedAt
         self.closedAt = closedAt
@@ -34,16 +33,15 @@ public struct CruceLink: Identifiable, Codable, Equatable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, partner, myAvatarColor, myTikeVariant, linkedAt, closedAt, defaultOtherPercent
+        case id, partner, myTikeVariant, linkedAt, closedAt, defaultOtherPercent
     }
 
     /// Una sesión guardada antes del CP11 (`sesion.json`) no trae `closedAt` ni `defaultOtherPercent`: se leen como
-    /// abierto y 50 %.
+    /// abierto y 50 %. Una de antes del color por persona trae `myAvatarColor`, que ya no se usa.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         partner = try container.decode(Member.self, forKey: .partner)
-        myAvatarColor = try container.decode(AvatarColor.self, forKey: .myAvatarColor)
         myTikeVariant = try container.decode(TikeVariant.self, forKey: .myTikeVariant)
         linkedAt = try container.decode(Date.self, forKey: .linkedAt)
         closedAt = try container.decodeIfPresent(Date.self, forKey: .closedAt)
@@ -108,7 +106,6 @@ public enum CruceRemote {
         let partnerId: UUID
         let partnerName: String
         let myTike: TikeVariant
-        let myAvatar: AvatarColor
         let partnerTike: TikeVariant
         let partnerAvatar: AvatarColor
         let linkedAt: Date
@@ -120,7 +117,6 @@ public enum CruceRemote {
             case partnerId = "partner_id"
             case partnerName = "partner_name"
             case myTike = "my_tike"
-            case myAvatar = "my_avatar"
             case partnerTike = "partner_tike"
             case partnerAvatar = "partner_avatar"
             case linkedAt = "linked_at"
@@ -135,6 +131,7 @@ public enum CruceRemote {
     }
 
     /// Las filas de `my_cruces()`, en el mismo orden (los abiertos primero, cada grupo del más reciente al más viejo).
+    /// `partner_avatar` es el color del perfil del otro; `my_avatar` (el propio) no se lee: sale del perfil.
     public static func cruceLinks(from data: Data) throws -> [CruceLink] {
         try ParcheRemote.decoder().decode([CruceRow].self, from: data).map { row in
             CruceLink(
@@ -142,7 +139,7 @@ public enum CruceRemote {
                 partner: Member(
                     id: row.partnerId, name: row.partnerName, avatarColor: row.partnerAvatar,
                     tikeVariant: row.partnerTike),
-                myAvatarColor: row.myAvatar, myTikeVariant: row.myTike, linkedAt: row.linkedAt,
+                myTikeVariant: row.myTike, linkedAt: row.linkedAt,
                 closedAt: row.closedAt, defaultOtherPercent: row.defaultOtherPercent ?? CruceLink.standardOtherPercent)
         }
     }

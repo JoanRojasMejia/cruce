@@ -17,11 +17,12 @@ public enum MockData {
         tikeVariant: .verde
     )
 
-    /// Ana creó su cruce con Joan y Joan se unió con código: en ese cruce Ana es amarilla y rosa, y Joan, violeta y verde.
+    /// Ana creó su cruce con Joan y Joan se unió con código: en ese cruce Ana ve el recibo rosa y Joan, el verde.
+    /// Cada quien tiene su color de perfil: Joan amarillo, Jesús violeta y Ana verde.
     public static let ana = Member(
         id: UUID(uuidString: "00000000-0000-0000-0000-00000000000C")!,
         name: "Ana",
-        avatarColor: .yellow,
+        avatarColor: .green,
         tikeVariant: .rosa
     )
 
@@ -34,14 +35,13 @@ public enum MockData {
     public static func joanJesusCruce(viewer: Member) -> CruceLink {
         let isJoan = viewer.id == joan.id
         return CruceLink(
-            id: joanJesusCruceID, partner: isJoan ? jesus : joan, myAvatarColor: isJoan ? .yellow : .violet,
-            myTikeVariant: isJoan ? .rosa : .verde, linkedAt: Date(timeIntervalSince1970: 1_792_000_000))
+            id: joanJesusCruceID, partner: isJoan ? jesus : joan, myTikeVariant: isJoan ? .rosa : .verde,
+            linkedAt: Date(timeIntervalSince1970: 1_792_000_000))
     }
 
     /// El cruce de Joan y Ana visto por Joan: más reciente que el de Jesús.
     public static let joanAnaCruce = CruceLink(
-        id: joanAnaCruceID, partner: ana, myAvatarColor: .violet, myTikeVariant: .verde,
-        linkedAt: Date(timeIntervalSince1970: 1_792_500_000))
+        id: joanAnaCruceID, partner: ana, myTikeVariant: .verde, linkedAt: Date(timeIntervalSince1970: 1_792_500_000))
 
     /// Movimientos del cruce de Joan y Ana: Joan le debe $15.000 a Ana.
     public static func anaMovements(reference: Date = .now) -> [Movement] {

@@ -2,7 +2,7 @@
 
 - [x] 1.1 Pasar al cruce desde "Para saldar", con propuesta, aceptar y rechazar (migración, pgTAP `10_pasar_al_cruce`, CruceCore y pantallas 39/46). Ruta: escritor delegado.
 - [x] 1.2 "Saldar primero" en la confirmación de desvincular cuando el saldo no es $0 (D4). Ruta: escritor delegado.
-- [ ] 1.3 Color fijo por persona en `profiles` y en quien está sin la app; rosa o verde solo para el Tike (migración, pgTAP `11_colores`). Ruta: escritor delegado.
+- [x] 1.3 Color fijo por persona en `profiles` y en quien está sin la app; rosa o verde solo para el Tike (migración, pgTAP `11_colores`). Ruta: escritor delegado.
 - [ ] 1.4 Varios pagadores: "¿Cuánto puso cada uno?", partes iguales por defecto, "Faltan $X"/"Sobran $X" y prueba de Santa Marta. Ruta: escritor delegado.
 - [ ] 1.5 Aviso de pago de más al anotar y al confirmar; quien pagó no aparece en "¿A quién le pagó?". Ruta: escritor delegado.
 - [ ] 1.6 Solo quien creó el parche lo cierra; "Pídele a <nombre> que lo cierre" (migración, pgTAP `12_cerrar_parche`). Ruta: escritor delegado.

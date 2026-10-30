@@ -202,7 +202,7 @@ struct SessionStoreTests {
         await session.refresh()
         let ok = await session.createProfile(name: "  Joan  ")
         #expect(ok)
-        #expect(await directory.storedProfile(for: user) == Profile(id: user, displayName: "Joan"))
+        #expect(await directory.storedProfile(for: user)?.displayName == "Joan")
         #expect(session.me.name == "Joan")
         #expect(session.phase == .invite)
     }

@@ -26,10 +26,13 @@ public enum AuthServiceError: Error, Equatable, Sendable {
 public struct Profile: Equatable, Sendable {
     public let id: UUID
     public var displayName: String
+    /// Su color fijo (`profiles.avatar_color`). Al crear el perfil lo elige la base, al azar.
+    public var avatarColor: AvatarColor
 
-    public init(id: UUID, displayName: String) {
+    public init(id: UUID, displayName: String, avatarColor: AvatarColor = .yellow) {
         self.id = id
         self.displayName = displayName
+        self.avatarColor = avatarColor
     }
 }
 
@@ -38,10 +41,12 @@ public struct Profile: Equatable, Sendable {
 public protocol AccountDirectory: Sendable {
     /// El perfil de ese usuario, o `nil` si todavía no lo creó.
     func profile(for userID: UUID) async throws -> Profile?
-    /// Crea el perfil con `id` igual al del usuario.
+    /// Crea el perfil con `id` igual al del usuario. El color no se manda: la base elige uno de la paleta al azar.
     func createProfile(_ profile: Profile) async throws
     /// Cambia el nombre del usuario (`profiles.display_name`). El nombre ya viene validado (1 a 40 caracteres).
     func updateDisplayName(_ name: String, for userID: UUID) async throws
+    /// Cambia el color del usuario (`profiles.avatar_color`). La base lo copia a sus lugares en los parches.
+    func updateAvatarColor(_ color: AvatarColor, for userID: UUID) async throws
     /// Los cruces completos (de dos personas) del usuario (`my_cruces()`): primero los abiertos y después los cerrados,
     /// cada grupo del más reciente al más viejo. Un cruce pendiente, donde nadie se ha unido, no aparece.
     func cruces(for userID: UUID) async throws -> [CruceLink]
@@ -112,9 +117,9 @@ public actor InMemoryAuthService: AuthService {
 /// Doble en memoria de `AccountDirectory`, para pruebas y vistas previas. Reproduce las reglas de la base:
 /// un cruce pendiente por persona, un cruce por pareja, códigos que vencen a las 24 horas y 5 intentos fallidos por hora.
 public actor InMemoryAccountDirectory: AccountDirectory {
+    /// El recibo es por cruce; el color no: sale del perfil.
     private struct Membership {
         let user: UUID
-        let avatarColor: AvatarColor
         let tikeVariant: TikeVariant
         let joinedAt: Date
     }
@@ -161,7 +166,7 @@ public actor InMemoryAccountDirectory: AccountDirectory {
             ledgers.append(
                 Ledger(
                     id: ledgerID, createdBy: creator,
-                    members: [Membership(user: creator, avatarColor: .yellow, tikeVariant: .rosa, joinedAt: now)]))
+                    members: [Membership(user: creator, tikeVariant: .rosa, joinedAt: now)]))
             invites["CRZ-" + String(format: "%04d", nextCode % 10_000)] = Invite(
                 ledgerID: ledgerID, createdBy: creator, expiresAt: now + 24 * 60 * 60)
             nextCode += 1
@@ -178,7 +183,7 @@ public actor InMemoryAccountDirectory: AccountDirectory {
         now += seconds
     }
 
-    /// Crea un cruce completo entre dos personas: `creator` queda amarillo y rosa, `joiner` violeta y verde.
+    /// Crea un cruce completo entre dos personas: `creator` queda con el recibo rosa y `joiner` con el verde.
     /// Cada llamada es un segundo más tarde, así el último cruce creado es el más reciente.
     public func link(_ creator: UUID, _ joiner: UUID) {
         now += 1
@@ -186,8 +191,8 @@ public actor InMemoryAccountDirectory: AccountDirectory {
             Ledger(
                 id: UUID(), createdBy: creator,
                 members: [
-                    Membership(user: creator, avatarColor: .yellow, tikeVariant: .rosa, joinedAt: now),
-                    Membership(user: joiner, avatarColor: .violet, tikeVariant: .verde, joinedAt: now),
+                    Membership(user: creator, tikeVariant: .rosa, joinedAt: now),
+                    Membership(user: joiner, tikeVariant: .verde, joinedAt: now),
                 ]))
     }
 
@@ -211,15 +216,24 @@ public actor InMemoryAccountDirectory: AccountDirectory {
         return profiles[userID]
     }
 
+    /// Como la base: el color del perfil nuevo es uno de la paleta, al azar (el del perfil que llega no se usa).
     public func createProfile(_ profile: Profile) async throws {
         if isFailing { throw Offline() }
-        profiles[profile.id] = profile
+        var created = profile
+        created.avatarColor = AvatarColor.palette.randomElement() ?? .yellow
+        profiles[profile.id] = created
     }
 
     public func updateDisplayName(_ name: String, for userID: UUID) async throws {
         if isFailing { throw Offline() }
         guard profiles[userID] != nil else { throw NotFound() }
-        profiles[userID] = Profile(id: userID, displayName: name)
+        profiles[userID]?.displayName = name
+    }
+
+    public func updateAvatarColor(_ color: AvatarColor, for userID: UUID) async throws {
+        if isFailing { throw Offline() }
+        guard profiles[userID] != nil else { throw NotFound() }
+        profiles[userID]?.avatarColor = color
     }
 
     public func setDefaultOtherPercent(_ percent: Int, in cruceID: UUID, for userID: UUID) async throws {
@@ -251,10 +265,10 @@ public actor InMemoryAccountDirectory: AccountDirectory {
                     let other = ledger.members.first(where: { $0.user != userID })
                 else { return nil }
                 let partner = Member(
-                    id: other.user, name: profiles[other.user]?.displayName ?? "", avatarColor: other.avatarColor,
-                    tikeVariant: other.tikeVariant)
+                    id: other.user, name: profiles[other.user]?.displayName ?? "",
+                    avatarColor: profiles[other.user]?.avatarColor ?? .yellow, tikeVariant: other.tikeVariant)
                 return CruceLink(
-                    id: ledger.id, partner: partner, myAvatarColor: mine.avatarColor, myTikeVariant: mine.tikeVariant,
+                    id: ledger.id, partner: partner, myTikeVariant: mine.tikeVariant,
                     linkedAt: max(mine.joinedAt, other.joinedAt), closedAt: ledger.closedAt,
                     defaultOtherPercent: ledger.defaultOtherPercent)
             }
@@ -276,7 +290,7 @@ public actor InMemoryAccountDirectory: AccountDirectory {
             ledgers.append(
                 Ledger(
                     id: ledgerID, createdBy: userID,
-                    members: [Membership(user: userID, avatarColor: .yellow, tikeVariant: .rosa, joinedAt: now)]))
+                    members: [Membership(user: userID, tikeVariant: .rosa, joinedAt: now)]))
         }
         let code = "CRZ-" + String(format: "%04d", nextCode % 10_000)
         nextCode += 1
@@ -296,7 +310,7 @@ public actor InMemoryAccountDirectory: AccountDirectory {
             let index = ledgers.firstIndex(where: { $0.id == invite.ledgerID })
         else { return result }
         ledgers[index].members.append(
-            Membership(user: userID, avatarColor: .violet, tikeVariant: .verde, joinedAt: now))
+            Membership(user: userID, tikeVariant: .verde, joinedAt: now))
         invite.redeemedBy = userID
         invites[normalized] = invite
         return result

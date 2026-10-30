@@ -38,7 +38,7 @@ struct CruceRemoteTests {
         #expect(try CruceRemote.inviteCheck(from: data(json)) == .rejected(.invalid, message: "Algo nuevo"))
     }
 
-    @Test("Las filas de my_cruces se vuelven cruces con la otra persona y los colores de cada lado")
+    @Test("Las filas de my_cruces se vuelven cruces con la otra persona, su color y el recibo de cada lado")
     func cruceRows() throws {
         let json = """
             [
@@ -58,7 +58,6 @@ struct CruceRemoteTests {
                 == Member(
                     id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!, name: "Joan", avatarColor: .yellow,
                     tikeVariant: .rosa))
-        #expect(links[1].myAvatarColor == .violet)
         #expect(links[1].myTikeVariant == .verde)
         #expect(links[0].linkedAt > links[1].linkedAt)
     }

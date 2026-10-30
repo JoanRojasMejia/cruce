@@ -14,10 +14,16 @@ public enum MockParches {
     public static let ana = UUID(uuidString: "00000000-0000-0000-0000-00000000C003")!
     public static let carlos = UUID(uuidString: "00000000-0000-0000-0000-00000000C004")!
 
+    /// El color del perfil de cada quien con la app: Joan amarillo, Jesús violeta y Ana verde (Carlos, sin la app, es
+    /// durazno dentro de "Santa Marta").
+    public static let colors: [UUID: AvatarColor] = [
+        MockData.joan.id: .yellow, MockData.jesus.id: .violet, anaUserID: .green,
+    ]
+
     /// Un backend en memoria con los dos parches; Joan y Jesús comparten un cruce.
     public static func backend(reference: Date = .now) -> InMemoryParcheBackend {
         InMemoryParcheBackend(
-            parches: parches(reference: reference), cruces: [[MockData.joan.id, MockData.jesus.id]])
+            parches: parches(reference: reference), cruces: [[MockData.joan.id, MockData.jesus.id]], colors: colors)
     }
 
     /// Los parches tal como están guardados (sin la vista de nadie).
@@ -31,13 +37,15 @@ public enum MockParches {
         let participants = [
             ParcheParticipant(
                 id: joan, userID: MockData.joan.id, displayName: "Joan", joinedAt: hoursAgo(72),
-                lastSeenAt: hoursAgo(10)),
+                lastSeenAt: hoursAgo(10), avatarColor: .yellow),
             ParcheParticipant(
                 id: jesus, userID: MockData.jesus.id, displayName: "Jesús", joinedAt: hoursAgo(71),
-                lastSeenAt: hoursAgo(1)),
+                lastSeenAt: hoursAgo(1), avatarColor: .violet),
             ParcheParticipant(
-                id: ana, userID: anaUserID, displayName: "Ana", joinedAt: hoursAgo(70), lastSeenAt: hoursAgo(2)),
-            ParcheParticipant(id: carlos, displayName: "Carlos", claimCode: "SOY-K7QX2M", joinedAt: hoursAgo(69)),
+                id: ana, userID: anaUserID, displayName: "Ana", joinedAt: hoursAgo(70), lastSeenAt: hoursAgo(2),
+                avatarColor: .green),
+            ParcheParticipant(
+                id: carlos, displayName: "Carlos", claimCode: "SOY-K7QX2M", joinedAt: hoursAgo(69), avatarColor: .peach),
         ]
         let order = participants.map(\.id)
         // El almuerzo de la spec: por consumo con 10 % de propina, pagado por Ana.
@@ -101,10 +109,10 @@ public enum MockParches {
         let participants = [
             ParcheParticipant(
                 id: UUID(uuidString: "00000000-0000-0000-0000-00000000C011")!, userID: anaUserID, displayName: "Ana",
-                joinedAt: daysAgo(20), lastSeenAt: daysAgo(18)),
+                joinedAt: daysAgo(20), lastSeenAt: daysAgo(18), avatarColor: .green),
             ParcheParticipant(
                 id: UUID(uuidString: "00000000-0000-0000-0000-00000000C012")!, userID: MockData.joan.id,
-                displayName: "Joan", joinedAt: daysAgo(20), lastSeenAt: daysAgo(18)),
+                displayName: "Joan", joinedAt: daysAgo(20), lastSeenAt: daysAgo(18), avatarColor: .yellow),
         ]
         let anaID = participants[0].id
         let joanID = participants[1].id

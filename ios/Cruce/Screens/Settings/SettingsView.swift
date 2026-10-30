@@ -39,7 +39,7 @@ struct SettingsView: View {
                     .neoSurface(radius: Radius.card, shadow: ShadowOffset.l)
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint("Cambiar tu nombre")
+                .accessibilityHint("Cambiar tu nombre y tu color")
 
                 section("CUENTA COMPARTIDA") {
                     row {

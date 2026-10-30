@@ -225,12 +225,12 @@ struct ParcheDetailView: View {
                     if index > 0 { CardDivider() }
                     HStack(spacing: 10) {
                         if let from = detail.participant(transfer.fromID) {
-                            ParcheAvatar(participant: from, index: detail.index(of: from.id), size: 28)
+                            ParcheAvatar(participant: from, size: 28)
                         }
                         Image(systemName: "arrow.right").font(.system(size: 12, weight: .black))
                             .accessibilityHidden(true)
                         if let to = detail.participant(transfer.toID) {
-                            ParcheAvatar(participant: to, index: detail.index(of: to.id), size: 28)
+                            ParcheAvatar(participant: to, size: 28)
                         }
                         Text(parches.phrase(for: transfer, in: detail))
                             .font(.archivo(14, .extraBold))
@@ -255,7 +255,7 @@ struct ParcheDetailView: View {
                     Button {
                         router.push(.parcheTicket(parcheID: parcheID, participantID: person.id))
                     } label: {
-                        balanceRow(balance, person: person, index: index, in: detail)
+                        balanceRow(balance, person: person, in: detail)
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Toca para ver y compartir su ticket")
@@ -268,10 +268,10 @@ struct ParcheDetailView: View {
     }
 
     private func balanceRow(
-        _ balance: ParcheBalance, person: ParcheParticipant, index: Int, in detail: ParcheDetail
+        _ balance: ParcheBalance, person: ParcheParticipant, in detail: ParcheDetail
     ) -> some View {
         HStack(spacing: 10) {
-            ParcheAvatar(participant: person, index: index, size: 32)
+            ParcheAvatar(participant: person, size: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(name(person, in: detail)).textStyle(.rowTitle)
                 Text(balanceLine(balance.net, person: person, in: detail))
@@ -326,7 +326,7 @@ struct ParcheDetailView: View {
             ForEach(Array(detail.participants.enumerated()), id: \.element.id) { index, person in
                 if index > 0 { CardDivider() }
                 HStack(spacing: 10) {
-                    ParcheAvatar(participant: person, index: detail.index(of: person.id), size: 32)
+                    ParcheAvatar(participant: person, size: 32)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(name(person, in: detail)).textStyle(.rowTitle)
                         if let code = person.claimCode, !person.hasApp {

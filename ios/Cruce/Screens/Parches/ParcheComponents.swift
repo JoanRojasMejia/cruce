@@ -1,26 +1,18 @@
 import CruceCore
 import SwiftUI
 
-/// Avatar de una persona del parche. El color sale del orden del parche; quien no tiene la app va en blanco con
-/// borde punteado (además del texto "(sin la app)", nunca solo por el estilo).
+/// Avatar de una persona del parche, con su color fijo (el de su perfil, o el que recibió al entrar sin la app). Quien no
+/// tiene la app lleva el borde punteado (además del texto "(sin la app)", nunca solo por el estilo).
 struct ParcheAvatar: View {
     let participant: ParcheParticipant
-    /// Posición en el orden del parche (decide el color).
-    let index: Int
     var size: CGFloat = 36
-
-    private static let palette = [
-        CruceColor.yellow, CruceColor.violet, CruceColor.green, CruceColor.peach, CruceColor.pink, CruceColor.lime,
-    ]
 
     var body: some View {
         Text(participant.initials)
             .font(.archivo(size * 0.36, .black))
             .foregroundStyle(CruceColor.ink)
             .frame(width: size, height: size)
-            .background(
-                Circle().fill(participant.hasApp ? Self.palette[index % Self.palette.count] : CruceColor.surface)
-            )
+            .background(Circle().fill(participant.avatarColor.color))
             .overlay(
                 Circle().strokeBorder(
                     CruceColor.ink,
@@ -31,11 +23,6 @@ struct ParcheAvatar: View {
 }
 
 extension ParcheDetail {
-    /// Posición de la persona en el orden del parche (para el color de su avatar).
-    func index(of participantID: UUID) -> Int {
-        order.firstIndex(of: participantID) ?? 0
-    }
-
     /// "Ana" o "ti" para quien usa la app (para "Anotado por ti").
     func recorderName(_ participantID: UUID) -> String {
         participantID == myParticipantID ? "ti" : participant(participantID)?.displayName ?? "alguien"

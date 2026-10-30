@@ -49,10 +49,12 @@ public struct ParcheParticipant: Identifiable, Codable, Hashable, Sendable {
     public var joinedAt: Date
     /// Última vez que abrió el parche (para los avisos sin ver).
     public var lastSeenAt: Date?
+    /// Su color: el de su perfil si tiene la app; si no, el siguiente color libre del parche al entrar.
+    public var avatarColor: AvatarColor
 
     public init(
         id: UUID = UUID(), userID: UUID? = nil, displayName: String, claimCode: String? = nil, joinedAt: Date,
-        lastSeenAt: Date? = nil
+        lastSeenAt: Date? = nil, avatarColor: AvatarColor = .yellow
     ) {
         self.id = id
         self.userID = userID
@@ -60,6 +62,23 @@ public struct ParcheParticipant: Identifiable, Codable, Hashable, Sendable {
         self.claimCode = claimCode
         self.joinedAt = joinedAt
         self.lastSeenAt = lastSeenAt
+        self.avatarColor = avatarColor
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, userID, displayName, claimCode, joinedAt, lastSeenAt, avatarColor
+    }
+
+    /// Un participante guardado en el teléfono antes del color por persona no trae `avatarColor`: se lee amarillo.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        userID = try container.decodeIfPresent(UUID.self, forKey: .userID)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        claimCode = try container.decodeIfPresent(String.self, forKey: .claimCode)
+        joinedAt = try container.decode(Date.self, forKey: .joinedAt)
+        lastSeenAt = try container.decodeIfPresent(Date.self, forKey: .lastSeenAt)
+        avatarColor = try container.decodeIfPresent(AvatarColor.self, forKey: .avatarColor) ?? .yellow
     }
 
     public var hasApp: Bool { userID != nil }

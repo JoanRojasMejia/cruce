@@ -75,6 +75,8 @@ public enum ParcheRemote {
         let claimCode: String?
         let joinedAt: Date
         let lastSeenAt: Date?
+        /// Opcional para seguir leyendo una base sin la migración de colores (queda amarillo).
+        let avatarColor: AvatarColor?
 
         enum CodingKeys: String, CodingKey {
             case id
@@ -83,12 +85,13 @@ public enum ParcheRemote {
             case claimCode = "claim_code"
             case joinedAt = "joined_at"
             case lastSeenAt = "last_seen_at"
+            case avatarColor = "avatar_color"
         }
 
         var model: ParcheParticipant {
             ParcheParticipant(
                 id: id, userID: userID, displayName: displayName, claimCode: claimCode, joinedAt: joinedAt,
-                lastSeenAt: lastSeenAt)
+                lastSeenAt: lastSeenAt, avatarColor: avatarColor ?? .yellow)
         }
     }
 

@@ -120,9 +120,13 @@ struct TicketCard: View {
                     Text("CRUCE · PARCHE \(ticket.parcheName.uppercased())")
                         .textStyle(.label)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(ticket.personName.map { "Cuentas de \($0)" } ?? "Cuentas del parche")
-                        .font(.archivo(14, .bold))
-                        .foregroundStyle(CruceColor.textSecondary)
+                    HStack(spacing: 6) {
+                        // La persona del ticket, con el mismo color que en el parche.
+                        if let person = ticket.person { ParcheAvatar(participant: person, size: 24) }
+                        Text(ticket.personName.map { "Cuentas de \($0)" } ?? "Cuentas del parche")
+                            .font(.archivo(14, .bold))
+                            .foregroundStyle(CruceColor.textSecondary)
+                    }
                 }
                 Spacer(minLength: 8)
                 IllustrationView(illustration: illustration, height: 72)

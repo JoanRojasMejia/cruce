@@ -76,16 +76,37 @@ public actor InMemoryParcheBackend {
     private var details: [UUID: ParcheDetail]
     /// Pares de usuarios que comparten un cruce.
     private var cruces: Set<Set<UUID>>
+    /// El color del perfil de cada usuario (`profiles.avatar_color`); amarillo si no está.
+    private var colors: [UUID: AvatarColor]
     private var isOffline = false
     private var dropsResponses = false
     private let now: @Sendable () -> Date
 
     /// `parches` se guardan sin `myParticipantID` ni `crucePartnerIDs`, que dependen de quién pregunta.
-    public init(parches: [ParcheDetail] = [], cruces: [Set<UUID>] = [], now: @escaping @Sendable () -> Date = { .now })
-    {
+    /// `colors` es el color del perfil de cada usuario: quien entra con la app toma ese color.
+    public init(
+        parches: [ParcheDetail] = [], cruces: [Set<UUID>] = [], colors: [UUID: AvatarColor] = [:],
+        now: @escaping @Sendable () -> Date = { .now }
+    ) {
         details = Dictionary(uniqueKeysWithValues: parches.map { ($0.id, $0) })
         self.cruces = Set(cruces)
+        self.colors = colors
         self.now = now
+    }
+
+    /// Alguien cambia su color en Tu perfil: como en la base, sus lugares en los parches cambian con él.
+    public func setColor(_ color: AvatarColor, for user: UUID) {
+        colors[user] = color
+        for (id, var detail) in details {
+            for index in detail.participants.indices where detail.participants[index].userID == user {
+                detail.participants[index].avatarColor = color
+            }
+            details[id] = detail
+        }
+    }
+
+    private func color(of user: UUID) -> AvatarColor {
+        colors[user] ?? .yellow
     }
 
     /// Simula que se va (o vuelve) la conexión: todo lanza `.offline`.
@@ -121,7 +142,8 @@ public actor InMemoryParcheBackend {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (1...Parche.maxNameLength).contains(name.count) else { throw ParcheRepositoryError.invalidData }
         let date = now()
-        let creator = ParcheParticipant(userID: user, displayName: displayName, joinedAt: date, lastSeenAt: date)
+        let creator = ParcheParticipant(
+            userID: user, displayName: displayName, joinedAt: date, lastSeenAt: date, avatarColor: color(of: user))
         var detail = ParcheDetail(
             parche: Parche(id: id, name: name, code: uniqueCode(.parche), createdAt: date), participants: [creator])
         detail.activity.append(ParcheActivity(parcheID: id, kind: .parcheCreated, actorID: creator.id, createdAt: date))
@@ -138,7 +160,7 @@ public actor InMemoryParcheBackend {
         if member(user, of: detail) == nil {
             let date = now()
             let participant = ParcheParticipant(
-                userID: user, displayName: displayName, joinedAt: date, lastSeenAt: date)
+                userID: user, displayName: displayName, joinedAt: date, lastSeenAt: date, avatarColor: color(of: user))
             detail.participants.append(participant)
             detail.activity.append(
                 ParcheActivity(
@@ -159,7 +181,10 @@ public actor InMemoryParcheBackend {
             throw ParcheRepositoryError.invalidData
         }
         let date = now()
-        let participant = ParcheParticipant(id: id, displayName: name, claimCode: uniqueCode(.place), joinedAt: date)
+        // Sin la app: el siguiente color libre del parche, y lo conserva.
+        let participant = ParcheParticipant(
+            id: id, displayName: name, claimCode: uniqueCode(.place), joinedAt: date,
+            avatarColor: .nextFree(after: detail.participants.map(\.avatarColor)))
         detail.participants.append(participant)
         detail.activity.append(
             ParcheActivity(
@@ -179,6 +204,7 @@ public actor InMemoryParcheBackend {
         let date = now()
         detail.participants[index].userID = user
         detail.participants[index].claimCode = nil
+        detail.participants[index].avatarColor = color(of: user)
         detail.participants[index].lastSeenAt = date
         let id = detail.participants[index].id
         detail.activity.append(

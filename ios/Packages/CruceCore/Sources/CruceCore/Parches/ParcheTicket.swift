@@ -19,6 +19,8 @@ public struct ParcheTicket: Hashable, Sendable {
     public let parcheName: String
     /// "Carlos" en el personal; `nil` en el del parche.
     public let personName: String?
+    /// La persona del ticket personal (para su avatar, con su color); `nil` en el del parche.
+    public let person: ParcheParticipant?
     /// "Carlos debe $87.500", "A Ana le deben $165.000", "Carlos está a paz y salvo" o "Total gastado".
     public let headline: String
     /// El saldo con signo en el personal; el total gastado en el del parche.
@@ -68,7 +70,8 @@ public struct ParcheTicket: Hashable, Sendable {
             return Line(concept: expense.concept, share: share, paid: paid)
         }
         return ParcheTicket(
-            parcheName: detail.parche.name, personName: name, headline: headline, amount: net, favor: favor,
+            parcheName: detail.parche.name, personName: name, person: person, headline: headline, amount: net,
+            favor: favor,
             transfers: transfers.map { phrase(for: $0, in: detail) }, lines: lines,
             expenseCount: detail.visibleExpenses.count, cutAt: date, stamp: net == 0 ? .settled : .pending,
             claimCode: person.hasApp ? nil : person.claimCode)
@@ -78,7 +81,8 @@ public struct ParcheTicket: Hashable, Sendable {
     public static func parche(_ detail: ParcheDetail, at date: Date) -> ParcheTicket {
         let settled = detail.balances.allSatisfy { $0.net == 0 }
         return ParcheTicket(
-            parcheName: detail.parche.name, personName: nil, headline: "Total gastado", amount: detail.totalSpent,
+            parcheName: detail.parche.name, personName: nil, person: nil, headline: "Total gastado",
+            amount: detail.totalSpent,
             favor: nil, transfers: detail.suggestedTransfers.map { phrase(for: $0, in: detail) }, lines: [],
             expenseCount: detail.visibleExpenses.count, cutAt: date, stamp: settled ? .settled : .pending,
             claimCode: nil)

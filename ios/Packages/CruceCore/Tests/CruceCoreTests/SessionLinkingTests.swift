@@ -11,11 +11,12 @@ struct SessionLinkingTests {
     private let jesusID = UUID(uuidString: "22222222-2222-2222-2222-222222222222")!
     private let anaID = UUID(uuidString: "33333333-3333-3333-3333-333333333333")!
 
+    /// Cada quien con su color de perfil: Joan amarillo, Jesús violeta y Ana verde.
     private func makeDirectory() -> InMemoryAccountDirectory {
         InMemoryAccountDirectory(profiles: [
-            Profile(id: joanID, displayName: "Joan"),
-            Profile(id: jesusID, displayName: "Jesús"),
-            Profile(id: anaID, displayName: "Ana"),
+            Profile(id: joanID, displayName: "Joan", avatarColor: .yellow),
+            Profile(id: jesusID, displayName: "Jesús", avatarColor: .violet),
+            Profile(id: anaID, displayName: "Ana", avatarColor: .green),
         ])
     }
 
@@ -69,7 +70,7 @@ struct SessionLinkingTests {
         #expect(try await directory.cruces(for: jesusID).isEmpty)
     }
 
-    @Test("Unirse con un código válido lleva a Conectados con el nombre y los colores de la base")
+    @Test("Unirse con un código válido lleva a Conectados con el nombre, el color del perfil y el recibo de la base")
     func joinValidCode() async throws {
         let directory = makeDirectory()
         let joan = await session(joanID, directory)
@@ -179,7 +180,7 @@ struct SessionLinkingTests {
         #expect(jesus.me.tikeVariant == .rosa)
     }
 
-    @Test("Sin cruces, quien usa la app queda amarillo y rosa: va a ser quien cree su cruce")
+    @Test("Sin cruces, quien usa la app queda con el recibo rosa (va a crear su cruce) y el color de su perfil")
     func noCrucesIsCreatorColors() async {
         let directory = makeDirectory()
         let session = SessionStore(
@@ -187,7 +188,7 @@ struct SessionLinkingTests {
             partner: MockData.jesus, auth: InMemoryAuthService(signedIn: anaID), directory: directory)
         await session.refresh()
         #expect(session.phase == .invite)
-        #expect(session.me.avatarColor == .yellow)
+        #expect(session.me.avatarColor == .green)
         #expect(session.me.tikeVariant == .rosa)
     }
 
@@ -207,7 +208,7 @@ struct SessionLinkingTests {
 
     // MARK: - Cruce abierto
 
-    @Test("Abrir otro cruce cambia la otra persona, el color y el recibo de quien usa la app")
+    @Test("Abrir otro cruce cambia la otra persona y el recibo de quien usa la app, no su color")
     func openChangesPartnerAndColors() {
         let session = SessionStore(
             phase: .main, me: MockData.joan, partner: MockData.jesus,
@@ -215,6 +216,7 @@ struct SessionLinkingTests {
         #expect(session.openCruceID == MockData.joanAnaCruceID)
         #expect(session.partner.name == "Ana")
         #expect(session.me.tikeVariant == .verde)
+        #expect(session.me.avatarColor == .yellow)
         session.open(MockData.joanJesusCruceID)
         #expect(session.partner.name == "Jesús")
         #expect(session.me.tikeVariant == .rosa)

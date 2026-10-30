@@ -9,11 +9,12 @@ insert into auth.users (id, email) values
   ('22222222-2222-2222-2222-222222222222', 'jesus@example.com'),
   ('33333333-3333-3333-3333-333333333333', 'ana@example.com'),
   ('44444444-4444-4444-4444-444444444444', 'intruso@example.com');
-insert into public.profiles (id, display_name) values
-  ('11111111-1111-1111-1111-111111111111', 'Joan'),
-  ('22222222-2222-2222-2222-222222222222', 'Jesús'),
-  ('33333333-3333-3333-3333-333333333333', 'Ana'),
-  ('44444444-4444-4444-4444-444444444444', 'Intruso');
+-- El color es de cada perfil (11_colores), no del rol en el cruce: Joan verde y Jesús rosado.
+insert into public.profiles (id, display_name, avatar_color) values
+  ('11111111-1111-1111-1111-111111111111', 'Joan', 'green'),
+  ('22222222-2222-2222-2222-222222222222', 'Jesús', 'pink'),
+  ('33333333-3333-3333-3333-333333333333', 'Ana', 'yellow'),
+  ('44444444-4444-4444-4444-444444444444', 'Intruso', 'yellow');
 
 -- ── Un solo cruce pendiente por persona ──────────────────────
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
@@ -54,8 +55,8 @@ select ok((select (r->>'ok')::boolean from jesus_join), 'Jesús se une a la cuen
 -- ── La lista de cruces ───────────────────────────────────────
 select results_eq(
   $$select partner_name, my_tike, my_avatar, partner_tike, partner_avatar from public.my_cruces()$$,
-  $$values ('Joan'::text, 'verde'::text, 'violet'::text, 'rosa'::text, 'yellow'::text)$$,
-  'Jesús ve su cruce con Joan, con los colores y el recibo de cada lado');
+  $$values ('Joan'::text, 'verde'::text, 'pink'::text, 'rosa'::text, 'green'::text)$$,
+  'Jesús ve su cruce con Joan, con el color del perfil y el recibo de cada lado');
 
 -- ── Un cruce por pareja ──────────────────────────────────────
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);

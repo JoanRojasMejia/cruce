@@ -47,7 +47,7 @@ public final class SessionStore {
     public static let inviteDigits = 4
 
     public var phase: Phase
-    /// Quien usa la app. Su color y su recibo salen del cruce más reciente.
+    /// Quien usa la app. Su color sale de su perfil; su recibo, del cruce abierto.
     public var me: Member
     /// La otra persona del cruce abierto (ver `open(_:)`). Mientras no haya cruces es un marcador que ninguna pantalla
     /// muestra.
@@ -144,7 +144,8 @@ public final class SessionStore {
                 phase = .signUp
                 return
             }
-            me = Member(id: user, name: profile.displayName, avatarColor: me.avatarColor, tikeVariant: me.tikeVariant)
+            me = Member(
+                id: user, name: profile.displayName, avatarColor: profile.avatarColor, tikeVariant: me.tikeVariant)
             apply(try await directory.cruces(for: user))
             phase = cruces.isEmpty ? .invite : .main
             error = nil
@@ -246,6 +247,21 @@ public final class SessionStore {
         }
         if ok {
             me.name = trimmed
+            await saveSnapshot()
+        }
+        return ok
+    }
+
+    /// Cambia el color de quien usa la app (Tu perfil). Se ve igual en todos sus cruces y parches.
+    /// Sin red deja el error y conserva el color anterior.
+    @discardableResult
+    public func updateColor(_ color: AvatarColor) async -> Bool {
+        guard let user = userID else { return false }
+        let ok = await perform {
+            try await directory.updateAvatarColor(color, for: user)
+        }
+        if ok {
+            me.avatarColor = color
             await saveSnapshot()
         }
         return ok
@@ -359,11 +375,11 @@ public final class SessionStore {
         }
     }
 
-    /// Abre ese cruce: `partner` pasa a ser su otra persona, y el color y el recibo de `me` son los de ese cruce.
+    /// Abre ese cruce: `partner` pasa a ser su otra persona y el recibo de `me` es el de ese cruce. El color de `me` no
+    /// cambia: es el de su perfil.
     public func open(_ id: UUID) {
         guard let cruce = cruces.first(where: { $0.id == id }) else { return }
         openCruceID = id
-        me.avatarColor = cruce.myAvatarColor
         me.tikeVariant = cruce.myTikeVariant
         partner = cruce.partner
     }
@@ -377,7 +393,7 @@ public final class SessionStore {
     }
 
     /// Guarda los cruces y deja abierto el mismo cruce si sigue existiendo; si no, el más reciente.
-    /// Sin cruces, `me` queda amarillo y rosa: quien no tiene cruce es quien va a crear el suyo al invitar.
+    /// Sin cruces, `me` queda con el recibo rosa: quien no tiene cruce es quien va a crear el suyo al invitar.
     private func apply(_ links: [CruceLink]) {
         cruces = links
         if let current = openCruceID, links.contains(where: { $0.id == current }) {
@@ -386,7 +402,6 @@ public final class SessionStore {
             open(latest.id)
         } else {
             openCruceID = nil
-            me.avatarColor = .yellow
             me.tikeVariant = .rosa
         }
     }
