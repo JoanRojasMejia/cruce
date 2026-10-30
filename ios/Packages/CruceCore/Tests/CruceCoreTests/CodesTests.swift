@@ -164,13 +164,38 @@ struct CodesTests {
 
     @Test("cruce://codigo/<CÓDIGO> trae el código en su forma normal")
     func linkParser() throws {
-        #expect(CodeLink.code(from: try #require(URL(string: "cruce://codigo/CRZ-4821"))) == "CRZ-4821")
-        #expect(CodeLink.code(from: try #require(URL(string: "CRUCE://Codigo/soy-k7qx2m/"))) == "SOY-K7QX2M")
-        #expect(CodeLink.code(from: try #require(URL(string: "cruce://codigo/PCH%20SM4R7A"))) == "PCH-SM4R7A")
-        #expect(CodeLink.code(from: try #require(URL(string: "cruce://codigo/"))) == nil)
-        #expect(CodeLink.code(from: try #require(URL(string: "cruce://otra/CRZ-4821"))) == nil)
-        #expect(CodeLink.code(from: try #require(URL(string: "https://codigo/CRZ-4821"))) == nil)
-        #expect(CodeLink.url(for: "soy k7qx2m")?.absoluteString == "cruce://codigo/SOY-K7QX2M")
+        let prod = CodeLink.defaultScheme
+        #expect(CodeLink.code(from: try #require(URL(string: "cruce://codigo/CRZ-4821")), scheme: prod) == "CRZ-4821")
+        #expect(
+            CodeLink.code(from: try #require(URL(string: "CRUCE://Codigo/soy-k7qx2m/")), scheme: prod) == "SOY-K7QX2M")
+        #expect(
+            CodeLink.code(from: try #require(URL(string: "cruce://codigo/PCH%20SM4R7A")), scheme: prod) == "PCH-SM4R7A")
+        #expect(CodeLink.code(from: try #require(URL(string: "cruce://codigo/")), scheme: prod) == nil)
+        #expect(CodeLink.code(from: try #require(URL(string: "cruce://otra/CRZ-4821")), scheme: prod) == nil)
+        #expect(CodeLink.code(from: try #require(URL(string: "https://codigo/CRZ-4821")), scheme: prod) == nil)
+        #expect(CodeLink.url(for: "soy k7qx2m", scheme: prod)?.absoluteString == "cruce://codigo/SOY-K7QX2M")
+    }
+
+    @Test(
+        "Cada ambiente abre solo los enlaces de su esquema y los crea con el suyo",
+        arguments: ["cruce", "cruce-test", "cruce-dev"])
+    func linkSchemePerEnvironment(scheme: String) throws {
+        let own = try #require(URL(string: "\(scheme)://codigo/crz4821"))
+        #expect(CodeLink.code(from: own, scheme: scheme) == "CRZ-4821")
+        #expect(CodeLink.url(for: "PCH-SM4R7A", scheme: scheme)?.absoluteString == "\(scheme)://codigo/PCH-SM4R7A")
+        for other in ["cruce", "cruce-test", "cruce-dev"] where other != scheme {
+            let foreign = try #require(URL(string: "\(other)://codigo/CRZ-4821"))
+            #expect(CodeLink.code(from: foreign, scheme: scheme) == nil, "\(scheme) no abre \(other)")
+        }
+    }
+
+    @Test("El esquema de la app sale del Info.plist; sin reemplazar o vacío, el de prod")
+    func linkSchemeFromInfo() {
+        #expect(CodeLink.scheme(in: ["CRUCE_URL_SCHEME": "cruce-test"]) == "cruce-test")
+        #expect(CodeLink.scheme(in: ["CRUCE_URL_SCHEME": " Cruce-Dev "]) == "cruce-dev")
+        #expect(CodeLink.scheme(in: ["CRUCE_URL_SCHEME": "$(APP_URL_SCHEME)"]) == "cruce")
+        #expect(CodeLink.scheme(in: ["CRUCE_URL_SCHEME": ""]) == "cruce")
+        #expect(CodeLink.scheme(in: [:]) == "cruce")
     }
 
     @Test("Un enlace sin sesión espera a que entre; con sesión abre Tengo un código")
@@ -178,15 +203,15 @@ struct CodesTests {
         let session = SessionStore(
             phase: .onboarding, me: Member(name: "Tú", avatarColor: .yellow, tikeVariant: .rosa),
             partner: Member(name: "Tu amigo", avatarColor: .violet, tikeVariant: .verde))
-        #expect(!session.receive(link: try #require(URL(string: "https://cruce.app"))))
-        #expect(session.receive(link: try #require(URL(string: "cruce://codigo/crz4821"))))
+        #expect(!session.receive(link: try #require(URL(string: "https://cruce.app")), scheme: "cruce"))
+        #expect(session.receive(link: try #require(URL(string: "cruce://codigo/crz4821")), scheme: "cruce"))
         #expect(session.pendingCode == "CRZ-4821")
         #expect(!session.opensPendingCode, "Sin sesión espera")
 
         let signedIn = SessionStore(
             phase: .invite, me: Member(name: "Joan", avatarColor: .yellow, tikeVariant: .rosa),
             partner: Member(name: "Tu amigo", avatarColor: .violet, tikeVariant: .verde), userID: joanID)
-        signedIn.receive(link: try #require(URL(string: "cruce://codigo/PCH-SM4R7A")))
+        signedIn.receive(link: try #require(URL(string: "cruce-dev://codigo/PCH-SM4R7A")), scheme: "cruce-dev")
         #expect(signedIn.opensPendingCode)
         signedIn.phase = .connected
         #expect(!signedIn.opensPendingCode, "En Conectados espera al inicio")

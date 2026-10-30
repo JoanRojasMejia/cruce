@@ -20,3 +20,9 @@ APP_ICON_NAME[config=Release] = AppIcon
 APP_ENVIRONMENT[config=Debug] = local
 APP_ENVIRONMENT[config=Staging] = testing
 APP_ENVIRONMENT[config=Release] = prod
+
+// Esquema de los enlaces con un código (`<esquema>://codigo/<CÓDIGO>`): uno por ambiente, así con varias apps
+// instaladas el enlace abre la de su ambiente. Las que crea la app (el ticket) usan el suyo.
+APP_URL_SCHEME[config=Debug] = cruce-dev
+APP_URL_SCHEME[config=Staging] = cruce-test
+APP_URL_SCHEME[config=Release] = cruce

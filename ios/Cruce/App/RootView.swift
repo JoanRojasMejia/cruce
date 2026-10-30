@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Decide qué flujo mostrar según la etapa de la sesión. Al arrancar con la sesión real
 /// (`AppStores.live()`), primero la calcula con `session.refresh()`; los datos de ejemplo ya vienen listos.
-/// También abre los enlaces `cruce://codigo/<CÓDIGO>`: "Tengo un código" con el campo lleno, en cuanto haya sesión.
+/// También abre los enlaces `<esquema>://codigo/<CÓDIGO>` de su ambiente: "Tengo un código" con el campo lleno, en cuanto haya sesión.
 struct RootView: View {
     @Environment(SessionStore.self) private var session
     @Environment(Router.self) private var router
@@ -20,7 +20,7 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.25), value: session.phase)
         // Sin sesión, el código espera en `pendingCode` hasta que se llegue a invitar o al inicio.
         .onOpenURL { url in
-            if session.receive(link: url) { openPendingCode() }
+            if session.receive(link: url, scheme: CodeLink.appScheme) { openPendingCode() }
         }
         .onChange(of: session.phase) { openPendingCode() }
         .onChange(of: session.isReady) { openPendingCode() }

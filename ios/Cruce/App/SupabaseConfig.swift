@@ -10,3 +10,8 @@ extension SupabaseConfig {
         }
     }
 }
+
+extension CodeLink {
+    /// El esquema de los enlaces de esta app: `cruce-dev`, `cruce-test` o `cruce` (`APP_URL_SCHEME` en Cruce.xcconfig).
+    static let appScheme = scheme(in: Bundle.main.infoDictionary ?? [:])
+}

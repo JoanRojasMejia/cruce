@@ -46,7 +46,7 @@ Antes de entrar, la app SHALL mostrar a qué parche lleva un código `PCH-` (y s
 - **THEN** el siguiente código, aunque exista, se rechaza con "Hiciste demasiados intentos. Espera una hora e intenta de nuevo."
 
 ### Requirement: Enlace con el código
-Abrir un enlace `cruce://codigo/<CÓDIGO>` SHALL abrir "Tengo un código" con el campo lleno. Sin sesión, el código MUST quedar guardado y la pantalla SHALL abrirse al entrar (en invitar o en el inicio).
+Abrir un enlace `cruce://codigo/<CÓDIGO>` SHALL abrir "Tengo un código" con el campo lleno. Sin sesión, el código MUST quedar guardado y la pantalla SHALL abrirse al entrar (en invitar o en el inicio). Cada ambiente MUST tener su propio esquema (`cruce-dev` en local, `cruce-test` en testing y `cruce` en prod): cada app SHALL abrir solo los enlaces de su esquema y los enlaces que crea (el ticket) SHALL usar el suyo.
 
 #### Scenario: Enlace con la app abierta
 - **WHEN** Joan está en el inicio y abre `cruce://codigo/pch-sm4r7a`
@@ -55,3 +55,7 @@ Abrir un enlace `cruce://codigo/<CÓDIGO>` SHALL abrir "Tengo un código" con el
 #### Scenario: Enlace sin sesión
 - **WHEN** alguien sin sesión abre `cruce://codigo/CRZ-4821` y después entra con su correo
 - **THEN** al llegar a invitar se abre "Tengo un código" con "CRZ-4821"
+
+#### Scenario: Varias apps instaladas
+- **WHEN** Joan tiene Cruce Test y Cruce Dev en el mismo iPhone y abre `cruce-test://codigo/SOY-K7QX2M`
+- **THEN** se abre Cruce Test, no Cruce Dev, con "SOY-K7QX2M" en "Tengo un código"

@@ -143,16 +143,28 @@ public enum CodePreview: Equatable, Sendable {
     }
 }
 
-/// El enlace que abre "Tengo un código" con el campo lleno: `cruce://codigo/<CÓDIGO>` (D5; el enlace universal queda
-/// para el CP13).
+/// El enlace que abre "Tengo un código" con el campo lleno: `<esquema>://codigo/<CÓDIGO>` (D5; el enlace universal
+/// queda para el CP13). Cada ambiente tiene su esquema (`cruce-dev`, `cruce-test` y `cruce` en prod), así con varias
+/// apps instaladas el enlace abre la de su ambiente: la app lo lee de `CRUCE_URL_SCHEME` en su `Info.plist`.
 public enum CodeLink {
-    public static let scheme = "cruce"
+    /// El esquema de prod; también el de respaldo si el `Info.plist` no trae uno.
+    public static let defaultScheme = "cruce"
+    /// La clave del `Info.plist` con el esquema de la app (`APP_URL_SCHEME` en `Cruce.xcconfig`).
+    public static let infoKey = "CRUCE_URL_SCHEME"
     public static let host = "codigo"
 
-    /// El código del enlace, en su forma normal; `nil` si no es un enlace de código. No revisa que el código exista:
-    /// eso lo dice la pantalla.
-    public static func code(from url: URL) -> String? {
-        guard url.scheme?.lowercased() == scheme,
+    /// El esquema de la app según su `Info.plist`. Vacío o sin reemplazar (`$(…)`) cuenta como el de prod.
+    public static func scheme(in info: [String: Any]) -> String {
+        guard let text = (info[infoKey] as? String)?.trimmingCharacters(in: .whitespaces).lowercased(),
+            !text.isEmpty, !text.hasPrefix("$(")
+        else { return defaultScheme }
+        return text
+    }
+
+    /// El código del enlace, en su forma normal; `nil` si no es un enlace de código del esquema de esta app. No revisa
+    /// que el código exista: eso lo dice la pantalla.
+    public static func code(from url: URL, scheme: String) -> String? {
+        guard url.scheme?.lowercased() == scheme.lowercased(),
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
             components.host?.lowercased() == host
         else { return nil }
@@ -162,8 +174,8 @@ public enum CodeLink {
         return code
     }
 
-    /// El enlace de un código, para compartirlo.
-    public static func url(for code: String) -> URL? {
+    /// El enlace de un código con el esquema de esta app, para compartirlo.
+    public static func url(for code: String, scheme: String) -> URL? {
         URL(string: "\(scheme)://\(host)/\(EnteredCode.normalize(code))")
     }
 }

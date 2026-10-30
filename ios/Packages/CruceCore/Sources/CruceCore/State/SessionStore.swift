@@ -393,10 +393,11 @@ public final class SessionStore {
         partner = cruce.partner
     }
 
-    /// Abre un enlace `cruce://codigo/<CÓDIGO>`: deja el código en `pendingCode`. `false` si no es un enlace de código.
+    /// Abre un enlace `<esquema>://codigo/<CÓDIGO>` del esquema de esta app (`CodeLink.scheme(in:)`): deja el código
+    /// en `pendingCode`. `false` si no es un enlace de código.
     @discardableResult
-    public func receive(link url: URL) -> Bool {
-        guard let code = CodeLink.code(from: url) else { return false }
+    public func receive(link url: URL, scheme: String) -> Bool {
+        guard let code = CodeLink.code(from: url, scheme: scheme) else { return false }
         pendingCode = code
         return true
     }
