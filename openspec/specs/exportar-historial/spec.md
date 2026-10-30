@@ -6,10 +6,10 @@ Sacar el historial de un cruce como un archivo CSV que se pueda guardar o compar
 ## Requirements
 
 ### Requirement: Exportar el historial de un cruce
-"Exportar historial (CSV)" en Ajustes SHALL armar un archivo CSV con los movimientos vigentes del cruce abierto y abrir la hoja para compartir del sistema. Los movimientos eliminados MUST NOT aparecer. El archivo SHALL llamarse `cruce-con-<nombre>-<AAAA-MM-DD>.csv`, con el nombre de la otra persona en minúsculas y sin tildes. Funciona en un cruce abierto o cerrado, y sin conexión.
+"Exportar historial (CSV)" en Ajustes del cruce SHALL armar un archivo CSV con los movimientos vigentes del cruce abierto y abrir la hoja para compartir del sistema. Los movimientos eliminados MUST NOT aparecer. El archivo SHALL llamarse `cruce-con-<nombre>-<AAAA-MM-DD>.csv`, con el nombre de la otra persona en minúsculas y sin tildes. Funciona en un cruce abierto o cerrado, y sin conexión.
 
 #### Scenario: Exportar el cruce con Jesús
-- **WHEN** Joan toca "Exportar historial (CSV)" el 27 oct 2026 en su cruce con Jesús
+- **WHEN** Joan toca "Exportar historial (CSV)" el 27 oct 2026 en Ajustes de su cruce con Jesús
 - **THEN** se abre la hoja para compartir con el archivo `cruce-con-jesus-2026-10-27.csv`
 
 #### Scenario: Un gasto eliminado

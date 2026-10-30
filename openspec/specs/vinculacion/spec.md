@@ -25,7 +25,7 @@ Al crear la cuenta compartida, el sistema SHALL agregar a quien la crea como pri
 - **THEN** recibe un código nuevo para esa misma cuenta, sin crear otra
 
 ### Requirement: Unirse con un código
-Canjear un código válido SHALL agregar a quien lo usa como segundo miembro, con recibo verde y avatar violeta, y devolver el nombre de quien invitó. El código MUST quedar marcado como usado. El sistema MUST rechazar códigos inexistentes, vencidos, ya usados o propios.
+Canjear un código válido SHALL agregar a quien lo usa como segundo miembro, con recibo verde y avatar violeta, y devolver el nombre de quien invitó. El código MUST quedar marcado como usado. El sistema MUST rechazar códigos inexistentes, vencidos, ya usados o propios, cada uno con su propio error (`invalid`, `expired`, `used` u `own`).
 
 #### Scenario: Jesús se une
 - **WHEN** Jesús canjea el código vigente de Joan
@@ -33,7 +33,11 @@ Canjear un código válido SHALL agregar a quien lo usa como segundo miembro, co
 
 #### Scenario: Código vencido, usado o propio
 - **WHEN** alguien canjea un código vencido, ya usado o creado por sí mismo
-- **THEN** la operación se rechaza con un mensaje en español ("El código no es válido o ya venció" o "No puedes usar tu propio código") y no se agrega a nadie
+- **THEN** la operación se rechaza con un mensaje en español para cada caso ("Ese código ya venció. Pídele uno nuevo a quien te lo mandó.", "Ese código ya se usó. Pídele uno nuevo a quien te lo mandó." o "Ese código es tuyo. Mándaselo a la otra persona para que lo use.") y no se agrega a nadie
+
+#### Scenario: Código que no existe
+- **WHEN** alguien canjea un código que no existe
+- **THEN** la operación se rechaza con "Ese código no existe. Revisa que esté bien escrito." y no se agrega a nadie
 
 ### Requirement: Límite de intentos para unirse
 Una persona SHALL tener como máximo 5 intentos fallidos por hora entre canjear un código y ver de quién es. Al llegar al límite, el sistema MUST rechazar cualquier código, incluso uno válido, con el mensaje "Hiciste demasiados intentos. Espera una hora e intenta de nuevo." Los intentos fallidos MUST quedar registrados aunque la operación no se complete.
@@ -87,8 +91,8 @@ Antes de unirse, la app SHALL mostrar el nombre de quien creó un código vigent
 - **THEN** la app muestra "CÓDIGO VÁLIDO" con "Cuenta de Joan" y Jesús todavía no es miembro
 
 #### Scenario: Código inválido
-- **WHEN** Jesús escribe 4 dígitos que no son de ningún código vigente
-- **THEN** la app muestra "El código no es válido o ya venció" y no muestra ningún nombre
+- **WHEN** Jesús escribe 4 dígitos que no son de ningún código
+- **THEN** la app muestra "Ese código no existe" y no muestra ningún nombre
 
 ### Requirement: Quien invita se entera de la unión
 Mientras la pantalla de invitar está abierta, la app de quien invitó SHALL notar en pocos segundos que la otra persona se unió y pasar sola a "Conectados", con el nombre real de esa persona.
