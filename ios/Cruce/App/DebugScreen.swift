@@ -18,7 +18,7 @@
             parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
-        /// "Finca" (`MockParches.finca`): el detalle y los tickets de Nata y Yisus, con "Cómo se calcula" y "¿Por qué…?".
+        /// "Finca" (`MockParches.finca`): el detalle y los tickets de Nata y Yisus, con "Cómo se calcula".
         case parcheFinca, parcheTicketNata, parcheTicketYisus
         case parcheDelete, parchePayment, parchePaymentOver, parcheClose, parcheNotCreator, parcheCloseNotCreator,
             parcheCruce, parcheCrucePending, parcheClosed,
