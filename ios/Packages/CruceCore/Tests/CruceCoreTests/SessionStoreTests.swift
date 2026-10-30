@@ -143,6 +143,48 @@ struct SessionStoreTests {
         #expect(session.pendingEmail == nil)
     }
 
+    @Test("Pedir otro código espera 30 segundos desde el último envío, con cuenta regresiva")
+    func resendCooldown() async {
+        let clock = TestClock()
+        let auth = InMemoryAuthService(code: code)
+        let session = SessionStore(
+            phase: .signUp, me: MockData.joan, partner: MockData.jesus, auth: auth, now: { clock.now })
+        let start = clock.now
+        #expect(session.resendWait(at: start) == 0, "Sin código enviado no hay espera")
+        _ = await session.sendCode(to: email)
+        #expect(SessionStore.resendCooldown == 30)
+        #expect(session.resendWait(at: start) == 30)
+        #expect(session.resendTitle(at: start) == "Pedir otro código en 0:30")
+        #expect(session.resendTitle(at: start.addingTimeInterval(3.2)) == "Pedir otro código en 0:27")
+        #expect(session.resendWait(at: start.addingTimeInterval(29.5)) == 1)
+
+        // Antes de los 30 segundos no se envía nada.
+        clock.advance(hours: 10.0 / 3_600)
+        #expect(!(await session.resendCode()))
+        #expect(await auth.sentCodes == [email])
+
+        // A los 30 segundos se puede y la espera vuelve a empezar.
+        clock.advance(hours: 20.0 / 3_600)
+        #expect(session.resendWait(at: clock.now) == 0)
+        #expect(session.resendTitle(at: clock.now) == "Pedir otro código")
+        #expect(await session.resendCode())
+        #expect(await auth.sentCodes == [email, email])
+        #expect(session.resendWait(at: clock.now) == 30)
+
+        // Cambiar el correo deja pedir uno nuevo sin esperar.
+        session.cancelCode()
+        #expect(session.resendWait(at: clock.now) == 0)
+    }
+
+    @Test("Si el envío falla no empieza la espera")
+    func resendCooldownOnlyAfterSending() async {
+        let auth = InMemoryAuthService(code: code)
+        await auth.setSendError(AuthServiceError.rateLimited)
+        let session = makeSession(auth: auth)
+        _ = await session.sendCode(to: email)
+        #expect(session.resendWait(at: .now) == 0)
+    }
+
     // MARK: - Verificar el código
 
     @Test("El código correcto abre la sesión y pide el nombre la primera vez")
@@ -180,12 +222,15 @@ struct SessionStoreTests {
         #expect(session.phase == .onboarding)
     }
 
-    @Test("Pedir otro código lo vuelve a enviar al mismo correo")
+    @Test("Pedir otro código (pasados los 30 segundos) lo vuelve a enviar al mismo correo")
     func resendCode() async {
+        let clock = TestClock()
         let auth = InMemoryAuthService(code: code)
-        let session = makeSession(auth: auth)
+        let session = SessionStore(
+            phase: .onboarding, me: MockData.joan, partner: MockData.jesus, auth: auth, now: { clock.now })
         _ = await session.sendCode(to: email)
         _ = await session.verify(code: "000000")
+        clock.advance(hours: 30.0 / 3_600)
         let sent = await session.resendCode()
         #expect(sent)
         #expect(session.error == nil)

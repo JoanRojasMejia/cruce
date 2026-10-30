@@ -268,6 +268,9 @@
                             await stores.parches.save(expense)
                         }
                     }
+            case .signUpCode:
+                // Recién enviado el código: "Pedir otro código" muestra la cuenta regresiva de 30 s.
+                RootView().task { await stores.session.resendCode() }
             case .parcheUndo:
                 RootView()
                     .task {

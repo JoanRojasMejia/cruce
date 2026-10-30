@@ -92,6 +92,10 @@ public final class SessionStore {
     public private(set) var userID: UUID?
     /// El correo al que se envió el último código, mientras se espera que lo escriban.
     public private(set) var pendingEmail: String?
+    /// Cuándo se envió el último código: "Pedir otro código" espera `resendCooldown` desde ahí.
+    public private(set) var codeSentAt: Date?
+    /// Lo que se espera para pedir otro código.
+    public static let resendCooldown: TimeInterval = 30
     /// El problema del último paso, o `nil` si salió bien.
     public private(set) var error: Problem?
     /// Hay una llamada en curso (para desactivar los botones).
@@ -104,6 +108,8 @@ public final class SessionStore {
     private let directory: any AccountDirectory
     /// Lo último que supo la sesión, para abrir sin red; `nil` en las vistas previas.
     private let cache: (any SessionCache)?
+    /// Reloj de la espera para pedir otro código; las pruebas inyectan uno que adelantan a mano.
+    private let now: () -> Date
 
     public init(
         phase: Phase,
@@ -116,7 +122,8 @@ public final class SessionStore {
         cache: (any SessionCache)? = nil,
         isReady: Bool = true,
         userID: UUID? = nil,
-        pendingEmail: String? = nil
+        pendingEmail: String? = nil,
+        now: @escaping () -> Date = { .now }
     ) {
         self.phase = phase
         self.me = me
@@ -128,6 +135,7 @@ public final class SessionStore {
         self.isReady = isReady
         self.userID = userID
         self.pendingEmail = pendingEmail
+        self.now = now
         // Datos de ejemplo: abre el primer cruce (el más reciente) como hace `refresh()`.
         if !cruces.isEmpty { apply(cruces) }
     }
@@ -193,19 +201,36 @@ public final class SessionStore {
         return await perform {
             try await auth.sendCode(to: normalized)
             pendingEmail = normalized
+            codeSentAt = now()
         }
     }
 
-    /// Vuelve a pedir el código para el correo pendiente.
+    /// Vuelve a pedir el código para el correo pendiente. Antes de `resendCooldown` (30 s) desde el último envío no
+    /// envía nada y devuelve `false`.
     @discardableResult
     public func resendCode() async -> Bool {
-        guard let pendingEmail else { return false }
+        guard let pendingEmail, resendWait(at: now()) == 0 else { return false }
         return await sendCode(to: pendingEmail)
     }
 
-    /// Olvida el correo pendiente para escribir otro.
+    /// Segundos que faltan para poder pedir otro código (redondeados hacia arriba); 0 si ya se puede.
+    public func resendWait(at date: Date) -> Int {
+        guard let codeSentAt else { return 0 }
+        let left = Self.resendCooldown - date.timeIntervalSince(codeSentAt)
+        return left > 0 ? Int(left.rounded(.up)) : 0
+    }
+
+    /// "Pedir otro código en 0:27" mientras hay que esperar; "Pedir otro código" cuando ya se puede.
+    public func resendTitle(at date: Date) -> String {
+        let wait = resendWait(at: date)
+        guard wait > 0 else { return "Pedir otro código" }
+        return "Pedir otro código en \(wait / 60):" + String(format: "%02d", wait % 60)
+    }
+
+    /// Olvida el correo pendiente para escribir otro (sin esperar para pedir el código del nuevo).
     public func cancelCode() {
         pendingEmail = nil
+        codeSentAt = nil
         error = nil
     }
 

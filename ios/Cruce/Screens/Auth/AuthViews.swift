@@ -128,12 +128,16 @@ private struct CodeStep: View {
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
                 .disabled(session.isWorking || digits.count < SessionStore.codeLength)
 
-                Button("Pedir otro código") {
-                    digits = ""
-                    Task { resent = await session.resendCode() }
+                // Cuenta regresiva de 30 s desde el último envío: "Pedir otro código en 0:27".
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Button(session.resendTitle(at: context.date)) {
+                        digits = ""
+                        Task { resent = await session.resendCode() }
+                    }
+                    .buttonStyle(.neoLink)
+                    .monospacedDigit()
+                    .disabled(session.isWorking || session.resendWait(at: context.date) > 0)
                 }
-                .buttonStyle(.neoLink)
-                .disabled(session.isWorking)
 
                 Button("Cambiar el correo") { session.cancelCode() }
                     .buttonStyle(.neoLink)
