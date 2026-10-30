@@ -32,7 +32,7 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 **Límites conocidos:** sin tiempo real (lo de los demás se ve al abrir el parche o al recargar); el movimiento que deja "pasar al cruce" está en `movements` pero la app solo lo muestra cuando llegue el CP5; sin notificaciones push (los avisos son dentro de la app); la cola sin conexión es del teléfono, no de la cuenta.
 
 ## Correcciones de la revisión de diseño
-*Hecho en el cambio `correcciones-diseno` (29 oct 2026), fuera del orden de los checkpoints, con las decisiones D1–D8 de Joan (en `openspec/changes/correcciones-diseno/brief.md`). Probado en local: 374 pruebas pgTAP y 321 de Swift en verde. Las siete migraciones (`20261029100000` a `20261029160000`) están solo en local.*
+*Hecho en el cambio `correcciones-diseno` (29 oct 2026), fuera del orden de los checkpoints, con las decisiones D1–D8 de Joan (en `openspec/changes/correcciones-diseno/brief.md`). Probado en local: 374 pruebas pgTAP y 321 de Swift en verde. Las siete migraciones (`20261029100000` a `20261029160000`) están en local, testing y prod desde el 30 oct 2026.*
 - [x] Pasar al cruce solo desde "Para saldar", entre dos personas con un cruce abierto, con propuesta, aceptar o rechazar (`parche_cruce_transfers.status`; pgTAP `10_pasar_al_cruce`).
 - [x] Desvincular ofrece "Saldar primero" cuando el saldo no es $0; un cruce cerrado sigue sin aceptar gastos ni pagos (D4).
 - [x] Color fijo por persona (`profiles.avatar_color`, paleta de 6) y para quien está sin la app (`parche_participants.avatar_color`); el recibo rosa o verde sigue por cruce (pgTAP `11_colores`). `my_cruces()` conserva los colores por rol para las versiones anteriores y agrega `my_color` y `partner_color`.
@@ -44,7 +44,8 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 - [x] Un solo aviso sin conexión y "Sin enviar"; ítems con nombre (pgTAP `14_items`); formas de reparto con ejemplo; deshacer al borrar un gasto (5 s); espera de 30 s para pedir otro código; enlace `SOY-` en el ticket.
 - [x] 15 espacios de ilustración (`il-09` a `il-21`) con respaldo a la ilustración de antes.
 - [ ] Recorrido en el simulador de los flujos pedidos (tarea 5.1 del cambio).
-- [ ] Respaldar testing y subir las siete migraciones con `scripts/db-push.sh testing`; probar en "Cruce Test" con Joan, Jesús y una tercera cuenta.
+- [x] Subir las siete migraciones a testing y a prod con `scripts/db-push.sh` (30 oct 2026).
+- [ ] Probar la app en "Cruce Test" con Joan, Jesús y una tercera cuenta.
 - [x] Agregar las imágenes de `il-09` a `il-21` (PNG @2x y @3x), el 30 oct 2026.
 
 **Límites conocidos:** con una versión anterior de la app, lo que se pasa al cruce queda "por confirmar" hasta que alguien con la versión nueva lo acepte, y editar un gasto con ítems con nombre los guarda sin nombre. El enlace universal (`https://`) queda para el CP13. "Cómo pagarle a cada quien" e "Intentos con códigos de parche" están en las decisiones abiertas.
