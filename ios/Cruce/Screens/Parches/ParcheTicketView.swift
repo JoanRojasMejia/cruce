@@ -162,7 +162,6 @@ struct TicketCard: View {
                         }
                     }
                 }
-                if let explanation = ticket.explanation { explanationBox(explanation) }
             }
 
             if !ticket.lines.isEmpty {
@@ -259,18 +258,6 @@ struct TicketCard: View {
             }
             .accessibilityElement(children: .combine)
         }
-    }
-
-    /// "¿Por qué le paga todo a Yisus?": solo cuando "Para saldar" cruza las cuentas de la persona.
-    private func explanationBox(_ explanation: ParcheTicket.Explanation) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(explanation.title).font(.archivo(14, .black)).fixedSize(horizontal: false, vertical: true)
-            Text(explanation.body).font(.archivo(13, .bold)).fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .neoSurface(fill: CruceColor.cream, radius: Radius.input, border: BorderWidth.thin)
-        .accessibilityElement(children: .combine)
     }
 
     /// Neutral, sin rosa ni verde: a paz y salvo sigue con il-07; pendiente (individual o de grupo), il-15.

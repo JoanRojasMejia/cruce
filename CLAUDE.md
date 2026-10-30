@@ -306,7 +306,7 @@ Parches (sin captura en `docs/design/screens/`; se abren en Debug con `-screen <
 | Cerrar el parche y "¿Lo pasas a tu cruce?" (y por confirmar) | `CloseParcheView`, `CruceQuestionCard`, `CruceTransferPendingCard` | `parcheClose`, `parcheCruce`, `parcheCrucePending` |
 | Sin conexión (un solo aviso y "Sin enviar" en cada fila) | `ParcheSyncBanner`, `UnsentLabel` | `parcheOffline` |
 | Tickets para compartir | `ParcheTicketView` | `parcheTicket`, `parcheTicketSettled`, `parcheTicketGroup` |
-| "Finca": "Cruce junta las deudas…" en Saldos; tickets con "Cómo se calcula" y "¿Por qué le paga todo a…?" | `ParcheDetailView`, `ParcheTicketView` | `parcheFinca`, `parcheTicketNata`, `parcheTicketYisus` |
+| "Finca": "Cruce junta las deudas…" en Saldos; tickets con "Cómo se calcula" | `ParcheDetailView`, `ParcheTicketView` | `parcheFinca`, `parcheTicketNata`, `parcheTicketYisus` |
 
 Funciones del CP11 (sin captura en `docs/design/screens/`; se abren en Debug con `-screen <nombre>`):
 
