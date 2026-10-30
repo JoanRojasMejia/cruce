@@ -73,7 +73,7 @@ struct ParcheEntryButtons: View {
 struct ParchesEmptyContent: View {
     var body: some View {
         VStack(spacing: 12) {
-            IllustrationView(illustration: .empty, height: 200, minHeight: 120)
+            IllustrationView(illustration: .parchesEmpty, height: 260, minHeight: 120)
             Text("Aún no tienes parches")
                 .font(.archivo(24, .black, relativeTo: .title))
                 .tracking(-0.6)

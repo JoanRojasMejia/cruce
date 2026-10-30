@@ -206,6 +206,11 @@ public struct ParcheDetail: Identifiable, Codable, Hashable, Sendable {
         ParcheCalculator.isSettled(status: parche.status, balances: balances)
     }
 
+    /// Hay gastos y todos los saldos quedaron en $0, abierto o cerrado (la tarjeta del saldo lo celebra).
+    public var everyoneAtZero: Bool {
+        !visibleExpenses.isEmpty && balances.allSatisfy { $0.net == 0 }
+    }
+
     /// Cómo saldar con el menor número de transferencias.
     public var suggestedTransfers: [ParcheTransfer] {
         ParcheCalculator.minimumTransfers(balances)

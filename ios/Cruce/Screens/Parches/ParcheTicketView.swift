@@ -4,7 +4,6 @@ import SwiftUI
 /// Ticket para compartir: el personal de una persona o el del parche. Se dibuja como un recibo de Tike, se convierte
 /// en imagen en el teléfono (`ImageRenderer`) y se comparte con el menú de iOS.
 struct ParcheTicketView: View {
-    @Environment(SessionStore.self) private var session
     @Environment(ParcheStore.self) private var parches
 
     private let parcheID: UUID
@@ -37,7 +36,7 @@ struct ParcheTicketView: View {
                 )
                 .textStyle(.body)
                 .foregroundStyle(CruceColor.textBody)
-                TicketCard(ticket: ticket, variant: session.me.tikeVariant)
+                TicketCard(ticket: ticket)
                     .padding(.horizontal, 4)
             }
             .padding(.horizontal, Spacing.screen)
@@ -82,7 +81,7 @@ struct ParcheTicketView: View {
     /// Dibuja el ticket a 3x para que se lea bien en el chat.
     private func render(_ ticket: ParcheTicket) {
         let renderer = ImageRenderer(
-            content: TicketCard(ticket: ticket, variant: session.me.tikeVariant)
+            content: TicketCard(ticket: ticket)
                 .frame(width: 360)
                 .padding(20)
                 .background(CruceColor.cream)
@@ -110,8 +109,6 @@ struct ParcheTicketView: View {
 /// No lee el `Environment` de los stores, así `ImageRenderer` lo puede dibujar solo.
 struct TicketCard: View {
     let ticket: ParcheTicket
-    /// Variante del recibo de quien comparte (regla rosa o verde).
-    let variant: TikeVariant
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -203,10 +200,16 @@ struct TicketCard: View {
             }
 
             if let code = ticket.claimCode {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("¿Ya tienes Cruce? Entra con el código").font(.archivo(13, .bold))
-                    Text(code).font(.archivo(26, .black)).tracking(1.5)
-                    Text("y tus cuentas te siguen.").font(.archivo(13, .bold))
+                HStack(alignment: .center, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("¿Ya tienes Cruce? Entra con el código").font(.archivo(13, .bold))
+                        Text(code).font(.archivo(26, .black)).tracking(1.5)
+                        Text("y tus cuentas te siguen.").font(.archivo(13, .bold))
+                    }
+                    Spacer(minLength: 0)
+                    if Illustration.placeClaimedMini.isAvailable {
+                        IllustrationView(illustration: .placeClaimedMini, height: 64).frame(width: 64)
+                    }
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,9 +225,9 @@ struct TicketCard: View {
         .background(ReceiptShape().fill(CruceColor.ink).offset(x: ShadowOffset.l, y: ShadowOffset.l))
     }
 
+    /// Neutral, sin rosa ni verde: a paz y salvo sigue con il-07; pendiente (individual o de grupo), il-15.
     private var illustration: Illustration {
-        guard ticket.personName != nil else { return ticket.stamp == .settled ? .allClear : .settle }
-        return Illustration.balance(BalanceState(net: ticket.amount), variant: variant)
+        ticket.stamp == .settled ? .allClear : .ticketPending
     }
 
     private var stamp: some View {

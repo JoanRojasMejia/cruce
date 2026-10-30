@@ -124,7 +124,11 @@ struct ParcheDetailView: View {
             tab: "TU SALDO EN EL PARCHE", tabColor: tab, tabWidth: 200,
             padding: EdgeInsets(top: 14, leading: 18, bottom: 16, trailing: 18)
         ) {
-            HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Ilustraciones neutrales del parche; mientras no estén, la que se usaba antes.
+                IllustrationView(
+                    illustration: Self.balanceIllustration(state, everyoneAtZero: detail.everyoneAtZero), height: 140,
+                    fallback: Illustration.balance(state, variant: session.me.tikeVariant))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(myPhrase(detail, net: net)).textStyle(.balancePhrase)
                         .fixedSize(horizontal: false, vertical: true)
@@ -137,14 +141,18 @@ struct ParcheDetailView: View {
                         Text(favor).font(.archivo(13, .extraBold))
                     }
                 }
-                Spacer(minLength: 0)
-                IllustrationView(
-                    illustration: Illustration.balance(state, variant: session.me.tikeVariant), height: 96
-                )
-                .frame(width: 96)
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// Te deben → il-19a, debes → il-19b, todos en $0 → il-18; tú en $0 y otros no → a paz y salvo.
+    static func balanceIllustration(_ state: BalanceState, everyoneAtZero: Bool) -> Illustration {
+        switch state {
+        case .theyOweYou: return .groupTheyOweYou
+        case .youOwe: return .groupYouOwe
+        case .settled: return everyoneAtZero ? .parcheSettled : .allClear
+        }
     }
 
     private func actions(_ detail: ParcheDetail) -> some View {
@@ -173,7 +181,7 @@ struct ParcheDetailView: View {
     @ViewBuilder
     private func cruceQuestions(_ detail: ParcheDetail) -> some View {
         ForEach(parches.cruceCandidates(in: detail), id: \.other.id) { candidate in
-            CruceQuestionCard(parcheID: parcheID, candidate: candidate)
+            CruceQuestionCard(parcheID: parcheID, candidate: candidate, showsIllustration: !detail.parche.isOpen)
         }
         ForEach(parches.pendingCruceTransfers(in: detail)) { transfer in
             CruceTransferPendingCard(parcheID: parcheID, transfer: transfer)
@@ -185,7 +193,11 @@ struct ParcheDetailView: View {
         let mine = parches.pendingConfirmations(in: detail)
         let others = detail.pendingPayments.filter { $0.toID != detail.myParticipantID }
         if !mine.isEmpty || !others.isEmpty {
-            SectionTitle("Pagos por confirmar")
+            SectionTitle(title: "Pagos por confirmar") {
+                if Illustration.paymentPending.isAvailable {
+                    IllustrationView(illustration: .paymentPending, height: 48).frame(width: 48)
+                }
+            }
             ForEach(mine) { payment in
                 HStack(spacing: 10) {
                     Text(parches.confirmationPrompt(for: payment, in: detail))
@@ -569,10 +581,19 @@ struct CruceQuestionCard: View {
     @Environment(ParcheStore.self) private var parches
     let parcheID: UUID
     let candidate: ParcheCruceCandidate
+    /// En el detalle del parche cerrado la tarjeta lleva il-16 pequeña; en "Una pregunta más" va grande arriba.
+    var showsIllustration = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("\(candidate.other.displayName) y tú tienen un cruce").textStyle(.sectionTitle)
+            HStack(alignment: .center, spacing: 10) {
+                Text("\(candidate.other.displayName) y tú tienen un cruce").textStyle(.sectionTitle)
+                    .fixedSize(horizontal: false, vertical: true)
+                if showsIllustration && Illustration.cruceTransfer.isAvailable {
+                    Spacer(minLength: 0)
+                    IllustrationView(illustration: .cruceTransfer, height: 72).frame(width: 72)
+                }
+            }
             Text(parches.crucePrompt(for: candidate))
                 .textStyle(.body)
                 .fixedSize(horizontal: false, vertical: true)

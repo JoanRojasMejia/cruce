@@ -27,7 +27,7 @@ struct NewParcheView: View {
                 if let error = parches.error {
                     ParcheProblem(text: error.message)
                 }
-                IllustrationView(illustration: .welcome, height: 180, minHeight: 100)
+                IllustrationView(illustration: .newParche, height: 200, minHeight: 100)
                 Spacer(minLength: 0)
                 Button("Crear parche") { Task { await create() } }
                     .buttonStyle(NeoButtonStyle(kind: .primary, height: 58, shadow: ShadowOffset.l))
@@ -91,6 +91,7 @@ struct EnterCodeView: View {
                     hint(prefix: "SOY-", text: "para quedarte con tu lugar en un parche donde te anotaron sin la app")
                 }
                 if let problem {
+                    IllustrationView(illustration: .invalidCode, height: 120)
                     ParcheProblem(text: problem)
                 }
                 Spacer(minLength: 0)

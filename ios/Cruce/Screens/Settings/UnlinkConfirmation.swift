@@ -28,12 +28,16 @@ struct UnlinkConfirmation: View {
             CruceColor.scrim.ignoresSafeArea().onTapGesture(perform: onCancel)
 
             VStack(alignment: .leading, spacing: 14) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 24, weight: .bold))
-                    .frame(width: 56, height: 56)
-                    .neoSurface(fill: CruceColor.pink, radius: 16, shadow: ShadowOffset.s)
-                    .rotationEffect(.degrees(-6))
-                    .accessibilityHidden(true)
+                if Illustration.cruceClosed.isAvailable {
+                    IllustrationView(illustration: .cruceClosed, height: 120).accessibilityHidden(true)
+                } else {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 24, weight: .bold))
+                        .frame(width: 56, height: 56)
+                        .neoSurface(fill: CruceColor.pink, radius: 16, shadow: ShadowOffset.s)
+                        .rotationEffect(.degrees(-6))
+                        .accessibilityHidden(true)
+                }
                 Text("¿Desvincular a \(session.partner.name)?")
                     .font(.archivo(26, .black, relativeTo: .title))
                     .tracking(-0.8)

@@ -38,4 +38,24 @@ struct ParcheDetailTests {
         ]
         #expect(detail(participants).order == [early, late])
     }
+
+    // MARK: - Todos en $0
+
+    @Test("Con gastos y todos los saldos en $0, todos quedaron en $0")
+    func everyoneAtZeroWithSettledBalances() throws {
+        let cena = try #require(MockParches.parches().first { $0.id == MockParches.cenaID })
+        #expect(cena.everyoneAtZero)
+    }
+
+    @Test("Si alguien debe, no todos están en $0")
+    func everyoneAtZeroIsFalseWithDebts() throws {
+        let santaMarta = try #require(MockParches.parches().first { $0.id == MockParches.santaMartaID })
+        #expect(!santaMarta.everyoneAtZero)
+    }
+
+    @Test("Un parche sin gastos no cuenta como saldado")
+    func everyoneAtZeroNeedsExpenses() {
+        let empty = detail([ParcheParticipant(displayName: "A", joinedAt: day)])
+        #expect(!empty.everyoneAtZero)
+    }
 }

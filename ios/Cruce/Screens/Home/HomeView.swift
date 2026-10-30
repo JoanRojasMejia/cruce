@@ -161,8 +161,12 @@ struct BalanceCard: View {
             tab: "SALDO NETO", tabColor: tabColor, padding: EdgeInsets(top: 14, leading: 18, bottom: 18, trailing: 18)
         ) {
             VStack(alignment: .leading, spacing: 8) {
-                IllustrationView(
-                    illustration: Illustration.balance(ledger.balance, variant: session.me.tikeVariant), height: 140)
+                if session.isOpenCruceClosed {
+                    // Cruce cerrado: il-17; mientras no esté, la del saldo de siempre.
+                    IllustrationView(illustration: .cruceClosed, height: 140, fallback: balanceIllustration)
+                } else {
+                    IllustrationView(illustration: balanceIllustration, height: 140)
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(phrase).textStyle(.balancePhrase)
                     Text(Money.format(ledger.balance.amount))
@@ -176,6 +180,10 @@ struct BalanceCard: View {
             .foregroundStyle(CruceColor.ink)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var balanceIllustration: Illustration {
+        Illustration.balance(ledger.balance, variant: session.me.tikeVariant)
     }
 
     private var tabColor: Color {

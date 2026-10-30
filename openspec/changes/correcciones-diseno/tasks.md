@@ -9,7 +9,7 @@
 
 ## 2. Ilustraciones
 
-- [ ] 2.1 Quince espacios en el catálogo, casos en `Illustration` con respaldo a la ilustración actual, y uso por pantalla.
+- [x] 2.1 Quince espacios en el catálogo, casos en `Illustration` con respaldo a la ilustración actual, y uso por pantalla.
 
 ## 3. Pantallas
 

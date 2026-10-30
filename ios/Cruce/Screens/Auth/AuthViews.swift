@@ -116,6 +116,9 @@ private struct CodeStep: View {
                     .foregroundStyle(CruceColor.textSecondary)
             }
 
+            // Sin respaldo: mientras il-09 no esté, no se dibuja nada.
+            IllustrationView(illustration: .checkEmail, height: 180, minHeight: 100)
+
             Spacer(minLength: 0)
 
             VStack(spacing: 8) {

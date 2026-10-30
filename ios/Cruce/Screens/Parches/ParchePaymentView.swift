@@ -218,7 +218,7 @@ struct CloseParcheView: View {
 
     @ViewBuilder
     private func confirmation(_ detail: ParcheDetail) -> some View {
-        IllustrationView(illustration: .settle, height: 200, minHeight: 110)
+        IllustrationView(illustration: .closeParche, height: 200, minHeight: 110)
         Text("¿Cerrar \(detail.parche.name)?")
             .font(.archivo(30, .black, relativeTo: .largeTitle))
             .tracking(-1)
@@ -269,6 +269,9 @@ struct CloseParcheView: View {
     private func afterClosing(_ detail: ParcheDetail) -> some View {
         let candidates = parches.cruceCandidates(in: detail)
         let pending = parches.pendingCruceTransfers(in: detail)
+        if !candidates.isEmpty {
+            IllustrationView(illustration: .cruceTransfer, height: 200, minHeight: 110)
+        }
         Text(candidates.isEmpty ? "Listo, el parche quedó cerrado." : "Una pregunta más")
             .font(.archivo(30, .black, relativeTo: .largeTitle))
             .tracking(-1)
