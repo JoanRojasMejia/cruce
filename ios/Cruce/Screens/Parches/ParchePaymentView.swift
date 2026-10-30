@@ -142,8 +142,8 @@ struct ParchePaymentView: View {
     }
 }
 
-/// Cerrar el parche: confirma que ya no se anotan gastos y luego pregunta, por cada persona con la que compartes
-/// un cruce, si la deuda pasa a su cruce.
+/// Cerrar el parche: confirma que ya no se anotan gastos y luego, por cada pago de "Para saldar" con alguien con
+/// quien compartes un cruce, pregunta si lo propones para su cruce. La otra persona tiene que aceptarlo.
 struct CloseParcheView: View {
     @Environment(ParcheStore.self) private var parches
     @Environment(Router.self) private var router
@@ -219,18 +219,19 @@ struct CloseParcheView: View {
     @ViewBuilder
     private func afterClosing(_ detail: ParcheDetail) -> some View {
         let candidates = parches.cruceCandidates(in: detail)
+        let pending = parches.pendingCruceTransfers(in: detail)
         Text(candidates.isEmpty ? "Listo, el parche quedó cerrado." : "Una pregunta más")
             .font(.archivo(30, .black, relativeTo: .largeTitle))
             .tracking(-1)
-        Text(
-            candidates.isEmpty
-                ? "Ya no se anotan gastos. Los pagos que falten se anotan en el parche."
-                : "Con quien compartes un cruce, lo que se deben en el parche puede pasar a su cruce."
-        )
-        .textStyle(.body)
-        .foregroundStyle(CruceColor.textBody)
+        Text(afterClosingText(hasCandidates: !candidates.isEmpty, hasPending: !pending.isEmpty))
+            .textStyle(.body)
+            .foregroundStyle(CruceColor.textBody)
+            .fixedSize(horizontal: false, vertical: true)
         ForEach(candidates, id: \.other.id) { candidate in
             CruceQuestionCard(parcheID: parcheID, candidate: candidate)
+        }
+        ForEach(pending) { transfer in
+            CruceTransferPendingCard(parcheID: parcheID, transfer: transfer)
         }
         if let error = parches.error {
             ParcheProblem(text: error.message)
@@ -249,6 +250,17 @@ struct CloseParcheView: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .neoSurface(radius: Radius.input, border: BorderWidth.thin)
+    }
+
+    private func afterClosingText(hasCandidates: Bool, hasPending: Bool) -> String {
+        if hasCandidates {
+            return
+                "En “Para saldar” hay un pago con alguien con quien compartes un cruce: puede pasar a su cruce si los dos están de acuerdo."
+        }
+        if hasPending {
+            return "Ya no se anotan gastos. Lo que propusiste pasa a su cruce cuando la otra persona lo acepte."
+        }
+        return "Ya no se anotan gastos. Los pagos que falten se anotan en el parche."
     }
 
     private func transfersText(_ count: Int) -> String {

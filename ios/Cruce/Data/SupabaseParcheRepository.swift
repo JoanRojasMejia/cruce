@@ -93,10 +93,20 @@ struct SupabaseParcheRepository: ParcheRepository {
         _ = try await call("close_parche", ParcheRemote.IDParams(id: id))
     }
 
-    func moveDebtToCruce(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer {
+    func proposeCruceTransfer(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer {
         let row = try await call(
-            "move_parche_debt_to_cruce",
-            ParcheRemote.MoveDebtParams(parcheID: parcheID, otherParticipantID: otherParticipantID))
+            "propose_parche_debt_to_cruce",
+            ParcheRemote.ProposeCruceParams(parcheID: parcheID, otherParticipantID: otherParticipantID))
+        return try ParcheRemote.transfer(from: row)
+    }
+
+    func acceptCruceTransfer(id: UUID, parcheID: UUID) async throws -> ParcheCruceTransfer {
+        let row = try await call("accept_parche_cruce_transfer", ParcheRemote.IDParams(id: id))
+        return try ParcheRemote.transfer(from: row)
+    }
+
+    func rejectCruceTransfer(id: UUID, parcheID: UUID) async throws -> ParcheCruceTransfer {
+        let row = try await call("reject_parche_cruce_transfer", ParcheRemote.IDParams(id: id))
         return try ParcheRemote.transfer(from: row)
     }
 
@@ -117,9 +127,10 @@ struct SupabaseParcheRepository: ParcheRepository {
         return client.auth.currentUser?.id
     }
 
-    /// Las cuentas con las que comparte un cruce (RLS de `ledger_members` deja ver los miembros de sus cuentas).
+    /// Las cuentas con las que comparte un cruce abierto (RLS de `ledger_members` deja ver los miembros de sus
+    /// cuentas, y la de `ledgers` si están cerradas).
     private func crucePartners(of userID: UUID) async throws -> Set<UUID> {
-        let data = try await client.from("ledger_members").select("ledger_id, user_id").execute().data
+        let data = try await client.from("ledger_members").select(ParcheRemote.memberSelect).execute().data
         return ParcheRemote.crucePartners(of: userID, members: try ParcheRemote.members(from: data))
     }
 

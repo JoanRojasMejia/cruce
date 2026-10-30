@@ -47,7 +47,12 @@ public enum ParcheActivityKind: String, Codable, Hashable, Sendable {
     case participantJoined
     case placeClaimed
     case parcheClosed
+    /// Alguien propuso pasar a su cruce una transferencia del plan; queda por confirmar.
+    case debtProposedToCruce
+    /// La otra persona aceptó: la deuda pasó al cruce.
     case debtMovedToCruce
+    /// La otra persona no aceptó: la deuda sigue en el parche.
+    case debtRejectedForCruce
 }
 
 /// Un aviso dentro de la app. No hay notificaciones push.
@@ -165,6 +170,12 @@ public struct ParcheDetail: Identifiable, Codable, Hashable, Sendable {
     /// Cómo saldar con el menor número de transferencias.
     public var suggestedTransfers: [ParcheTransfer] {
         ParcheCalculator.minimumTransfers(balances)
+    }
+
+    /// La transferencia al cruce entre esas dos personas que sigue viva (por confirmar o aceptada), si la hay.
+    /// Las rechazadas no cuentan: el par puede volver a proponerla.
+    public func liveCruceTransfer(between a: UUID, and b: UUID) -> ParcheCruceTransfer? {
+        transfers.first { $0.status != .rejected && $0.isBetween(a, b) }
     }
 
     /// Lo que `a` le debe directamente a `b`.

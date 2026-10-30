@@ -383,34 +383,27 @@ select throws_ok($$select public.move_parche_debt_to_cruce(current_setting('t.pa
   'P0001', 'No comparten un cruce', 'Jesús y Carlos no comparten un cruce');
 select throws_ok($$select public.move_parche_debt_to_cruce(current_setting('t.parche')::uuid, current_setting('t.j')::uuid)$$,
   'P0001', 'No puedes pasarte una deuda a ti mismo', 'Nadie pasa una deuda consigo mismo');
--- Joan acepta (cualquiera de los dos puede).
+-- Joan y Jesús comparten un cruce y Joan le debe directamente $64.000, pero en "Para saldar" no hay un pago entre
+-- ellos (Joan le paga a Ana y Jesús a Ana y a Carlos): no hay nada que pasar al cruce. Proponer, aceptar y rechazar
+-- se prueban en 10_pasar_al_cruce.sql.
 select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
-select set_config('t.movement', (select movement_id::text
-  from public.move_parche_debt_to_cruce(pg_temp.pid('parche'), pg_temp.pid('j'))), true);
-select ok(
-  (select from_id = pg_temp.pid('jo') and to_id = pg_temp.pid('j') and amount = 64000
-   from public.parche_cruce_transfers where parche_id = pg_temp.pid('parche')),
-  'Queda la transferencia de Joan a Jesús por $64.000');
-select ok(
-  (select kind = 'expense' and split_type = 'full_other' and payer_id = '11111111-1111-1111-1111-111111111111'
-     and amount = 64000 and concept = 'Parche Santa Marta' and owed_by_other = 64000
-     and ledger_id = 'd0000000-0000-0000-0000-000000000001' and created_by = '44444444-4444-4444-4444-444444444444'
-   from public.movements where id = pg_temp.pid('movement')),
-  'El cruce tiene un gasto de $64.000 "Parche Santa Marta" pagado por Jesús y todo para Joan');
-select is((select net from public.ledger_balances where user_id = '11111111-1111-1111-1111-111111111111'),
-  64000::bigint, 'En el cruce, Joan le debe $64.000 a Jesús');
-select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
-select throws_ok($$select public.move_parche_debt_to_cruce(current_setting('t.parche')::uuid, current_setting('t.jo')::uuid)$$,
-  'P0001', 'La deuda entre ustedes ya pasó al cruce', 'Cada par pasa la deuda una sola vez');
+select throws_ok($$select public.move_parche_debt_to_cruce(current_setting('t.parche')::uuid, current_setting('t.j')::uuid)$$,
+  'P0001', 'Para saldar no hay un pago entre ustedes', 'Sin un pago entre Joan y Jesús en el plan, no se ofrece nada');
+select is(pg_temp.error_hint(
+  $$select public.move_parche_debt_to_cruce(current_setting('t.parche')::uuid, current_setting('t.j')::uuid)$$),
+  'nothingToMove', 'El error trae la pista nothingToMove');
+select is((select count(*) from public.parche_cruce_transfers where parche_id = pg_temp.pid('parche')), 0::bigint,
+  'No queda ninguna transferencia al cruce');
+select is((select count(*) from public.movements where ledger_id = 'd0000000-0000-0000-0000-000000000001'), 0::bigint,
+  'El cruce de Joan y Jesús no tiene movimientos');
 reset role;
-select is(public.parche_direct_debt(pg_temp.pid('parche'), pg_temp.pid('jo'), pg_temp.pid('j')), 0::bigint,
-  'En el parche, la deuda pasada al cruce cuenta como un pago');
+select is(public.parche_direct_debt(pg_temp.pid('parche'), pg_temp.pid('jo'), pg_temp.pid('j')), 64000::bigint,
+  'La deuda directa entre los dos sigue en el parche');
+select is(
+  (select count(*) from public.parche_settlement_plan(pg_temp.pid('parche'))
+   where (from_id, to_id) in ((pg_temp.pid('jo'), pg_temp.pid('j')), (pg_temp.pid('j'), pg_temp.pid('jo')))),
+  0::bigint, 'El plan para saldar no tiene un pago entre Joan y Jesús');
 set local role authenticated;
-select ok(
-  (select participant_id = pg_temp.pid('jo') and other_participant_id = pg_temp.pid('j') and amount = 64000
-     and actor_id = pg_temp.pid('jo')
-   from public.parche_activity where kind = 'debtMovedToCruce'),
-  'Pasar la deuda al cruce deja un aviso');
 
 -- ─────────────────────────────────────────────────────────────
 -- Otro parche: validación diferida y nada que pasar al cruce
@@ -455,7 +448,7 @@ select public.close_parche(pg_temp.pid('cena'));
 select throws_ok($$select public.move_parche_debt_to_cruce(current_setting('t.cena')::uuid,
     (select id from public.parche_participants where parche_id = current_setting('t.cena')::uuid
        and user_id = '11111111-1111-1111-1111-111111111111'))$$,
-  'P0001', 'No se deben nada entre ustedes', 'Si no se deben nada, no hay nada que pasar al cruce');
+  'P0001', 'Para saldar no hay un pago entre ustedes', 'Si no se deben nada, no hay nada que pasar al cruce');
 
 -- ─────────────────────────────────────────────────────────────
 -- Actividad y avisos sin ver
@@ -465,7 +458,7 @@ select is(
   (select string_agg(kind::text || ':' || n, ',' order by kind)
    from (select kind, count(*) as n from public.parche_activity where parche_id = pg_temp.pid('parche') group by kind) as k),
   'parcheCreated:1,expenseCreated:4,expenseEdited:1,expenseDeleted:1,paymentRecorded:4,paymentConfirmed:1,'
-  || 'participantAdded:1,participantJoined:2,placeClaimed:1,parcheClosed:1,debtMovedToCruce:1',
+  || 'participantAdded:1,participantJoined:2,placeClaimed:1,parcheClosed:1',
   'Los triggers escriben la actividad del parche');
 select ok(
   (select actor_id = pg_temp.pid('j') and participant_id = pg_temp.pid('c')

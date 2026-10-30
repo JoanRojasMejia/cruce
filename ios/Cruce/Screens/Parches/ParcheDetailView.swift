@@ -168,6 +168,9 @@ struct ParcheDetailView: View {
         ForEach(parches.cruceCandidates(in: detail), id: \.other.id) { candidate in
             CruceQuestionCard(parcheID: parcheID, candidate: candidate)
         }
+        ForEach(parches.pendingCruceTransfers(in: detail)) { transfer in
+            CruceTransferPendingCard(parcheID: parcheID, transfer: transfer)
+        }
     }
 
     @ViewBuilder
@@ -553,7 +556,8 @@ struct ParcheExpenseRow: View {
     }
 }
 
-/// "Joan y tú tienen un cruce": pasar la deuda del parche a su cruce o saldarla en el parche.
+/// "Joan y tú tienen un cruce": proponer que la transferencia del plan pase a su cruce o saldarla en el parche.
+/// La otra persona tiene que aceptarlo.
 struct CruceQuestionCard: View {
     @Environment(ParcheStore.self) private var parches
     let parcheID: UUID
@@ -565,8 +569,12 @@ struct CruceQuestionCard: View {
             Text(parches.crucePrompt(for: candidate))
                 .textStyle(.body)
                 .fixedSize(horizontal: false, vertical: true)
+            Text("Pasa a tu cruce cuando \(candidate.other.displayName) lo acepte.")
+                .textStyle(.secondary)
+                .foregroundStyle(CruceColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             Button("Sí, pasarla a tu cruce") {
-                Task { await parches.moveDebtToCruce(in: parcheID, with: candidate.other.id) }
+                Task { await parches.proposeCruceTransfer(in: parcheID, with: candidate.other.id) }
             }
             .buttonStyle(.dialog(.primary))
             .disabled(parches.isWorking)
@@ -578,6 +586,55 @@ struct CruceQuestionCard: View {
         .foregroundStyle(CruceColor.ink)
         .padding(16)
         .neoSurface(fill: CruceColor.lime, radius: Radius.card, shadow: ShadowOffset.m)
+    }
+}
+
+/// Una propuesta para pasar al cruce que está por confirmar. Quien la propuso ve que falta la respuesta; la otra
+/// persona la acepta (se crea el movimiento en su cruce) o la rechaza (la deuda sigue en el parche).
+struct CruceTransferPendingCard: View {
+    @Environment(ParcheStore.self) private var parches
+    let parcheID: UUID
+    let transfer: ParcheCruceTransfer
+
+    var body: some View {
+        if let detail = parches.parche(parcheID) {
+            let responds = parches.canRespond(to: transfer, in: detail)
+            VStack(alignment: .leading, spacing: 10) {
+                Badge(text: "Por confirmar", fill: responds ? CruceColor.surface : CruceColor.neutral)
+                Text(parches.cruceTransferPrompt(for: transfer, in: detail))
+                    .font(.archivo(15, .extraBold))
+                    .fixedSize(horizontal: false, vertical: true)
+                if responds {
+                    Button("Aceptar") {
+                        Task { await parches.acceptCruceTransfer(transfer.id, in: parcheID) }
+                    }
+                    .buttonStyle(.dialog(.primary))
+                    .disabled(parches.isWorking)
+                    Button("Rechazar, se salda en el parche") {
+                        Task { await parches.rejectCruceTransfer(transfer.id, in: parcheID) }
+                    }
+                    .buttonStyle(.dialog(.secondary))
+                    .disabled(parches.isWorking)
+                }
+            }
+            .foregroundStyle(CruceColor.ink)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .modifier(PendingSurface(responds: responds))
+        }
+    }
+}
+
+/// Quien responde ve una tarjeta para actuar; quien espera, el borde punteado de "por confirmar".
+private struct PendingSurface: ViewModifier {
+    let responds: Bool
+
+    func body(content: Content) -> some View {
+        if responds {
+            content.neoSurface(fill: CruceColor.lime, radius: Radius.card, shadow: ShadowOffset.m)
+        } else {
+            content.neoSurface(fill: .clear, radius: Radius.card, border: BorderWidth.thin, dashed: true)
+        }
     }
 }
 

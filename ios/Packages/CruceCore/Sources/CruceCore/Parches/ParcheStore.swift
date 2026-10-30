@@ -1,7 +1,8 @@
 import Foundation
 import Observation
 
-/// Una persona con la que quien usa la app comparte un cruce y con quien tiene una deuda directa en un parche cerrado.
+/// Lo que se le ofrece a quien usa la app al cerrar un parche: una transferencia del plan "Para saldar" con alguien
+/// con quien comparte un cruce. El monto y la dirección son los de esa transferencia.
 public struct ParcheCruceCandidate: Hashable, Sendable {
     public let other: ParcheParticipant
     /// Positivo: el otro te debe; negativo: tú le debes.
@@ -51,7 +52,7 @@ public final class ParcheStore {
             case .notAllowed: "Eso no lo puedes hacer en este parche."
             case .noSharedCruce: "No tienen un cruce juntos, así que la deuda se salda en el parche."
             case .alreadyMoved: "Esa deuda ya pasó a su cruce."
-            case .nothingToMove: "No se deben nada entre ustedes."
+            case .nothingToMove: "En “Para saldar” no hay un pago entre ustedes, o las cuentas cambiaron."
             case .notFound: "Ese parche ya no está disponible."
             case .invalidData: "Algo no cuadra en los datos. Revísalos y vuelve a intentarlo."
             case .network: "No pudimos conectarnos. Revisa tu conexión y vuelve a intentarlo."
@@ -178,14 +179,29 @@ public final class ParcheStore {
             return isMe ? "Te quedaste con tu lugar en el parche" : "\(who) ahora tiene la app"
         case .parcheClosed:
             return isMe ? "Cerraste el parche" : "\(who) cerró el parche"
+        case .debtProposedToCruce:
+            let amount = Money.format(activity.amount ?? 0)
+            if isMe, let other = otherInPair(activity, me: me) {
+                return "Le propusiste a \(name(other, in: detail)) pasar \(amount) a su cruce"
+            }
+            if otherInPair(activity, me: me) != nil { return "\(who) propuso pasar \(amount) a su cruce contigo" }
+            return
+                "\(who) propuso pasar \(amount) a su cruce con \(pairOther(activity, actor: activity.actorID, in: detail))"
         case .debtMovedToCruce:
-            let ids = [activity.participantID, activity.otherParticipantID].compactMap { $0 }
-            if let me, ids.contains(me), let other = ids.first(where: { $0 != me }) {
+            if let me, let other = otherInPair(activity, me: me) {
                 let otherName = name(other, in: detail)
                 return "Tu deuda con \(otherName) pasó a tu cruce con \(otherName)"
             }
+            let ids = [activity.participantID, activity.otherParticipantID].compactMap { $0 }
             let names = ids.map { name($0, in: detail) }.joined(separator: " y ")
             return "La deuda entre \(names) pasó a su cruce"
+        case .debtRejectedForCruce:
+            if isMe, let other = otherInPair(activity, me: me) {
+                return "No aceptaste pasar a tu cruce la deuda con \(name(other, in: detail))"
+            }
+            if otherInPair(activity, me: me) != nil { return "\(who) no aceptó pasar a su cruce la deuda contigo" }
+            return
+                "\(who) no aceptó pasar a su cruce la deuda con \(pairOther(activity, actor: activity.actorID, in: detail))"
         }
     }
 
@@ -204,19 +220,49 @@ public final class ParcheStore {
         return "Parece que \(name(match.recordedBy, in: detail)) ya anotó este gasto"
     }
 
-    /// Con quiénes se puede pasar la deuda al cruce: parche cerrado, comparten un cruce, tienen la app, se deben algo
-    /// directamente, no la han pasado y no se respondió "No, se salda en el parche".
+    /// Qué se puede pasar al cruce: solo las transferencias del plan "Para saldar" entre quien usa la app y alguien con
+    /// la app con quien comparte un cruce abierto, con el parche cerrado, sin una propuesta viva para el par (por
+    /// confirmar o aceptada) y sin haber respondido "No, se salda en el parche". Si no hay ninguna, no se pregunta.
     public func cruceCandidates(in detail: ParcheDetail) -> [ParcheCruceCandidate] {
         guard !detail.parche.isOpen, let me = detail.myParticipantID else { return [] }
-        return detail.participants.compactMap { other in
+        return detail.suggestedTransfers.compactMap { transfer in
+            guard transfer.fromID == me || transfer.toID == me else { return nil }
+            let otherID = transfer.fromID == me ? transfer.toID : transfer.fromID
             guard
-                other.id != me, other.hasApp, detail.crucePartnerIDs.contains(other.id),
-                !detail.transfers.contains(where: { Set([$0.fromID, $0.toID]) == Set([me, other.id]) }),
-                !declinedCruce.contains(ParcheDeclinedCruce(parcheID: detail.id, otherID: other.id))
+                let other = detail.participant(otherID), other.hasApp, detail.crucePartnerIDs.contains(otherID),
+                detail.liveCruceTransfer(between: me, and: otherID) == nil,
+                !declinedCruce.contains(ParcheDeclinedCruce(parcheID: detail.id, otherID: otherID))
             else { return nil }
-            let owed = detail.directDebt(from: other.id, to: me)
-            return owed == 0 ? nil : ParcheCruceCandidate(other: other, amountYouAreOwed: owed)
+            return ParcheCruceCandidate(
+                other: other, amountYouAreOwed: transfer.toID == me ? transfer.amount : -transfer.amount)
         }
+    }
+
+    /// Lo que está por confirmar para pasar al cruce y es de quien usa la app (la propuso o le toca responder).
+    public func pendingCruceTransfers(in detail: ParcheDetail) -> [ParcheCruceTransfer] {
+        guard let me = detail.myParticipantID else { return [] }
+        return detail.transfers.filter { $0.isPending && ($0.fromID == me || $0.toID == me) }
+    }
+
+    /// Le toca responder (aceptar o rechazar): es la otra persona del par, no quien la propuso.
+    public func canRespond(to transfer: ParcheCruceTransfer, in detail: ParcheDetail) -> Bool {
+        guard transfer.isPending, let me = detail.myParticipantID else { return false }
+        return (transfer.fromID == me || transfer.toID == me) && transfer.proposedBy != me
+    }
+
+    /// Quien propuso: "Carlos te debe $47.000. Falta que Carlos acepte pasarlo a su cruce."
+    /// Quien responde: "Le debes $47.000 a Joan. Joan quiere pasarlo a su cruce, ¿aceptas?"
+    public func cruceTransferPrompt(for transfer: ParcheCruceTransfer, in detail: ParcheDetail) -> String {
+        let me = detail.myParticipantID
+        let otherID = transfer.fromID == me ? transfer.toID : transfer.fromID
+        let other = name(otherID, in: detail)
+        let amount = Money.format(transfer.amount)
+        let debt = transfer.toID == me ? "\(other) te debe \(amount)" : "Le debes \(amount) a \(other)"
+        if canRespond(to: transfer, in: detail) {
+            let proposer = transfer.proposedBy.map { name($0, in: detail) } ?? other
+            return "\(debt). \(proposer) quiere pasarlo a su cruce, ¿aceptas?"
+        }
+        return "\(debt). Falta que \(other) acepte pasarlo a su cruce."
     }
 
     /// "Joan te debe $64.000. ¿Lo pasas a tu cruce con Joan?"
@@ -336,11 +382,33 @@ public final class ParcheStore {
         return ok
     }
 
-    /// Pasa al cruce lo que se deben directamente quien usa la app y `otherID`.
+    /// Propone pasar a su cruce la transferencia del plan con `otherID`. Queda por confirmar hasta que la otra persona
+    /// la acepte. Necesita conexión (no va a la cola).
     @discardableResult
-    public func moveDebtToCruce(in parcheID: UUID, with otherID: UUID) async -> Bool {
+    public func proposeCruceTransfer(in parcheID: UUID, with otherID: UUID) async -> ParcheCruceTransfer? {
         let transfer = await perform {
-            try await repository.moveDebtToCruce(parcheID: parcheID, otherParticipantID: otherID)
+            try await repository.proposeCruceTransfer(parcheID: parcheID, otherParticipantID: otherID)
+        }
+        await refresh(parcheID)
+        return transfer
+    }
+
+    /// Acepta una propuesta que le hicieron a quien usa la app: se crea el movimiento en el cruce y la transferencia
+    /// queda saldada en el parche.
+    @discardableResult
+    public func acceptCruceTransfer(_ transferID: UUID, in parcheID: UUID) async -> Bool {
+        let transfer = await perform {
+            try await repository.acceptCruceTransfer(id: transferID, parcheID: parcheID)
+        }
+        await refresh(parcheID)
+        return transfer != nil
+    }
+
+    /// No acepta la propuesta: la deuda sigue en el parche.
+    @discardableResult
+    public func rejectCruceTransfer(_ transferID: UUID, in parcheID: UUID) async -> Bool {
+        let transfer = await perform {
+            try await repository.rejectCruceTransfer(id: transferID, parcheID: parcheID)
         }
         await refresh(parcheID)
         return transfer != nil
@@ -582,6 +650,20 @@ public final class ParcheStore {
 
     private func name(_ id: UUID, in detail: ParcheDetail) -> String {
         detail.participant(id)?.displayName ?? "Alguien"
+    }
+
+    /// En un aviso de pasar al cruce: la otra persona del par si quien usa la app es parte de él.
+    private func otherInPair(_ activity: ParcheActivity, me: UUID?) -> UUID? {
+        guard let me else { return nil }
+        if activity.participantID == me { return activity.otherParticipantID }
+        if activity.otherParticipantID == me { return activity.participantID }
+        return nil
+    }
+
+    /// En un aviso de pasar al cruce: el nombre de quien no hizo la acción.
+    private func pairOther(_ activity: ParcheActivity, actor: UUID?, in detail: ParcheDetail) -> String {
+        let other = activity.participantID == actor ? activity.otherParticipantID : activity.participantID
+        return other.map { name($0, in: detail) } ?? "alguien"
     }
 
     /// "Carlos te pagó $87.500", "Le pagaste $87.500 a Jesús" o "Carlos le pagó $87.500 a Jesús".

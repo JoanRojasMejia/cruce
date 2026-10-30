@@ -27,8 +27,8 @@ public struct ParcheTransfer: Hashable, Sendable {
 /// Cálculos de un parche: saldos, a paz y salvo, mínimo de transferencias y deuda directa entre dos.
 public enum ParcheCalculator {
     /// Saldo de cada persona, en el orden del parche: lo que pagó en gastos vigentes − lo que le toca en ellos
-    /// + pagos confirmados que hizo − pagos confirmados que recibió + deudas pasadas al cruce como quien debía
-    /// − como a quien le debían. Siempre suma cero.
+    /// + pagos confirmados que hizo − pagos confirmados que recibió + deudas que pasaron al cruce (aceptadas) como
+    /// quien debía − como a quien le debían. Las que están por confirmar o se rechazaron no cuentan. Siempre suma cero.
     public static func balances(
         order: [UUID], expenses: [ParcheExpense], payments: [ParchePayment] = [],
         transfers: [ParcheCruceTransfer] = []
@@ -42,7 +42,7 @@ public enum ParcheCalculator {
             net[payment.fromID, default: 0] += payment.amount
             net[payment.toID, default: 0] -= payment.amount
         }
-        for transfer in transfers {
+        for transfer in transfers where transfer.isAccepted {
             net[transfer.fromID, default: 0] += transfer.amount
             net[transfer.toID, default: 0] -= transfer.amount
         }
@@ -80,7 +80,7 @@ public enum ParcheCalculator {
 
     /// Lo que `a` le debe directamente a `b` (negativo si `b` le debe a `a`), antes de simplificar las del grupo.
     /// Por cada gasto vigente: lo que le toca a `a` por la fracción que pagó `b` (`share_a * paid_b / total`, entero)
-    /// menos lo recíproco; luego los pagos confirmados y las deudas pasadas al cruce entre los dos.
+    /// menos lo recíproco; luego los pagos confirmados y las deudas que pasaron al cruce (aceptadas) entre los dos.
     public static func directDebt(
         from a: UUID, to b: UUID, expenses: [ParcheExpense], payments: [ParchePayment] = [],
         transfers: [ParcheCruceTransfer] = []
@@ -94,7 +94,7 @@ public enum ParcheCalculator {
             if payment.fromID == a && payment.toID == b { debt -= payment.amount }
             if payment.fromID == b && payment.toID == a { debt += payment.amount }
         }
-        for transfer in transfers {
+        for transfer in transfers where transfer.isAccepted {
             if transfer.fromID == a && transfer.toID == b { debt -= transfer.amount }
             if transfer.fromID == b && transfer.toID == a { debt += transfer.amount }
         }

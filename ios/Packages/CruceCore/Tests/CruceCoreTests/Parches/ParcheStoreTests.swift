@@ -376,75 +376,195 @@ struct ParcheStoreTests {
 
     // MARK: - Pasar al cruce
 
-    /// Jesús paga $256.000 entre los 4 y cierra; Joan y Jesús comparten un cruce.
-    private func lodgingWithJoan(_ world: ParcheWorld) async throws -> (ParcheStore, ParcheStore, ParcheDetail) {
-        let (jesus, _, parche, _) = try await santaMarta(world)
-        let joan = world.store(world.joan)
-        _ = try #require(await joan.join(code: parche.parche.code))
-        await world.backend.addCruce(world.jesus.id, world.joan.id)
-        await jesus.refresh(parche.id)
-        let detail = try #require(jesus.parche(parche.id))
-        let me = try #require(detail.me)
-        let lodging = try #require(
-            jesus.validateExpense(
-                in: parche.id, concept: "Hospedaje", base: 256_000, split: .equal(Set(detail.order)),
-                payers: [ParchePayer(participantID: me.id, amount: 256_000)]))
-        await jesus.save(lodging)
-        return (jesus, joan, try #require(jesus.parche(parche.id)))
+    /// Una persona más para las pruebas de "Pasar al cruce".
+    private static let carlosMember = Member(
+        id: UUID(uuidString: "00000000-0000-0000-0000-0000000000A4")!, name: "Carlos", avatarColor: .yellow,
+        tikeVariant: .rosa)
+
+    /// "Santa Marta" de `MockParches`, ya cerrado: +47.000 (Joan) / +125.000 (Jesús) / 0 (Ana) / −172.000 (Carlos) y
+    /// para saldar Carlos → Jesús $125.000 y Carlos → Joan $47.000. Joan y Jesús comparten un cruce. Con
+    /// `carlosHasApp`, Carlos se quedó con su lugar y comparte un cruce con Joan.
+    private func closedSantaMarta(carlosHasApp: Bool = false) -> InMemoryParcheBackend {
+        let parches = MockParches.parches().map { detail in
+            var detail = detail
+            guard detail.id == MockParches.santaMartaID else { return detail }
+            detail.parche.status = .closed
+            detail.parche.closedAt = .now
+            if carlosHasApp, let index = detail.participants.firstIndex(where: { $0.id == MockParches.carlos }) {
+                detail.participants[index].userID = Self.carlosMember.id
+                detail.participants[index].claimCode = nil
+            }
+            return detail
+        }
+        var cruces: [Set<UUID>] = [[MockData.joan.id, MockData.jesus.id]]
+        if carlosHasApp { cruces.append([MockData.joan.id, Self.carlosMember.id]) }
+        return InMemoryParcheBackend(parches: parches, cruces: cruces)
     }
 
-    @Test("Joan y Jesús pasan su deuda al cruce y en el parche ya no hay transferencia entre ellos")
-    func moveDebtToCruce() async throws {
-        let world = ParcheWorld()
-        let (jesus, joan, detail) = try await lodgingWithJoan(world)
-        let joanID = try participant(detail, "Joan").id
-        // Con el parche abierto no se pregunta.
-        #expect(jesus.cruceCandidates(in: detail).isEmpty)
-        #expect(await jesus.close(detail.id))
+    private func store(
+        _ member: Member, backend: InMemoryParcheBackend, pending: any PendingStore = InMemoryPendingStore()
+    )
+        -> ParcheStore
+    {
+        ParcheStore(
+            session: SessionStore(phase: .main, me: member, partner: MockData.jesus, userID: member.id),
+            repository: InMemoryParcheRepository(backend: backend, userID: member.id),
+            pendingStore: pending)
+    }
 
-        let open = try #require(jesus.parche(detail.id))
-        let candidates = jesus.cruceCandidates(in: open)
-        #expect(candidates == [ParcheCruceCandidate(other: try participant(open, "Joan"), amountYouAreOwed: 64_000)])
-        #expect(jesus.crucePrompt(for: candidates[0]) == "Joan te debe $64.000. ¿Lo pasas a tu cruce con Joan?")
+    private func loaded(_ store: ParcheStore) async throws -> ParcheDetail {
+        await store.load()
+        return try #require(store.parche(MockParches.santaMartaID))
+    }
 
-        #expect(await jesus.moveDebtToCruce(in: detail.id, with: joanID))
-        let after = try #require(jesus.parche(detail.id))
-        #expect(after.transfers.map(\.amount) == [64_000])
-        #expect(!after.suggestedTransfers.contains { Set([$0.fromID, $0.toID]) == Set([joanID, after.me!.id]) })
-        #expect(jesus.cruceCandidates(in: after).isEmpty)
+    @Test("Santa Marta: entre Joan y Jesús no se ofrece nada, aunque se deban algo directamente")
+    func noOfferOutsideThePlan() async throws {
+        let backend = closedSantaMarta()
+        let joan = store(MockData.joan, backend: backend)
+        let detail = try await loaded(joan)
+        #expect(detail.balances.map(\.net) == [47_000, 125_000, 0, -172_000])
+        #expect(
+            detail.suggestedTransfers == [
+                ParcheTransfer(fromID: MockParches.carlos, toID: MockParches.jesus, amount: 125_000),
+                ParcheTransfer(fromID: MockParches.carlos, toID: MockParches.joan, amount: 47_000),
+            ])
+        // Antes se ofrecía "Le debes $35.000 a Jesús" por esta deuda directa.
+        #expect(detail.directDebt(from: MockParches.joan, to: MockParches.jesus) == 35_000)
+        #expect(joan.cruceCandidates(in: detail).isEmpty)
+        let jesus = store(MockData.jesus, backend: backend)
+        #expect(jesus.cruceCandidates(in: try await loaded(jesus)).isEmpty)
 
-        // Una sola vez por par, aunque lo intente el otro.
+        // Y el backend tampoco lo acepta.
+        #expect(await joan.proposeCruceTransfer(in: detail.id, with: MockParches.jesus) == nil)
+        #expect(joan.error == .nothingToMove)
+    }
+
+    @Test("La oferta sale del plan: monto y dirección de la transferencia entre los dos")
+    func offerComesFromThePlan() async throws {
+        let backend = closedSantaMarta(carlosHasApp: true)
+        let joan = store(MockData.joan, backend: backend)
+        let detail = try await loaded(joan)
+        let carlos = try participant(detail, "Carlos")
+        let candidates = joan.cruceCandidates(in: detail)
+        #expect(candidates == [ParcheCruceCandidate(other: carlos, amountYouAreOwed: 47_000)])
+        #expect(joan.crucePrompt(for: candidates[0]) == "Carlos te debe $47.000. ¿Lo pasas a tu cruce con Carlos?")
+
+        let carlosStore = store(Self.carlosMember, backend: backend)
+        let fromCarlos = carlosStore.cruceCandidates(in: try await loaded(carlosStore))
+        #expect(fromCarlos.map(\.amountYouAreOwed) == [-47_000])
+        #expect(
+            carlosStore.crucePrompt(for: fromCarlos[0]) == "Le debes $47.000 a Joan. ¿Lo pasas a tu cruce con Joan?")
+
+        // Jesús no comparte cruce con Carlos: no se le ofrece nada.
+        let jesus = store(MockData.jesus, backend: backend)
+        #expect(jesus.cruceCandidates(in: try await loaded(jesus)).isEmpty)
+        // Con el parche abierto no se ofrece nada.
+        var open = detail
+        open.parche.status = .open
+        #expect(joan.cruceCandidates(in: open).isEmpty)
+    }
+
+    @Test("Proponer y aceptar: queda por confirmar en los dos lados y al aceptar se salda en el parche")
+    func proposeAndAccept() async throws {
+        let backend = closedSantaMarta(carlosHasApp: true)
+        let joan = store(MockData.joan, backend: backend)
+        _ = try await loaded(joan)
+        let proposal = try #require(
+            await joan.proposeCruceTransfer(in: MockParches.santaMartaID, with: MockParches.carlos))
+        #expect(proposal.status == .pending)
+        #expect(proposal.fromID == MockParches.carlos && proposal.toID == MockParches.joan && proposal.amount == 47_000)
+
+        let mine = try #require(joan.parche(MockParches.santaMartaID))
+        #expect(joan.cruceCandidates(in: mine).isEmpty, "Ya no se ofrece: está por confirmar")
+        #expect(joan.pendingCruceTransfers(in: mine).map(\.id) == [proposal.id])
+        #expect(!joan.canRespond(to: proposal, in: mine))
+        #expect(
+            joan.cruceTransferPrompt(for: proposal, in: mine)
+                == "Carlos te debe $47.000. Falta que Carlos acepte pasarlo a su cruce.")
+        #expect(mine.balance(of: MockParches.joan) == 47_000, "Por confirmar no cambia los saldos")
+
+        let carlos = store(Self.carlosMember, backend: backend)
+        let theirs = try await loaded(carlos)
+        let pending = try #require(carlos.pendingCruceTransfers(in: theirs).first)
+        #expect(carlos.canRespond(to: pending, in: theirs))
+        #expect(
+            carlos.cruceTransferPrompt(for: pending, in: theirs)
+                == "Le debes $47.000 a Joan. Joan quiere pasarlo a su cruce, ¿aceptas?")
+        #expect(carlos.cruceCandidates(in: theirs).isEmpty)
+
+        // Quien propuso no la acepta.
+        #expect(await joan.acceptCruceTransfer(proposal.id, in: MockParches.santaMartaID) == false)
+        #expect(joan.error == .notAllowed)
+
+        #expect(await carlos.acceptCruceTransfer(pending.id, in: MockParches.santaMartaID))
+        let after = try #require(carlos.parche(MockParches.santaMartaID))
+        #expect(after.transfers.first?.status == .accepted)
+        #expect(after.transfers.first?.movementID != nil)
+        #expect(after.balances.map(\.net) == [0, 125_000, 0, -125_000])
+        #expect(
+            after.suggestedTransfers == [
+                ParcheTransfer(fromID: MockParches.carlos, toID: MockParches.jesus, amount: 125_000)
+            ])
+        #expect(carlos.pendingCruceTransfers(in: after).isEmpty)
+        #expect(carlos.cruceCandidates(in: after).isEmpty)
+        #expect(after.activity.contains { $0.kind == .debtProposedToCruce && $0.actorID == MockParches.joan })
+        #expect(after.activity.contains { $0.kind == .debtMovedToCruce && $0.actorID == MockParches.carlos })
+        let moved = try #require(after.activity.first { $0.kind == .debtMovedToCruce })
+        #expect(carlos.phrase(for: moved, in: after) == "Tu deuda con Joan pasó a tu cruce con Joan")
+
+        // Una sola vez por par.
         await joan.load()
-        #expect(await joan.moveDebtToCruce(in: detail.id, with: try #require(after.me).id) == false)
+        #expect(await joan.proposeCruceTransfer(in: MockParches.santaMartaID, with: MockParches.carlos) == nil)
         #expect(joan.error == .alreadyMoved)
+    }
+
+    @Test("Rechazar: la deuda sigue en el parche y se puede volver a proponer")
+    func proposeAndReject() async throws {
+        let backend = closedSantaMarta(carlosHasApp: true)
+        let joan = store(MockData.joan, backend: backend)
+        _ = try await loaded(joan)
+        let proposal = try #require(
+            await joan.proposeCruceTransfer(in: MockParches.santaMartaID, with: MockParches.carlos))
+        let carlos = store(Self.carlosMember, backend: backend)
+        _ = try await loaded(carlos)
+        #expect(await joan.rejectCruceTransfer(proposal.id, in: MockParches.santaMartaID) == false)
+        #expect(joan.error == .notAllowed)
+        #expect(await carlos.rejectCruceTransfer(proposal.id, in: MockParches.santaMartaID))
+
+        await joan.load()
+        let after = try #require(joan.parche(MockParches.santaMartaID))
+        #expect(after.transfers.first?.status == .rejected)
+        #expect(after.balances.map(\.net) == [47_000, 125_000, 0, -172_000])
+        #expect(after.suggestedTransfers.contains { $0.fromID == MockParches.carlos && $0.toID == MockParches.joan })
+        #expect(joan.pendingCruceTransfers(in: after).isEmpty)
+        let rejected = try #require(after.activity.first { $0.kind == .debtRejectedForCruce })
+        #expect(joan.phrase(for: rejected, in: after) == "Carlos no aceptó pasar a su cruce la deuda contigo")
+        #expect(joan.cruceCandidates(in: after).map(\.amountYouAreOwed) == [47_000], "Se puede volver a proponer")
+        #expect(await joan.proposeCruceTransfer(in: MockParches.santaMartaID, with: MockParches.carlos) != nil)
     }
 
     @Test("No quieren pasarla: la deuda se salda en el parche y no se vuelve a preguntar")
     func declineCruce() async throws {
-        let world = ParcheWorld()
+        let backend = closedSantaMarta(carlosHasApp: true)
         let pending = InMemoryPendingStore()
-        let (jesus, _, detail) = try await lodgingWithJoan(world)
-        #expect(await jesus.close(detail.id))
-        let joanID = try participant(detail, "Joan").id
-        let store = world.store(world.jesus, pending: pending)
-        await store.load()
-        await store.declineCruce(in: detail.id, with: joanID)
-        let closed = try #require(store.parche(detail.id))
-        #expect(store.cruceCandidates(in: closed).isEmpty)
-        #expect(closed.suggestedTransfers.contains { $0.fromID == joanID && $0.amount == 64_000 })
+        let joan = store(MockData.joan, backend: backend, pending: pending)
+        let detail = try await loaded(joan)
+        await joan.declineCruce(in: detail.id, with: MockParches.carlos)
+        let closed = try #require(joan.parche(detail.id))
+        #expect(joan.cruceCandidates(in: closed).isEmpty)
+        #expect(closed.suggestedTransfers.contains { $0.fromID == MockParches.carlos && $0.amount == 47_000 })
         // Se guarda en el dispositivo.
-        let again = world.store(world.jesus, pending: pending)
-        await again.load()
-        #expect(again.cruceCandidates(in: try #require(again.parche(detail.id))).isEmpty)
+        let again = store(MockData.joan, backend: backend, pending: pending)
+        #expect(again.cruceCandidates(in: try await loaded(again)).isEmpty)
     }
 
-    @Test("Sin un cruce compartido no se puede pasar la deuda")
-    func moveDebtNeedsSharedCruce() async throws {
+    @Test("Sin un cruce compartido no se puede proponer")
+    func proposeNeedsSharedCruce() async throws {
         let world = ParcheWorld()
         let (jesus, _, parche, _) = try await santaMarta(world)
         let anaID = try participant(parche, "Ana").id
         #expect(await jesus.close(parche.id))
-        #expect(await jesus.moveDebtToCruce(in: parche.id, with: anaID) == false)
+        #expect(await jesus.proposeCruceTransfer(in: parche.id, with: anaID) == nil)
         #expect(jesus.error == .noSharedCruce)
     }
 
@@ -696,7 +816,13 @@ private struct CancelledParcheRepository: ParcheRepository {
     func recordPayment(_ payment: ParchePayment) async throws { throw CancellationError() }
     func confirmPayment(id: UUID, parcheID: UUID) async throws { throw CancellationError() }
     func closeParche(id: UUID) async throws { throw CancellationError() }
-    func moveDebtToCruce(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer {
+    func proposeCruceTransfer(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer {
+        throw CancellationError()
+    }
+    func acceptCruceTransfer(id: UUID, parcheID: UUID) async throws -> ParcheCruceTransfer {
+        throw CancellationError()
+    }
+    func rejectCruceTransfer(id: UUID, parcheID: UUID) async throws -> ParcheCruceTransfer {
         throw CancellationError()
     }
     func markSeen(parcheID: UUID) async throws { throw CancellationError() }

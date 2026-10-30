@@ -232,20 +232,26 @@ public enum ParcheRemote {
         let amount: Int
         let movementID: UUID?
         let createdAt: Date
+        /// `nil` en respuestas de antes de que hubiera que aceptarlas: ya habían pasado al cruce.
+        let status: ParcheCruceTransfer.Status?
+        let proposedBy: UUID?
+        let respondedAt: Date?
 
         enum CodingKeys: String, CodingKey {
-            case id, amount
+            case id, amount, status
             case parcheID = "parche_id"
             case fromID = "from_id"
             case toID = "to_id"
             case movementID = "movement_id"
             case createdAt = "created_at"
+            case proposedBy = "proposed_by"
+            case respondedAt = "responded_at"
         }
 
         var model: ParcheCruceTransfer {
             ParcheCruceTransfer(
                 id: id, parcheID: parcheID, fromID: fromID, toID: toID, amount: amount, movementID: movementID,
-                createdAt: createdAt)
+                createdAt: createdAt, status: status ?? .accepted, proposedBy: proposedBy, respondedAt: respondedAt)
         }
     }
 
@@ -304,27 +310,50 @@ public enum ParcheRemote {
         }
     }
 
-    /// Una fila de `ledger_members` (solo lo que hace falta para saber con quién comparte un cruce).
+    /// Columnas de `ledger_members` que se leen para saber con quién comparte un cruce abierto.
+    public static let memberSelect = "ledger_id, user_id, ledgers(closed_at)"
+
+    /// Una fila de `ledger_members` (solo lo que hace falta para saber con quién comparte un cruce abierto).
     public struct LedgerMemberRow: Decodable, Hashable, Sendable {
         public let ledgerID: UUID
         public let userID: UUID
+        /// Cuándo se cerró el cruce (`ledgers.closed_at`); `nil` si sigue abierto.
+        public let closedAt: Date?
 
-        public init(ledgerID: UUID, userID: UUID) {
+        public init(ledgerID: UUID, userID: UUID, closedAt: Date? = nil) {
             self.ledgerID = ledgerID
             self.userID = userID
+            self.closedAt = closedAt
         }
 
         enum CodingKeys: String, CodingKey {
             case ledgerID = "ledger_id"
             case userID = "user_id"
+            case ledger = "ledgers"
+        }
+
+        private struct Ledger: Decodable {
+            let closedAt: Date?
+
+            enum CodingKeys: String, CodingKey {
+                case closedAt = "closed_at"
+            }
+        }
+
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            ledgerID = try container.decode(UUID.self, forKey: .ledgerID)
+            userID = try container.decode(UUID.self, forKey: .userID)
+            closedAt = try container.decodeIfPresent(Ledger.self, forKey: .ledger)?.closedAt
         }
     }
 
     // MARK: - Armar los modelos
 
-    /// Las cuentas con las que `userID` comparte un cruce, según las filas de `ledger_members` que deja ver RLS.
+    /// Las cuentas con las que `userID` comparte un cruce abierto, según las filas de `ledger_members` que deja ver
+    /// RLS. Un cruce cerrado (desvinculado) no cuenta.
     public static func crucePartners(of userID: UUID, members: [LedgerMemberRow]) -> Set<UUID> {
-        let myLedgers = Set(members.filter { $0.userID == userID }.map(\.ledgerID))
+        let myLedgers = Set(members.filter { $0.userID == userID && $0.closedAt == nil }.map(\.ledgerID))
         return Set(members.filter { myLedgers.contains($0.ledgerID) && $0.userID != userID }.map(\.userID))
     }
 
@@ -363,7 +392,8 @@ public enum ParcheRemote {
         try decoder().decode(ParticipantRow.self, from: data).model
     }
 
-    /// La fila que devuelve `move_parche_debt_to_cruce`.
+    /// La fila que devuelven `propose_parche_debt_to_cruce`, `accept_parche_cruce_transfer` y
+    /// `reject_parche_cruce_transfer`.
     public static func transfer(from data: Data) throws -> ParcheCruceTransfer {
         try decoder().decode(TransferRow.self, from: data).model
     }
@@ -566,7 +596,8 @@ public enum ParcheRemote {
         }
     }
 
-    public struct MoveDebtParams: Encodable, Sendable {
+    /// Para `propose_parche_debt_to_cruce`.
+    public struct ProposeCruceParams: Encodable, Sendable {
         let pParche: UUID
         let pOther: UUID
 

@@ -13,7 +13,7 @@
         case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
-        case parcheDelete, parchePayment, parcheClose, parcheCruce, parcheClosed, parcheOffline
+        case parcheDelete, parchePayment, parcheClose, parcheCruce, parcheCrucePending, parcheClosed, parcheOffline
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
         static var current: DebugScreen? {
@@ -96,7 +96,13 @@
             case .parchePayment: return stores(path: [.parchePayment(parcheID: MockParches.santaMartaID)])
             case .parcheClose: return stores(path: [.closeParche(parcheID: MockParches.santaMartaID)])
             case .parcheCruce:
-                return stores(path: [.closeParche(parcheID: MockParches.santaMartaID)], parcheBackend: closedBackend())
+                return stores(
+                    path: [.closeParche(parcheID: MockParches.santaMartaID)],
+                    parcheBackend: closedBackend(carlosHasApp: true))
+            case .parcheCrucePending:
+                return stores(
+                    path: [.parche(MockParches.santaMartaID)],
+                    parcheBackend: closedBackend(carlosHasApp: true, carlosProposed: true))
             case .parcheClosed:
                 return stores(path: [.parche(MockParches.santaMartaID)], parcheBackend: closedBackend())
             case .saved:
@@ -178,17 +184,33 @@
             return stores
         }
 
-        /// "Santa Marta" ya cerrado: Joan y Jesús comparten un cruce y se deben algo, así que aparece la pregunta.
-        private func closedBackend() -> InMemoryParcheBackend {
+        /// La cuenta de Carlos cuando se queda con su lugar (solo para estas pantallas).
+        private static let carlosUserID = UUID(uuidString: "00000000-0000-0000-0000-0000000000A4")!
+
+        /// "Santa Marta" ya cerrado. Joan y Jesús comparten un cruce, pero en "Para saldar" no hay un pago entre ellos.
+        /// Con `carlosHasApp`, Carlos se quedó con su lugar y comparte un cruce con Joan: aparece la pregunta por los
+        /// $47.000 que le paga a Joan. Con `carlosProposed`, Carlos ya lo propuso y Joan lo acepta o lo rechaza.
+        private func closedBackend(carlosHasApp: Bool = false, carlosProposed: Bool = false) -> InMemoryParcheBackend {
             let parches = MockParches.parches().map { detail in
                 var detail = detail
-                if detail.id == MockParches.santaMartaID {
-                    detail.parche.status = .closed
-                    detail.parche.closedAt = .now
+                guard detail.id == MockParches.santaMartaID else { return detail }
+                detail.parche.status = .closed
+                detail.parche.closedAt = .now
+                if carlosHasApp, let index = detail.participants.firstIndex(where: { $0.id == MockParches.carlos }) {
+                    detail.participants[index].userID = Self.carlosUserID
+                    detail.participants[index].claimCode = nil
+                }
+                if carlosProposed {
+                    detail.transfers.append(
+                        ParcheCruceTransfer(
+                            parcheID: detail.id, fromID: MockParches.carlos, toID: MockParches.joan, amount: 47_000,
+                            createdAt: .now, status: .pending, proposedBy: MockParches.carlos))
                 }
                 return detail
             }
-            return InMemoryParcheBackend(parches: parches, cruces: [[MockData.joan.id, MockData.jesus.id]])
+            var cruces: [Set<UUID>] = [[MockData.joan.id, MockData.jesus.id]]
+            if carlosHasApp { cruces.append([MockData.joan.id, Self.carlosUserID]) }
+            return InMemoryParcheBackend(parches: parches, cruces: cruces)
         }
     }
 #endif

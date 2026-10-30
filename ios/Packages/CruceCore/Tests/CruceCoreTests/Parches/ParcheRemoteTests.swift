@@ -207,6 +207,53 @@ struct ParcheRemoteTests {
         #expect(ParcheRemote.crucePartners(of: UUID(), members: members).isEmpty)
     }
 
+    @Test("Un cruce cerrado no cuenta para pasar la deuda de un parche")
+    func closedCruceIsNotAPartner() throws {
+        let open = UUID()
+        let closed = UUID()
+        let gone = UUID()
+        let members = try ParcheRemote.members(
+            from: Data(
+                """
+                [{"ledger_id": "\(open)", "user_id": "\(me)", "ledgers": {"closed_at": null}},
+                 {"ledger_id": "\(open)", "user_id": "\(friend)", "ledgers": {"closed_at": null}},
+                 {"ledger_id": "\(closed)", "user_id": "\(me)", "ledgers": {"closed_at": "2026-10-27T10:00:00+00:00"}},
+                 {"ledger_id": "\(closed)", "user_id": "\(gone)", "ledgers": {"closed_at": "2026-10-27T10:00:00+00:00"}}]
+                """.utf8))
+        #expect(ParcheRemote.crucePartners(of: me, members: members) == [friend])
+    }
+
+    @Test("Una transferencia al cruce por confirmar, aceptada o de antes (sin estado)")
+    func transferStatus() throws {
+        let pending = try ParcheRemote.transfer(
+            from: Data(
+                """
+                {"id": "60000000-0000-0000-0000-000000000002", "parche_id": "\(parcheID)", "from_id": "\(carlos)",
+                 "to_id": "\(jesus)", "amount": 125000, "movement_id": null, "status": "pending",
+                 "proposed_by": "\(carlos)", "responded_at": null, "created_at": "2026-10-28T10:00:00+00:00"}
+                """.utf8))
+        #expect(pending.status == .pending)
+        #expect(pending.proposedBy == carlos)
+        #expect(pending.respondedAt == nil)
+        #expect(pending.movementID == nil)
+
+        let accepted = try ParcheRemote.transfer(
+            from: Data(
+                """
+                {"id": "60000000-0000-0000-0000-000000000002", "parche_id": "\(parcheID)", "from_id": "\(carlos)",
+                 "to_id": "\(jesus)", "amount": 125000, "movement_id": "70000000-0000-0000-0000-000000000002",
+                 "status": "accepted", "proposed_by": "\(carlos)", "responded_at": "2026-10-28T11:00:00+00:00",
+                 "created_at": "2026-10-28T10:00:00+00:00"}
+                """.utf8))
+        #expect(accepted.status == .accepted)
+        #expect(accepted.respondedAt != nil)
+
+        // Las que pasaron al cruce antes de esta versión no traen estado: ya están aceptadas.
+        let detail = try decodeSample()
+        #expect(detail.transfers.first?.status == .accepted)
+        #expect(detail.transfers.first?.proposedBy == nil)
+    }
+
     @Test("Las filas que devuelven las funciones")
     func functionResults() throws {
         let participant = try ParcheRemote.participant(
@@ -298,7 +345,7 @@ struct ParcheRemoteTests {
         #expect(Set(try json(ParcheRemote.CodeParams(code: "SOY-XYZ789")).keys) == ["p_code"])
         #expect(Set(try json(ParcheRemote.IDParams(id: parcheID)).keys) == ["p_id"])
         #expect(
-            Set(try json(ParcheRemote.MoveDebtParams(parcheID: parcheID, otherParticipantID: ana)).keys)
+            Set(try json(ParcheRemote.ProposeCruceParams(parcheID: parcheID, otherParticipantID: ana)).keys)
                 == ["p_parche", "p_other"])
     }
 

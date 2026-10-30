@@ -14,21 +14,21 @@ public enum ParcheRepositoryError: Error, Equatable, Sendable {
     case notAllowed
     /// El parche está cerrado: no acepta gastos nuevos ni ediciones.
     case parcheClosed
-    /// La acción necesita el parche cerrado (pasar la deuda al cruce).
+    /// La acción necesita el parche cerrado (proponer pasar la deuda al cruce).
     case parcheOpen
     /// Datos que no cumplen las reglas (sumas, nombres, montos).
     case invalidData
-    /// Los dos no comparten un cruce.
+    /// Los dos no comparten un cruce abierto.
     case noSharedCruce
     /// La deuda de ese par ya pasó al cruce.
     case alreadyMoved
-    /// No se deben nada directamente.
+    /// En el plan "Para saldar" no hay una transferencia entre los dos (o cambió antes de aceptarla).
     case nothingToMove
 }
 
 /// Acceso a los parches de quien tiene la sesión abierta. Cada operación corresponde a una consulta o función
 /// de la base (`create_parche`, `join_parche`, `claim_parche_place`, `close_parche`, `confirm_parche_payment`,
-/// `move_parche_debt_to_cruce`, `mark_parche_seen`). Hoy lo implementa `InMemoryParcheRepository`; en la app,
+/// `propose_parche_debt_to_cruce`, `accept_parche_cruce_transfer`, `reject_parche_cruce_transfer`, `mark_parche_seen`). Hoy lo implementa `InMemoryParcheRepository`; en la app,
 /// `SupabaseParcheRepository`. Los `id` de gastos y pagos los genera el cliente: guardar dos veces es idempotente.
 /// Sin conexión, las implementaciones lanzan `ParcheRepositoryError.offline` (o un `URLError`).
 public protocol ParcheRepository: Sendable {
@@ -58,8 +58,14 @@ public protocol ParcheRepository: Sendable {
 
     /// Cierra el parche; no se reabre.
     func closeParche(id: UUID) async throws
-    /// Pasa al cruce lo que se deben directamente quien usa la app y `otherParticipantID`.
-    func moveDebtToCruce(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer
+    /// Propone pasar a su cruce la transferencia del plan "Para saldar" entre quien usa la app y
+    /// `otherParticipantID`. Queda por confirmar; si ya hay una por confirmar para el par, devuelve esa.
+    func proposeCruceTransfer(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer
+    /// La otra persona (no quien la propuso) la acepta: se crea el movimiento en el cruce y en el parche cuenta
+    /// como un pago. Aceptar una ya aceptada no hace nada.
+    func acceptCruceTransfer(id: UUID, parcheID: UUID) async throws -> ParcheCruceTransfer
+    /// La otra persona no la acepta: la deuda sigue en el parche.
+    func rejectCruceTransfer(id: UUID, parcheID: UUID) async throws -> ParcheCruceTransfer
     /// Marca la actividad como vista (`last_seen_at`).
     func markSeen(parcheID: UUID) async throws
 }
@@ -297,29 +303,81 @@ public actor InMemoryParcheBackend {
         try respond(())
     }
 
-    func moveDebtToCruce(parcheID: UUID, otherParticipantID: UUID, user: UUID) throws -> ParcheCruceTransfer {
+    /// Igual que `propose_parche_debt_to_cruce`: la transferencia del plan entre los dos, por confirmar.
+    func proposeCruceTransfer(parcheID: UUID, otherParticipantID: UUID, user: UUID) throws -> ParcheCruceTransfer {
         try checkConnection()
         var (detail, me) = try record(parcheID, user: user)
         guard !detail.parche.isOpen else { throw ParcheRepositoryError.parcheOpen }
         guard let other = detail.participant(otherParticipantID), let otherUser = other.userID, other.id != me.id
         else { throw ParcheRepositoryError.notAllowed }
         guard cruces.contains([user, otherUser]) else { throw ParcheRepositoryError.noSharedCruce }
-        guard !detail.transfers.contains(where: { Set([$0.fromID, $0.toID]) == Set([me.id, other.id]) }) else {
-            throw ParcheRepositoryError.alreadyMoved
+        if let live = detail.liveCruceTransfer(between: me.id, and: other.id) {
+            guard live.isPending else { throw ParcheRepositoryError.alreadyMoved }
+            return try respond(live)
         }
-        let debt = detail.directDebt(from: me.id, to: other.id)
-        guard debt != 0 else { throw ParcheRepositoryError.nothingToMove }
+        guard
+            let planned = detail.suggestedTransfers.first(where: {
+                ($0.fromID == me.id && $0.toID == other.id) || ($0.fromID == other.id && $0.toID == me.id)
+            })
+        else { throw ParcheRepositoryError.nothingToMove }
         let date = now()
         let transfer = ParcheCruceTransfer(
-            parcheID: parcheID, fromID: debt > 0 ? me.id : other.id, toID: debt > 0 ? other.id : me.id,
-            amount: abs(debt), movementID: UUID(), createdAt: date)
+            parcheID: parcheID, fromID: planned.fromID, toID: planned.toID, amount: planned.amount, createdAt: date,
+            status: .pending, proposedBy: me.id)
         detail.transfers.append(transfer)
-        detail.activity.append(
-            ParcheActivity(
-                parcheID: parcheID, kind: .debtMovedToCruce, actorID: me.id, participantID: transfer.fromID,
-                otherParticipantID: transfer.toID, amount: transfer.amount, createdAt: date))
+        detail.activity.append(cruceActivity(.debtProposedToCruce, for: transfer, actor: me.id, at: date))
         details[parcheID] = detail
         return try respond(transfer)
+    }
+
+    /// Igual que `accept_parche_cruce_transfer`.
+    func acceptCruceTransfer(id: UUID, parcheID: UUID, user: UUID) throws -> ParcheCruceTransfer {
+        try checkConnection()
+        var (detail, me) = try record(parcheID, user: user)
+        guard let index = detail.transfers.firstIndex(where: { $0.id == id }) else {
+            throw ParcheRepositoryError.notFound
+        }
+        let transfer = detail.transfers[index]
+        if transfer.isAccepted { return try respond(transfer) }
+        let otherID = try respondent(transfer, me: me.id)
+        guard transfer.isPending else { throw ParcheRepositoryError.notAllowed }
+        guard let otherUser = detail.participant(otherID)?.userID, cruces.contains([user, otherUser]) else {
+            throw ParcheRepositoryError.noSharedCruce
+        }
+        // Si las cuentas cambiaron, el plan ya no tiene esa misma transferencia.
+        guard
+            detail.suggestedTransfers.contains(
+                ParcheTransfer(fromID: transfer.fromID, toID: transfer.toID, amount: transfer.amount))
+        else { throw ParcheRepositoryError.nothingToMove }
+        let date = now()
+        detail.transfers[index].status = .accepted
+        detail.transfers[index].movementID = UUID()
+        detail.transfers[index].respondedAt = date
+        detail.activity.append(cruceActivity(.debtMovedToCruce, for: transfer, actor: me.id, at: date))
+        details[parcheID] = detail
+        return try respond(detail.transfers[index])
+    }
+
+    /// Igual que `reject_parche_cruce_transfer`.
+    func rejectCruceTransfer(id: UUID, parcheID: UUID, user: UUID) throws -> ParcheCruceTransfer {
+        try checkConnection()
+        var (detail, me) = try record(parcheID, user: user)
+        guard let index = detail.transfers.firstIndex(where: { $0.id == id }) else {
+            throw ParcheRepositoryError.notFound
+        }
+        let transfer = detail.transfers[index]
+        _ = try respondent(transfer, me: me.id)
+        switch transfer.status {
+        case .rejected: return try respond(transfer)
+        case .accepted: throw ParcheRepositoryError.alreadyMoved
+        case .pending: break
+        }
+        let date = now()
+        detail.transfers[index].status = .rejected
+        detail.transfers[index].respondedAt = date
+        detail.activity.append(cruceActivity(.debtRejectedForCruce, for: transfer, actor: me.id, at: date))
+        details[parcheID] = detail
+        return try respond(detail.transfers[index])
     }
 
     func markSeen(parcheID: UUID, user: UUID) throws {
@@ -380,6 +438,23 @@ public actor InMemoryParcheBackend {
         ParcheActivity(
             parcheID: expense.parcheID, kind: kind, actorID: actor, recordedByID: expense.recordedBy,
             amount: expense.amount, concept: expense.concept, createdAt: date)
+    }
+
+    /// Solo responde la otra persona del par (no quien la propuso); devuelve a quien la propuso o, en las de antes,
+    /// a la otra persona.
+    private func respondent(_ transfer: ParcheCruceTransfer, me: UUID) throws -> UUID {
+        guard transfer.fromID == me || transfer.toID == me, transfer.proposedBy != me else {
+            throw ParcheRepositoryError.notAllowed
+        }
+        return transfer.fromID == me ? transfer.toID : transfer.fromID
+    }
+
+    private func cruceActivity(
+        _ kind: ParcheActivityKind, for transfer: ParcheCruceTransfer, actor: UUID, at date: Date
+    ) -> ParcheActivity {
+        ParcheActivity(
+            parcheID: transfer.parcheID, kind: kind, actorID: actor, participantID: transfer.fromID,
+            otherParticipantID: transfer.toID, amount: transfer.amount, createdAt: date)
     }
 
     private static func sameContent(_ a: ParcheExpense, _ b: ParcheExpense) -> Bool {
@@ -447,8 +522,16 @@ public struct InMemoryParcheRepository: ParcheRepository {
         try await backend.closeParche(id: id, user: userID)
     }
 
-    public func moveDebtToCruce(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer {
-        try await backend.moveDebtToCruce(parcheID: parcheID, otherParticipantID: otherParticipantID, user: userID)
+    public func proposeCruceTransfer(parcheID: UUID, otherParticipantID: UUID) async throws -> ParcheCruceTransfer {
+        try await backend.proposeCruceTransfer(parcheID: parcheID, otherParticipantID: otherParticipantID, user: userID)
+    }
+
+    public func acceptCruceTransfer(id: UUID, parcheID: UUID) async throws -> ParcheCruceTransfer {
+        try await backend.acceptCruceTransfer(id: id, parcheID: parcheID, user: userID)
+    }
+
+    public func rejectCruceTransfer(id: UUID, parcheID: UUID) async throws -> ParcheCruceTransfer {
+        try await backend.rejectCruceTransfer(id: id, parcheID: parcheID, user: userID)
     }
 
     public func markSeen(parcheID: UUID) async throws {

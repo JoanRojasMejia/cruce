@@ -136,6 +136,23 @@ struct ParcheCalculatorTests {
         #expect(balances[ana] == 132_000)
     }
 
+    @Test("Una transferencia al cruce por confirmar o rechazada no cuenta")
+    func onlyAcceptedTransfersCount() throws {
+        let pending = ParcheCruceTransfer(
+            parcheID: parcheID, fromID: joan, toID: ana, amount: 33_000, createdAt: day, status: .pending,
+            proposedBy: joan)
+        let rejected = ParcheCruceTransfer(
+            parcheID: parcheID, fromID: joan, toID: ana, amount: 33_000, createdAt: day, status: .rejected,
+            proposedBy: joan, respondedAt: day)
+        let balances = nets(
+            ParcheCalculator.balances(order: order, expenses: [try lunch()], transfers: [pending, rejected]))
+        #expect(balances[joan] == -33_000)
+        #expect(balances[ana] == 165_000)
+        #expect(
+            ParcheCalculator.directDebt(from: joan, to: ana, expenses: [try lunch()], transfers: [pending, rejected])
+                == ParcheCalculator.directDebt(from: joan, to: ana, expenses: [try lunch()]))
+    }
+
     @Test("Los saldos siempre suman cero", arguments: 0..<100)
     func balancesSumToZero(seed: Int) throws {
         var generator = SeededGenerator(seed: UInt64(seed) &+ 77)

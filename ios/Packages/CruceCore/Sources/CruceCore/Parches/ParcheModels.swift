@@ -235,8 +235,19 @@ public struct ParchePayment: Identifiable, Codable, Hashable, Sendable {
     public var isConfirmed: Bool { confirmedAt != nil }
 }
 
-/// Una deuda entre dos del parche que pasó a su cruce. En el parche cuenta como un pago confirmado de `fromID` a `toID`.
+/// Una transferencia del plan "Para saldar" que uno de los dos propuso pasar a su cruce. Solo cuando la otra persona
+/// la acepta se crea el movimiento en el cruce y, en el parche, cuenta como un pago confirmado de `fromID` a `toID`.
 public struct ParcheCruceTransfer: Identifiable, Codable, Hashable, Sendable {
+    /// Igual que `parche_cruce_transfers.status`.
+    public enum Status: String, Codable, Hashable, Sendable {
+        /// Por confirmar: la otra persona todavía no responde.
+        case pending
+        /// Pasó al cruce.
+        case accepted
+        /// La otra persona no aceptó: la deuda sigue en el parche.
+        case rejected
+    }
+
     public let id: UUID
     public let parcheID: UUID
     /// Quien debía.
@@ -244,13 +255,18 @@ public struct ParcheCruceTransfer: Identifiable, Codable, Hashable, Sendable {
     /// A quien le debían.
     public var toID: UUID
     public var amount: Int
-    /// El movimiento que se creó en el cruce.
+    /// El movimiento que se creó en el cruce (al aceptarla).
     public var movementID: UUID?
     public var createdAt: Date
+    public var status: Status
+    /// Participante que la propuso (`nil` en las que pasaron al cruce antes de que hubiera que aceptarlas).
+    public var proposedBy: UUID?
+    /// Cuándo la otra persona la aceptó o la rechazó.
+    public var respondedAt: Date?
 
     public init(
         id: UUID = UUID(), parcheID: UUID, fromID: UUID, toID: UUID, amount: Int, movementID: UUID? = nil,
-        createdAt: Date
+        createdAt: Date, status: Status = .accepted, proposedBy: UUID? = nil, respondedAt: Date? = nil
     ) {
         self.id = id
         self.parcheID = parcheID
@@ -259,5 +275,35 @@ public struct ParcheCruceTransfer: Identifiable, Codable, Hashable, Sendable {
         self.amount = amount
         self.movementID = movementID
         self.createdAt = createdAt
+        self.status = status
+        self.proposedBy = proposedBy
+        self.respondedAt = respondedAt
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, parcheID, fromID, toID, amount, movementID, createdAt, status, proposedBy, respondedAt
+    }
+
+    /// Lo guardado antes de que hubiera que aceptarlas no trae `status`: ya había pasado al cruce.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        parcheID = try container.decode(UUID.self, forKey: .parcheID)
+        fromID = try container.decode(UUID.self, forKey: .fromID)
+        toID = try container.decode(UUID.self, forKey: .toID)
+        amount = try container.decode(Int.self, forKey: .amount)
+        movementID = try container.decodeIfPresent(UUID.self, forKey: .movementID)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        status = try container.decodeIfPresent(Status.self, forKey: .status) ?? .accepted
+        proposedBy = try container.decodeIfPresent(UUID.self, forKey: .proposedBy)
+        respondedAt = try container.decodeIfPresent(Date.self, forKey: .respondedAt)
+    }
+
+    public var isAccepted: Bool { status == .accepted }
+    public var isPending: Bool { status == .pending }
+
+    /// Es entre esas dos personas, sin importar quién le debía a quién.
+    public func isBetween(_ a: UUID, _ b: UUID) -> Bool {
+        (fromID == a && toID == b) || (fromID == b && toID == a)
     }
 }
