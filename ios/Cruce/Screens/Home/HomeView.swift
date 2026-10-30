@@ -52,7 +52,7 @@ struct HomeView: View {
     }
 
     private var header: some View {
-        MainHeader {
+        MainHeader(inCruce: true) {
             if showsBack {
                 BackButton()
                 Text("Con \(session.partner.name)")
@@ -317,9 +317,11 @@ struct ClosedCruceBanner: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Cruce cerrado el \(DateText.day(closedAt))").font(.archivo(15, .extraBold))
-                Text("Ya no se puede anotar ni saldar. El historial sigue aquí y lo puedes exportar en Ajustes.")
-                    .textStyle(.secondary)
-                    .foregroundStyle(CruceColor.textBody)
+                Text(
+                    "Ya no se puede anotar ni saldar. El historial sigue aquí y lo puedes exportar en los ajustes del cruce."
+                )
+                .textStyle(.secondary)
+                .foregroundStyle(CruceColor.textBody)
             }
             Spacer(minLength: 0)
         }

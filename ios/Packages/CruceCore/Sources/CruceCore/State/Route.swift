@@ -7,7 +7,10 @@ public enum Route: Hashable, Sendable {
     case history
     case detail(UUID)
     case settle
+    /// Ajustes de la cuenta: perfil, notificaciones, recordatorios, invitar, cerrar sesión y versión.
     case settings
+    /// Ajustes del cruce abierto: con quién es, moneda, reparto por defecto, exportar y desvincular.
+    case cruceSettings
     /// Ajustes → la tarjeta del perfil: cambiar el nombre.
     case profile
     /// Ajustes → "Reparto por defecto" del cruce abierto.
@@ -38,4 +41,12 @@ public enum Route: Hashable, Sendable {
     case parcheTicket(parcheID: UUID, participantID: UUID?)
     /// "Tengo un código": `CRZ-`, `PCH-` o `SOY-`.
     case enterCode
+}
+
+extension Route {
+    /// El engrane del encabezado: en "Tus cruces" abre los Ajustes de la cuenta y dentro de un cruce,
+    /// los Ajustes de ese cruce.
+    public static func gear(inCruce: Bool) -> Route {
+        inCruce ? .cruceSettings : .settings
+    }
 }

@@ -35,4 +35,25 @@ struct RouterTests {
         router.popToRoot()
         #expect(router.path.isEmpty)
     }
+
+    @Test("El engrane de \"Tus cruces\" abre los Ajustes de la cuenta")
+    func gearInCruceListOpensAccountSettings() {
+        #expect(Route.gear(inCruce: false) == .settings)
+    }
+
+    @Test("El engrane de un cruce abre los Ajustes del cruce")
+    func gearInCruceOpensCruceSettings() {
+        let router = Router(path: [.cruce(UUID())])
+        router.push(Route.gear(inCruce: true))
+        #expect(router.path.last == .cruceSettings)
+    }
+
+    @Test("\"Tu cuenta\" en los Ajustes del cruce abre los Ajustes encima")
+    func accountRowStacksAccountSettings() {
+        let router = Router(path: [.cruceSettings])
+        router.push(.settings)
+        #expect(router.path == [.cruceSettings, .settings])
+        router.pop()
+        #expect(router.path == [.cruceSettings])
+    }
 }

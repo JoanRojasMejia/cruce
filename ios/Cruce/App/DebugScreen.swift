@@ -9,7 +9,8 @@
         case signUp, signUpCode, signUpName, invite, join, joinInvalid, connected
         case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus, cruces, cruceAna
         case add, saved, history, detail, delete, settle, success, offline, settings
-        case profile, defaultSplit, settleAmount, successPartial, unlink, unlinkSettled, crucesClosed, cruceClosed
+        case cruceSettings, profile, defaultSplit, settleAmount, successPartial, unlink, unlinkSettled, crucesClosed,
+            cruceClosed
         case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
@@ -53,14 +54,19 @@
                 stores.ledger.isOffline = true
                 stores.ledger.pendingSyncCount = 1
                 return stores
-            case .settings, .unlink: return stores(path: [.settings])
+            case .settings:
+                // Ajustes de la cuenta: desde el engrane de "Tus cruces".
+                let stores = AppStores.sample(withAna: true)
+                stores.router.path = [.settings]
+                return stores
+            case .cruceSettings, .unlink: return stores(path: [.cruceSettings])
             case .unlinkSettled:
                 // A paz y salvo: el diálogo no ofrece "Saldar primero".
                 let stores = AppStores.sample(movements: [])
-                stores.router.path = [.settings]
+                stores.router.path = [.cruceSettings]
                 return stores
             case .profile: return stores(path: [.settings, .profile])
-            case .defaultSplit: return stores(path: [.settings, .defaultSplit])
+            case .defaultSplit: return stores(path: [.cruceSettings, .defaultSplit])
             case .settleAmount: return .sample()
             case .successPartial:
                 let stores = AppStores.sample()
@@ -141,7 +147,7 @@
                     .screenBackground()
             case .unlink, .unlinkSettled:
                 NavigationStack {
-                    SettingsView(confirmingUnlink: true).toolbar(.hidden, for: .navigationBar)
+                    CruceSettingsView(confirmingUnlink: true).toolbar(.hidden, for: .navigationBar)
                 }
             case .detail, .delete:
                 NavigationStack {

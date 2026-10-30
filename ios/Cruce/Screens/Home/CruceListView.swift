@@ -150,6 +150,8 @@ struct CruceEntryButtons: View {
 struct MainHeader<Leading: View>: View {
     @Environment(LedgerStore.self) private var ledger
     @Environment(Router.self) private var router
+    /// Dentro de un cruce el engrane abre los Ajustes del cruce; en "Tus cruces", los de la cuenta.
+    var inCruce = false
     @ViewBuilder var leading: Leading
 
     var body: some View {
@@ -164,8 +166,10 @@ struct MainHeader<Leading: View>: View {
                 }
                 .buttonStyle(.plain)
             }
-            IconButton(systemName: "gearshape", accessibilityLabel: "Ajustes", size: 44) {
-                router.push(.settings)
+            IconButton(
+                systemName: "gearshape", accessibilityLabel: inCruce ? "Ajustes del cruce" : "Ajustes", size: 44
+            ) {
+                router.push(Route.gear(inCruce: inCruce))
             }
         }
     }

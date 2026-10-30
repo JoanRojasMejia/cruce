@@ -143,6 +143,7 @@ struct RouteDestinations: ViewModifier {
         case .detail(let id): MovementDetailView(movementID: id)
         case .settle: SettleView()
         case .settings: SettingsView()
+        case .cruceSettings: CruceSettingsView()
         case .profile: ProfileView()
         case .defaultSplit: DefaultSplitView()
         case .offline: OfflineView()
