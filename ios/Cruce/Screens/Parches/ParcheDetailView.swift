@@ -111,6 +111,16 @@ struct ParcheDetailView: View {
             }
         }
         .animation(.easeOut(duration: 0.15), value: confirming)
+        // "Borraste…" con "Deshacer" durante 5 segundos; después el borrado se envía y el aviso se va solo.
+        .overlay(alignment: .bottom) {
+            if let deletion = parches.pendingDeletion, deletion.parcheID == parcheID {
+                UndoDeleteToast(concept: deletion.concept) { parches.undoDelete() }
+                    .padding(.horizontal, Spacing.screen)
+                    .padding(.bottom, 12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: parches.pendingDeletion)
     }
 
     // MARK: - Secciones
@@ -408,6 +418,33 @@ struct ParcheDetailView: View {
 
     private func dismissConfirmation() {
         confirming = nil
+    }
+}
+
+/// Aviso después de borrar un gasto: qué se borró y "Deshacer" mientras no se haya enviado.
+struct UndoDeleteToast: View {
+    let concept: String
+    let undo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "trash").font(.system(size: 15, weight: .bold)).accessibilityHidden(true)
+            Text("Borraste “\(concept)”")
+                .font(.archivo(14, .extraBold))
+                .lineLimit(2)
+            Spacer(minLength: 8)
+            Button("Deshacer", action: undo)
+                .buttonStyle(
+                    NeoButtonStyle(
+                        kind: .primary, height: 40, shadow: ShadowOffset.xs, radius: Radius.chip, text: .fieldLabel)
+                )
+                .frame(width: 112)
+        }
+        .foregroundStyle(CruceColor.ink)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .neoSurface(fill: CruceColor.surface, radius: Radius.button, shadow: ShadowOffset.m)
+        .accessibilityElement(children: .contain)
     }
 }
 

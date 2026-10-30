@@ -36,6 +36,22 @@ Los gastos y pagos SHALL poder anotarse sin conexión; MUST guardarse en el tel�
 
 ## ADDED Requirements
 
+### Requirement: Deshacer al borrar un gasto
+Después de borrar un gasto del parche, la app SHALL esconderlo de una vez y mostrar el aviso "Borraste “<concepto>”" con "Deshacer" durante 5 segundos. El borrado MUST enviarse solo cuando pasan los 5 segundos sin "Deshacer" (sin función nueva en la base); salir del parche no lo pierde. Se SHALL enviar antes si se borra otro gasto, si se cierra el parche o si la app se va a segundo plano. "Deshacer" MUST devolver el gasto sin enviar nada ni dejar aviso de borrado.
+
+#### Scenario: Deshacer
+- **WHEN** Joan borra "Taxi" y toca "Deshacer" antes de 5 segundos
+- **THEN** "Taxi" vuelve a verse y los demás nunca lo vieron borrado
+
+#### Scenario: Sin deshacer
+- **WHEN** Joan borra "Taxi" y pasan 5 segundos
+- **THEN** el aviso se va, el borrado se envía y los demás ven "Taxi" borrado
+
+#### Scenario: La app se va a segundo plano
+- **WHEN** Joan borra "Taxi" y sale de la app antes de 5 segundos
+- **THEN** el borrado se envía de una vez
+
+
 ### Requirement: Detalle del parche corto
 El detalle de un parche SHALL mostrar arriba, en este orden: tu saldo, las acciones (anotar un gasto o un pago), los pagos por confirmar (junto con lo que puede pasar a un cruce), "Para saldar" y los saldos. Los gastos SHALL ir debajo, y al final cerrar el parche o a quién pedírselo. "Los del parche", el código del parche y la actividad MUST NOT estar en el detalle.
 

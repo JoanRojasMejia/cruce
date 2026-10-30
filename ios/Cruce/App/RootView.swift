@@ -5,7 +5,9 @@ import SwiftUI
 /// (`AppStores.live()`), primero la calcula con `session.refresh()`; los datos de ejemplo ya vienen listos.
 /// También abre los enlaces `<esquema>://codigo/<CÓDIGO>` de su ambiente: "Tengo un código" con el campo lleno, en cuanto haya sesión.
 struct RootView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(SessionStore.self) private var session
+    @Environment(ParcheStore.self) private var parches
     @Environment(Router.self) private var router
 
     var body: some View {
@@ -24,6 +26,11 @@ struct RootView: View {
         }
         .onChange(of: session.phase) { openPendingCode() }
         .onChange(of: session.isReady) { openPendingCode() }
+        // Un gasto borrado que espera "Deshacer" se envía ya si la app se va a segundo plano (si la cerraran, se
+        // perdería: todavía no está en la cola guardada en el teléfono).
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { Task { await parches.sendPendingDeletion() } }
+        }
         .task {
             // Sin red, lo guardado abre el inicio al instante; `refresh()` después lo confirma con la base.
             if !session.isReady {

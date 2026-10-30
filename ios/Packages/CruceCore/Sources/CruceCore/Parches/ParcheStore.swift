@@ -14,6 +14,19 @@ public struct ParcheCruceCandidate: Hashable, Sendable {
     }
 }
 
+/// Un gasto que se acaba de borrar y espera `ParcheStore.undoDelay` antes de enviarse, por si se toca "Deshacer".
+public struct ParcheDeletion: Equatable, Sendable {
+    public let expenseID: UUID
+    public let parcheID: UUID
+    public let concept: String
+
+    public init(expenseID: UUID, parcheID: UUID, concept: String) {
+        self.expenseID = expenseID
+        self.parcheID = parcheID
+        self.concept = concept
+    }
+}
+
 /// Los parches de quien usa la app, sus frases y las acciones que los cambian.
 /// Los gastos y pagos se anotan también sin conexión: lo que no se pudo enviar queda en una cola guardada en el
 /// teléfono (`PendingStore`) y se reintenta con `retryPending()` o al volver a cargar. Los `id` los genera el
@@ -65,6 +78,8 @@ public final class ParcheStore {
 
     /// Ventana del aviso de posible duplicado.
     public static let duplicateWindow: TimeInterval = 3 * 3_600
+    /// Lo que espera un gasto borrado antes de enviarse: el tiempo del aviso con "Deshacer" (D6).
+    public static let undoDelay: Duration = .seconds(5)
 
     /// Los parches de quien usa la app: primero los abiertos y luego los más recientes.
     public private(set) var parches: [ParcheDetail]
@@ -77,6 +92,9 @@ public final class ParcheStore {
     public private(set) var isWorking = false
 
     public var pendingSyncCount: Int { pending.count }
+
+    /// El gasto que se acaba de borrar y todavía se puede deshacer; `nil` cuando ya se envió o se deshizo.
+    public private(set) var pendingDeletion: ParcheDeletion?
 
     /// El aviso "Sin conexión" o "Enviando…" de los parches: sin señal o con cambios guardados sin enviar.
     public var showsSyncNotice: Bool { isOffline || !pending.isEmpty }
@@ -104,19 +122,27 @@ public final class ParcheStore {
     private var declinedCruce: Set<ParcheDeclinedCruce> = []
     private var hasLoadedLocalState = false
     private var isFlushing = false
+    /// Espera de `undoDelay`; las pruebas inyectan una que sueltan a mano.
+    private let sleep: @Sendable (Duration) async throws -> Void
+    /// Cuándo se borró el gasto de `pendingDeletion` (es la fecha que se envía).
+    private var deletionDate: Date?
+    /// La espera del borrado pendiente (las pruebas la esperan con `value`).
+    var deletionTask: Task<Void, Never>?
 
     public init(
         session: SessionStore,
         repository: any ParcheRepository,
         pendingStore: any PendingStore = InMemoryPendingStore(),
         parches: [ParcheDetail] = [],
-        now: @escaping () -> Date = { .now }
+        now: @escaping () -> Date = { .now },
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         self.session = session
         self.repository = repository
         self.pendingStore = pendingStore
         self.parches = Self.sorted(parches)
         self.now = now
+        self.sleep = sleep
     }
 
     // MARK: - Lecturas
@@ -436,6 +462,8 @@ public final class ParcheStore {
             error = .onlyCreatorCloses(creator: detail.creator?.displayName ?? "quien creó el parche")
             return false
         }
+        // Un gasto borrado en este parche que espera "Deshacer" se envía antes: cerrado ya no se podría borrar.
+        if pendingDeletion?.parcheID == parcheID { await sendPendingDeletion() }
         let ok = await perform { try await repository.closeParche(id: parcheID) } != nil
         await refresh(parcheID)
         if !ok, error == .notAllowed, let creator = parche(parcheID)?.creator {
@@ -527,9 +555,66 @@ public final class ParcheStore {
         await send(.saveExpense(expense))
     }
 
-    /// Borrado suave: el gasto se queda marcado y deja de contar.
+    /// Borrado suave: el gasto se queda marcado y deja de contar. Se esconde de una vez, pero se envía después de
+    /// `undoDelay` (5 s), mientras se muestra el aviso con "Deshacer" (D6). La espera vive en el store y no en la
+    /// pantalla, así que salir del parche no la pierde. Se envía antes si se borra otro gasto, si se cierra el parche
+    /// o cuando la app se va a segundo plano (`sendPendingDeletion()`): si la cerraran durante la espera, el borrado
+    /// no está todavía en la cola guardada en el teléfono. Si otra persona cierra el parche durante la espera, la base
+    /// lo rechaza, se muestra el problema y el gasto vuelve a verse.
     public func deleteExpense(_ expenseID: UUID, in parcheID: UUID) async {
-        await send(.deleteExpense(id: expenseID, parcheID: parcheID, at: now()))
+        error = nil
+        await sendPendingDeletion()
+        let date = now()
+        let operation = ParchePendingOperation.deleteExpense(id: expenseID, parcheID: parcheID, at: date)
+        guard let index = parches.firstIndex(where: { $0.id == parcheID }),
+            let expense = parches[index].expenses.first(where: { $0.id == expenseID }), !expense.isDeleted
+        else {
+            // No está en el teléfono (o ya estaba borrado): se envía sin esperar.
+            await send(operation)
+            return
+        }
+        Self.apply(operation, to: &parches[index])
+        pendingDeletion = ParcheDeletion(expenseID: expenseID, parcheID: parcheID, concept: expense.concept)
+        deletionDate = date
+        let sleep = sleep
+        deletionTask = Task { [weak self] in
+            do {
+                try await sleep(Self.undoDelay)
+            } catch {
+                return
+            }
+            await self?.commitDeletion(of: expenseID)
+        }
+    }
+
+    /// "Deshacer": el gasto vuelve a verse y no se envía nada.
+    public func undoDelete() {
+        guard let deletion = pendingDeletion else { return }
+        deletionTask?.cancel()
+        pendingDeletion = nil
+        deletionDate = nil
+        guard let index = parches.firstIndex(where: { $0.id == deletion.parcheID }),
+            let position = parches[index].expenses.firstIndex(where: { $0.id == deletion.expenseID })
+        else { return }
+        parches[index].expenses[position].deletedAt = nil
+        parches[index].expenses[position].deletedBy = nil
+    }
+
+    /// Envía ya el gasto borrado que espera "Deshacer" (la app se va a segundo plano, se borra otro o se cierra el
+    /// parche). Sin uno pendiente no hace nada.
+    public func sendPendingDeletion() async {
+        guard let deletion = pendingDeletion else { return }
+        deletionTask?.cancel()
+        await commitDeletion(of: deletion.expenseID)
+    }
+
+    /// Pasa el borrado pendiente a la cola y lo envía, si sigue siendo el de ese gasto (una espera vieja no envía el
+    /// borrado de otro).
+    private func commitDeletion(of expenseID: UUID) async {
+        guard let deletion = pendingDeletion, deletion.expenseID == expenseID, let date = deletionDate else { return }
+        pendingDeletion = nil
+        deletionDate = nil
+        await send(.deleteExpense(id: deletion.expenseID, parcheID: deletion.parcheID, at: date))
     }
 
     // MARK: - Pagos
@@ -650,6 +735,10 @@ public final class ParcheStore {
         var detail = detail
         for operation in pending where operation.parcheID == detail.id {
             Self.apply(operation, to: &detail)
+        }
+        // El gasto que espera "Deshacer" sigue escondido aunque se recargue.
+        if let deletion = pendingDeletion, deletion.parcheID == detail.id, let date = deletionDate {
+            Self.apply(.deleteExpense(id: deletion.expenseID, parcheID: deletion.parcheID, at: date), to: &detail)
         }
         return detail
     }

@@ -15,10 +15,46 @@ final class TestClock: @unchecked Sendable {
     }
 }
 
+/// Espera de "Deshacer" que la prueba suelta a mano: `sleep` se queda esperando hasta `fire()` (si ya se disparó,
+/// sigue de una) y, si cancelaron la tarea, termina con error al soltarla.
+final class ManualTimer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var fired = false
+    private var durations: [Duration] = []
+
+    var requested: [Duration] { lock.withLock { durations } }
+
+    func sleep(_ duration: Duration) async throws {
+        await withCheckedContinuation { continuation in
+            let resumeNow = lock.withLock {
+                durations.append(duration)
+                if fired { return true }
+                waiters.append(continuation)
+                return false
+            }
+            if resumeNow { continuation.resume() }
+        }
+        try Task.checkCancellation()
+    }
+
+    /// Pasan los 5 segundos: suelta las esperas de ahora y las que lleguen después.
+    func fire() {
+        let pending = lock.withLock {
+            fired = true
+            defer { waiters = [] }
+            return waiters
+        }
+        for waiter in pending { waiter.resume() }
+    }
+}
+
 /// Un backend en memoria con varias personas, cada una con su propio `ParcheStore`.
 @MainActor
 struct ParcheWorld {
     let clock = TestClock()
+    /// La espera de "Deshacer" al borrar un gasto; las pruebas la sueltan con `timer.fire()`.
+    let timer = ManualTimer()
     let backend: InMemoryParcheBackend
     let jesus = Member(name: "Jesús", avatarColor: .violet, tikeVariant: .verde)
     let ana = Member(name: "Ana", avatarColor: .yellow, tikeVariant: .rosa)
@@ -32,11 +68,13 @@ struct ParcheWorld {
 
     func store(_ member: Member, pending: any PendingStore = InMemoryPendingStore()) -> ParcheStore {
         let clock = clock
+        let timer = timer
         return ParcheStore(
             session: SessionStore(phase: .main, me: member, partner: MockData.joan, userID: member.id),
             repository: InMemoryParcheRepository(backend: backend, userID: member.id),
             pendingStore: pending,
-            now: { clock.now })
+            now: { clock.now },
+            sleep: { try await timer.sleep($0) })
     }
 }
 
@@ -231,6 +269,99 @@ struct ParcheStoreTests {
         #expect(detail.expenses.first { $0.id == taxi.id }?.isDeleted == true)
         #expect(detail.visibleExpenses.isEmpty)
         #expect(detail.balances.allSatisfy { $0.net == 0 })
+    }
+
+    // MARK: - Deshacer al borrar
+
+    /// Jesús anota un taxi de $30.000 entre todos y Ana lo ve.
+    private func taxi(_ world: ParcheWorld) async throws -> (
+        jesus: ParcheStore, ana: ParcheStore, parche: ParcheDetail, taxi: ParcheExpense
+    ) {
+        let (jesus, ana, parche, _) = try await santaMarta(world)
+        let me = try #require(parche.me)
+        let taxi = try #require(
+            jesus.validateExpense(
+                in: parche.id, concept: "Taxi", base: 30_000, split: .equal(Set(parche.order)),
+                payers: [ParchePayer(participantID: me.id, amount: 30_000)]))
+        await jesus.save(taxi)
+        return (jesus, ana, parche, taxi)
+    }
+
+    /// Si el gasto ya está borrado en la base (lo que ven los demás).
+    private func isDeletedForOthers(_ store: ParcheStore, _ expense: ParcheExpense) async -> Bool {
+        await store.refresh(expense.parcheID)
+        return store.parche(expense.parcheID)?.expenses.first { $0.id == expense.id }?.isDeleted == true
+    }
+
+    @Test("Borrar esconde el gasto de una vez y lo envía después de 5 segundos")
+    func deleteWaitsFiveSeconds() async throws {
+        let world = ParcheWorld()
+        let (jesus, ana, parche, taxi) = try await taxi(world)
+        await jesus.deleteExpense(taxi.id, in: parche.id)
+        #expect(jesus.parche(parche.id)?.visibleExpenses.isEmpty == true, "Se esconde de una vez")
+        #expect(jesus.pendingDeletion == ParcheDeletion(expenseID: taxi.id, parcheID: parche.id, concept: "Taxi"))
+        #expect(ParcheStore.undoDelay == .seconds(5))
+        await jesus.refresh(parche.id)
+        #expect(jesus.parche(parche.id)?.visibleExpenses.isEmpty == true, "Recargar no lo trae de vuelta")
+        #expect(!(await isDeletedForOthers(ana, taxi)), "Todavía no se envió")
+
+        world.timer.fire()
+        await jesus.deletionTask?.value
+        #expect(world.timer.requested == [.seconds(5)])
+        #expect(jesus.pendingDeletion == nil)
+        #expect(await isDeletedForOthers(ana, taxi))
+        #expect(jesus.parche(parche.id)?.visibleExpenses.isEmpty == true)
+    }
+
+    @Test("Deshacer antes de 5 segundos devuelve el gasto y no envía nada")
+    func undoDelete() async throws {
+        let world = ParcheWorld()
+        let (jesus, ana, parche, taxi) = try await taxi(world)
+        await jesus.deleteExpense(taxi.id, in: parche.id)
+        jesus.undoDelete()
+        #expect(jesus.pendingDeletion == nil)
+        #expect(jesus.parche(parche.id)?.visibleExpenses.map(\.id) == [taxi.id], "Vuelve a verse")
+
+        world.timer.fire()
+        await jesus.deletionTask?.value
+        #expect(!(await isDeletedForOthers(ana, taxi)))
+        await jesus.refresh(parche.id)
+        #expect(jesus.parche(parche.id)?.activity.contains { $0.kind == .expenseDeleted } == false)
+    }
+
+    @Test("Sin esperar: al irse la app a segundo plano, al borrar otro gasto o al cerrar el parche se envía ya")
+    func deleteIsSentEarly() async throws {
+        let world = ParcheWorld()
+        let (jesus, ana, parche, taxi) = try await taxi(world)
+        let me = try #require(parche.me)
+
+        // La app se va a segundo plano: se envía ya (si la cierran, no se pierde).
+        await jesus.deleteExpense(taxi.id, in: parche.id)
+        await jesus.sendPendingDeletion()
+        #expect(jesus.pendingDeletion == nil)
+        #expect(await isDeletedForOthers(ana, taxi))
+
+        // Borrar otro gasto envía el anterior; el nuevo espera su turno.
+        let pan = try #require(
+            jesus.validateExpense(
+                in: parche.id, concept: "Pan", base: 8_000, split: .equal([me.id]),
+                payers: [ParchePayer(participantID: me.id, amount: 8_000)]))
+        await jesus.save(pan)
+        let cafe = try #require(
+            jesus.validateExpense(
+                in: parche.id, concept: "Café", base: 6_000, split: .equal([me.id]),
+                payers: [ParchePayer(participantID: me.id, amount: 6_000)]))
+        await jesus.save(cafe)
+        await jesus.deleteExpense(pan.id, in: parche.id)
+        await jesus.deleteExpense(cafe.id, in: parche.id)
+        #expect(await isDeletedForOthers(ana, pan))
+        #expect(!(await isDeletedForOthers(ana, cafe)))
+        #expect(jesus.pendingDeletion?.expenseID == cafe.id)
+
+        // Cerrar el parche envía el borrado pendiente antes de cerrarlo.
+        #expect(await jesus.close(parche.id))
+        #expect(jesus.pendingDeletion == nil)
+        #expect(await isDeletedForOthers(ana, cafe))
     }
 
     @Test("Los pagadores que no suman el total no dejan guardar y explican cuánto falta")
@@ -827,6 +958,7 @@ struct ParcheStoreTests {
                 payers: [ParchePayer(participantID: me.id, amount: 12_000)]))
         await jesus.save(edited)
         await jesus.deleteExpense(expense.id, in: parche.id)
+        await jesus.sendPendingDeletion()
         #expect(jesus.pendingSyncCount == 2)
 
         await world.backend.setOffline(false)

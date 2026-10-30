@@ -20,7 +20,7 @@
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
         case parcheDelete, parchePayment, parchePaymentOver, parcheClose, parcheNotCreator, parcheCloseNotCreator,
             parcheCruce, parcheCrucePending, parcheClosed,
-            parcheOffline
+            parcheOffline, parcheUndo
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
         static var current: DebugScreen? {
@@ -102,7 +102,7 @@
             case .parcheArrival, .parcheArrivalPlace:
                 // Ana (de `MockData`) no está en "Santa Marta": entra con el código en `rootOverride`.
                 return .sample(viewer: MockData.ana)
-            case .parcheDetail, .parcheDetailEnd, .parcheOffline:
+            case .parcheDetail, .parcheDetailEnd, .parcheOffline, .parcheUndo:
                 return stores(path: [.parche(MockParches.santaMartaID)])
             case .parcheShare: return .sample()
             case .parcheActivity:
@@ -267,6 +267,13 @@
                         {
                             await stores.parches.save(expense)
                         }
+                    }
+            case .parcheUndo:
+                RootView()
+                    .task {
+                        // Recién borrado el almuerzo: el aviso con "Deshacer" dura 5 segundos.
+                        await stores.parches.load()
+                        await stores.parches.deleteExpense(Self.lunchID, in: MockParches.santaMartaID)
                     }
             default: RootView()
             }
