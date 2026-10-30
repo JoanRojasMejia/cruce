@@ -20,6 +20,12 @@ public final class Router {
         if !path.isEmpty { path.removeLast() }
     }
 
+    /// Abre "Tengo un código" encima de lo que haya (al abrir un enlace), salvo que ya sea la pantalla de arriba: ahí
+    /// la pantalla toma el código nuevo.
+    public func showEnterCode() {
+        if path.last != .enterCode { path.append(.enterCode) }
+    }
+
     /// Vuelve al inicio.
     public func popToRoot() {
         path.removeAll()

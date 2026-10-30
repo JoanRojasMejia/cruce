@@ -69,6 +69,12 @@ targets:
         # Debug habla con Supabase local por http (127.0.0.1).
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # Enlace con un código: cruce://codigo/<CÓDIGO> abre "Tengo un código" con el campo lleno (D5). Las tres apps
+        # (Dev, Test y la de prod) registran el mismo esquema: con varias instaladas, iOS elige una.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.joanrojas.cruce.codigo
+            CFBundleURLSchemes:
+              - cruce
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1"

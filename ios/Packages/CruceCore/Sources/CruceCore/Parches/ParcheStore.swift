@@ -390,6 +390,14 @@ public final class ParcheStore {
         }
     }
 
+    /// A dónde lleva un código `PCH-` o `SOY-` completo, sin entrar; `nil` (con `error`) si no hay red o no es de parches.
+    public func previewCode(_ code: String) async -> CodePreview? {
+        guard case .complete(let kind, let normalized) = EnteredCode.shape(of: code), kind != .cruce else {
+            return nil
+        }
+        return await perform { try await repository.previewCode(normalized) }
+    }
+
     /// Agrega a alguien sin la app con un nombre de 1 a 40 caracteres; recibe su código `SOY-`.
     @discardableResult
     public func addParticipant(name: String, to parcheID: UUID) async -> ParcheParticipant? {

@@ -3,8 +3,10 @@ import SwiftUI
 
 /// Decide qué flujo mostrar según la etapa de la sesión. Al arrancar con la sesión real
 /// (`AppStores.live()`), primero la calcula con `session.refresh()`; los datos de ejemplo ya vienen listos.
+/// También abre los enlaces `cruce://codigo/<CÓDIGO>`: "Tengo un código" con el campo lleno, en cuanto haya sesión.
 struct RootView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(Router.self) private var router
 
     var body: some View {
         Group {
@@ -16,6 +18,12 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: session.phase)
+        // Sin sesión, el código espera en `pendingCode` hasta que se llegue a invitar o al inicio.
+        .onOpenURL { url in
+            if session.receive(link: url) { openPendingCode() }
+        }
+        .onChange(of: session.phase) { openPendingCode() }
+        .onChange(of: session.isReady) { openPendingCode() }
         .task {
             // Sin red, lo guardado abre el inicio al instante; `refresh()` después lo confirma con la base.
             if !session.isReady {
@@ -25,6 +33,10 @@ struct RootView: View {
         }
     }
 
+    private func openPendingCode() {
+        if session.isReady && session.opensPendingCode { router.showEnterCode() }
+    }
+
     @ViewBuilder
     private var phaseView: some View {
         Group {
@@ -32,7 +44,6 @@ struct RootView: View {
             case .onboarding: OnboardingView()
             case .signUp: SignUpView()
             case .invite: InviteFlow()
-            case .join: JoinView()
             case .connected: ConnectedView()
             case .main: MainView()
             }
@@ -149,7 +160,6 @@ struct RouteDestinations: ViewModifier {
         case .offline: OfflineView()
         case .cruce(let id): HomeView(showsBack: true).onAppear { session.open(id) }
         case .invite: InviteView()
-        case .join: JoinView()
         case .parches: ParcheListView()
         case .parche(let id): ParcheDetailView(parcheID: id)
         case .newParche: NewParcheView()

@@ -12,7 +12,6 @@ public final class SessionStore {
         case onboarding
         case signUp
         case invite
-        case join
         case connected
         case main
     }
@@ -76,8 +75,13 @@ public final class SessionStore {
     }
     /// De quién es el código que se está escribiendo para unirse (`checkCode`).
     public var invitePreview: InviteCheck?
-    /// Código `CRZ-` que llegó por "Tengo un código", para que la pantalla de unirse arranque con él.
-    public var pendingJoinCode: String?
+    /// Código que llegó por un enlace (`cruce://codigo/…`) y espera a que "Tengo un código" lo muestre: sin sesión,
+    /// queda guardado hasta entrar. La pantalla lo toma (y lo vuelve `nil`) al abrirse.
+    public var pendingCode: String?
+    /// Ya se puede abrir "Tengo un código" con `pendingCode`: se está en invitar o en el inicio (con sesión).
+    public var opensPendingCode: Bool {
+        pendingCode != nil && (phase == .invite || phase == .main)
+    }
 
     /// El usuario con la sesión abierta, o `nil` si nadie ha entrado.
     public private(set) var userID: UUID?
@@ -340,7 +344,7 @@ public final class SessionStore {
                 let known = Set(cruces.map(\.id))
                 let links = try await directory.cruces(for: user)
                 apply(links)
-                pendingJoinCode = nil
+                pendingCode = nil
                 invitePreview = nil
                 // Se abre el cruce nuevo. Sin cruces (etapa de unirse) se pasa a "Conectados"; con cruces se queda en
                 // el inicio y `lastLinked` muestra "Conectados" encima.
@@ -384,6 +388,14 @@ public final class SessionStore {
         partner = cruce.partner
     }
 
+    /// Abre un enlace `cruce://codigo/<CÓDIGO>`: deja el código en `pendingCode`. `false` si no es un enlace de código.
+    @discardableResult
+    public func receive(link url: URL) -> Bool {
+        guard let code = CodeLink.code(from: url) else { return false }
+        pendingCode = code
+        return true
+    }
+
     /// `CRZ-` y 4 dígitos a partir de lo que se escribió, o `nil` si no son 4 dígitos.
     public static func inviteCode(from text: String) -> String? {
         var digits = text.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
@@ -421,7 +433,7 @@ public final class SessionStore {
         lastLinked = nil
         inviteCode = nil
         invitePreview = nil
-        pendingJoinCode = nil
+        pendingCode = nil
         phase = .onboarding
     }
 

@@ -35,7 +35,7 @@ select is(public.redeem_invite((select code from joan_invite)) ->> 'error', 'own
 -- Jesús se une.
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', true);
 select is(public.redeem_invite('CRZ-XXXX'),
-  '{"ok": false, "error": "invalid", "message": "El código no es válido o ya venció"}'::jsonb,
+  '{"ok": false, "error": "invalid", "message": "Ese código no existe. Revisa que esté bien escrito."}'::jsonb,
   'Un código inexistente se rechaza con su mensaje en español');
 select is(
   (public.redeem_invite(' ' || lower((select code from joan_invite)) || ' ') ->> 'ledger_id')::uuid,
@@ -51,13 +51,13 @@ select ok(
 
 -- Un tercero intenta usar el mismo código.
 select set_config('request.jwt.claims', '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}', true);
-select is(public.redeem_invite((select code from joan_invite)) ->> 'error', 'invalid', 'Un código usado se rechaza');
+select is(public.redeem_invite((select code from joan_invite)) ->> 'error', 'used', 'Un código usado se rechaza');
 
 -- El tercero crea su cuenta; su código vence y el cuarto intenta usarlo.
 create temp table tercero_invite as select public.create_ledger_with_invite() as code;
 update public.invites set expires_at = now() - interval '1 minute' where code = (select code from tercero_invite);
 select set_config('request.jwt.claims', '{"sub":"44444444-4444-4444-4444-444444444444","role":"authenticated"}', true);
-select is(public.redeem_invite((select code from tercero_invite)) ->> 'error', 'invalid', 'Un código vencido se rechaza');
+select is(public.redeem_invite((select code from tercero_invite)) ->> 'error', 'expired', 'Un código vencido se rechaza');
 
 -- Un código nuevo no puede pisar una invitación ya canjeada.
 -- Con la misma semilla, random() da el mismo número: así el primer código generado coincide con el de Joan.
@@ -86,7 +86,8 @@ update public.invite_attempts set attempted_at = now() - interval '61 minutes'
   where user_id = '55555555-5555-5555-5555-555555555555';
 select ok((public.redeem_invite((select code from cuarto_invite)) ->> 'ok')::boolean,
   'Pasada una hora, la misma persona puede volver a intentar');
-select is(public.redeem_invite(' ') ->> 'message', 'El código no es válido o ya venció', 'El mensaje de error está en español');
+select is(public.redeem_invite(' ') ->> 'message', 'Ese código no existe. Revisa que esté bien escrito.',
+  'El mensaje de error está en español');
 
 -- Sin sesión.
 select set_config('request.jwt.claims', '{"role":"authenticated"}', true);

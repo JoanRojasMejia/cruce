@@ -321,19 +321,19 @@ public actor InMemoryAccountDirectory: AccountDirectory {
         let recent = attempts[userID, default: []].filter { $0 > now - 60 * 60 }
         if recent.count >= 5 {
             return (
-                .rejected(
-                    .tooManyAttempts, message: "Hiciste demasiados intentos. Espera una hora e intenta de nuevo."), nil
+                .rejected(.tooManyAttempts, message: CodeRejection.tooManyAttempts.defaultMessage), nil
             )
         }
         let normalized = code.trimmingCharacters(in: .whitespaces).uppercased()
-        guard let invite = invites[normalized], invite.redeemedBy == nil, invite.expiresAt > now else {
+        func reject(_ rejection: CodeRejection) -> (result: InviteCheck, code: String?) {
             attempts[userID, default: []].append(now)
-            return (.rejected(.invalid, message: CruceRemote.invalidMessage), nil)
+            return (.rejected(rejection, message: rejection.defaultMessage), nil)
         }
-        if invite.createdBy == userID {
-            attempts[userID, default: []].append(now)
-            return (.rejected(.own, message: "No puedes usar tu propio código"), nil)
-        }
+        // Primero si no existe, después si es tuyo (aunque haya vencido o se haya usado), si ya se usó o si venció.
+        guard let invite = invites[normalized] else { return reject(.invalid) }
+        if invite.createdBy == userID { return reject(.own) }
+        if invite.redeemedBy != nil { return reject(.used) }
+        if invite.expiresAt <= now { return reject(.expired) }
         let name = profiles[invite.createdBy]?.displayName ?? ""
         let linked = ledgers.contains { ledger in
             ledger.closedAt == nil && ledger.members.contains { $0.user == userID }

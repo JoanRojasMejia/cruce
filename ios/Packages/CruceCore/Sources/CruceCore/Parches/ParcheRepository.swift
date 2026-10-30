@@ -46,6 +46,9 @@ public protocol ParcheRepository: Sendable {
     func addParticipant(id: UUID, parcheID: UUID, displayName: String) async throws -> ParcheParticipant
     /// Se queda con el lugar del código `SOY-`; el código deja de servir.
     func claimPlace(code: String) async throws -> ParcheDetail
+    /// A qué parche o a qué lugar lleva un código `PCH-` o `SOY-`, sin entrar (`preview_parche_code`). Los códigos que
+    /// no sirven cuentan como intento fallido (5 por hora, junto con los `CRZ-`).
+    func previewCode(_ code: String) async throws -> CodePreview
 
     /// Crea o reemplaza el gasto con ese `id` (`upsert`). Solo con el parche abierto.
     func saveExpense(_ expense: ParcheExpense) async throws
@@ -81,6 +84,10 @@ public actor InMemoryParcheBackend {
     private var isOffline = false
     private var dropsResponses = false
     private let now: @Sendable () -> Date
+    /// Los códigos `SOY-` ya usados y quién se quedó con cada lugar (`parche_participants.claimed_code`).
+    private var claimedCodes: [String: UUID] = [:]
+    /// Intentos fallidos de cada usuario al ver un código (`invite_attempts`).
+    private var failedAttempts: [UUID: [Date]] = [:]
 
     /// `parches` se guardan sin `myParticipantID` ni `crucePartnerIDs`, que dependen de quién pregunta.
     /// `colors` es el color del perfil de cada usuario: quien entra con la app toma ese color.
@@ -172,6 +179,35 @@ public actor InMemoryParcheBackend {
         return try respond(view(detail, for: user))
     }
 
+    /// Las mismas reglas que `preview_parche_code` en la base.
+    func previewCode(_ code: String, user: UUID) throws -> CodePreview {
+        try checkConnection()
+        let date = now()
+        if failedAttempts[user, default: []].filter({ $0 > date - 60 * 60 }).count >= 5 {
+            return .rejected(.tooManyAttempts, message: CodeRejection.tooManyAttempts.defaultMessage)
+        }
+        let code = ParcheCode.normalize(code)
+        let rejection: CodeRejection
+        if let detail = details.values.first(where: { $0.parche.code == code }) {
+            return .parche(name: detail.parche.name, alreadyMember: member(user, of: detail) != nil)
+        } else if let detail = details.values.first(where: { $0.participants.contains { $0.claimCode == code } }),
+            let place = detail.participants.first(where: { $0.claimCode == code })
+        {
+            guard member(user, of: detail) == nil else {
+                return .rejected(
+                    .alreadyParticipant,
+                    message: "Ya estás en \(detail.parche.name), así que no puedes quedarte con ese lugar.")
+            }
+            return .place(parcheName: detail.parche.name, personName: place.displayName)
+        } else if let owner = claimedCodes[code] {
+            rejection = owner == user ? .own : .used
+        } else {
+            rejection = .invalid
+        }
+        failedAttempts[user, default: []].append(date)
+        return .rejected(rejection, message: rejection == .own ? "Ese lugar ya es tuyo." : rejection.defaultMessage)
+    }
+
     func addParticipant(id: UUID, parcheID: UUID, displayName: String, user: UUID) throws -> ParcheParticipant {
         try checkConnection()
         var (detail, me) = try record(parcheID, user: user)
@@ -205,6 +241,7 @@ public actor InMemoryParcheBackend {
         let date = now()
         detail.participants[index].userID = user
         detail.participants[index].claimCode = nil
+        claimedCodes[code] = user
         detail.participants[index].avatarColor = color(of: user)
         detail.participants[index].lastSeenAt = date
         let id = detail.participants[index].id
@@ -529,6 +566,10 @@ public struct InMemoryParcheRepository: ParcheRepository {
 
     public func claimPlace(code: String) async throws -> ParcheDetail {
         try await backend.claimPlace(code: code, user: userID)
+    }
+
+    public func previewCode(_ code: String) async throws -> CodePreview {
+        try await backend.previewCode(code, user: userID)
     }
 
     public func saveExpense(_ expense: ParcheExpense) async throws {

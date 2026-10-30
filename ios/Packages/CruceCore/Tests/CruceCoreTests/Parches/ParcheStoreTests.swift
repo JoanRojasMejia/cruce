@@ -879,6 +879,7 @@ private struct CancelledParcheRepository: ParcheRepository {
         throw CancellationError()
     }
     func claimPlace(code: String) async throws -> ParcheDetail { throw CancellationError() }
+    func previewCode(_ code: String) async throws -> CodePreview { throw CancellationError() }
     func saveExpense(_ expense: ParcheExpense) async throws { throw CancellationError() }
     func deleteExpense(id: UUID, parcheID: UUID, at date: Date) async throws { throw CancellationError() }
     func recordPayment(_ payment: ParchePayment) async throws { throw CancellationError() }

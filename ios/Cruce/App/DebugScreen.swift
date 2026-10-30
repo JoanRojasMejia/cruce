@@ -7,6 +7,8 @@
     enum DebugScreen: String, CaseIterable {
         case onboarding1, onboarding2, onboarding3
         case signUp, signUpCode, signUpName, invite, join, joinInvalid, connected
+        /// "Tengo un código": de un parche y de un lugar (con la base en memoria) y cada error.
+        case codeParche, codePlace, codeExpired, codeUsed, codeOwn, codeUnknown
         case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus, cruces, cruceAna
         case add, saved, history, detail, delete, settle, success, offline, settings
         case cruceSettings, profile, defaultSplit, settleAmount, successPartial, unlink, unlinkSettled, crucesClosed,
@@ -33,8 +35,19 @@
             case .signUpCode: return .sample(phase: .signUp, pendingEmail: "joan@correo.com")
             case .signUpName: return .sample(phase: .signUp, userID: MockData.joan.id)
             case .invite: return .sample(phase: .invite)
-            case .join: return .sample(phase: .join, viewer: MockData.jesus, joinCode: "CRZ-4821")
-            case .joinInvalid: return .sample(phase: .join, viewer: MockData.jesus, joinCode: "CRZ-0000")
+            // Quien todavía no tiene cruce escribe el código de Joan en "Tengo un código", desde invitar.
+            case .join, .joinInvalid:
+                let stores = AppStores.sample(
+                    phase: .invite, viewer: MockData.jesus, pendingCode: self == .join ? "CRZ-4821" : "CRZ-0000")
+                stores.router.path = [.enterCode]
+                return stores
+            case .codeParche, .codePlace:
+                // Ana (de `MockData`) no está en "Santa Marta": el código lleva al parche o al lugar de Carlos.
+                let stores = AppStores.sample(
+                    viewer: MockData.ana, pendingCode: self == .codeParche ? "PCH-SM4R7A" : "SOY-K7QX2M")
+                stores.router.path = [.enterCode]
+                return stores
+            case .codeExpired, .codeUsed, .codeOwn, .codeUnknown: return .sample()
             case .connected: return .sample(phase: .connected)
             case .homeEmpty: return .sample(movements: [])
             case .homeTheyOwe: return .sample()
@@ -164,6 +177,27 @@
                     MovementDetailView(
                         movementID: stores.ledger.visibleMovements[0].id, confirmingDelete: self == .delete
                     )
+                    .toolbar(.hidden, for: .navigationBar)
+                }
+            case .codeExpired, .codeUsed, .codeOwn, .codeUnknown:
+                NavigationStack {
+                    Group {
+                        switch self {
+                        case .codeExpired:
+                            EnterCodeView(
+                                code: "CRZ-4821",
+                                preview: .rejected(.expired, message: CodeRejection.expired.defaultMessage))
+                        case .codeUsed:
+                            EnterCodeView(
+                                code: "SOY-K7QX2M",
+                                preview: .rejected(.used, message: CodeRejection.used.defaultMessage))
+                        case .codeOwn:
+                            EnterCodeView(
+                                code: "CRZ-4821", preview: .rejected(.own, message: CodeRejection.own.defaultMessage))
+                        default:
+                            EnterCodeView(code: "HOLA-1234")
+                        }
+                    }
                     .toolbar(.hidden, for: .navigationBar)
                 }
             case .parcheDetailEnd:

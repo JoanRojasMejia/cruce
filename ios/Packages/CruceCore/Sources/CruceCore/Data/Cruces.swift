@@ -50,29 +50,17 @@ public struct CruceLink: Identifiable, Codable, Equatable, Sendable {
     }
 }
 
-/// Por qué la base rechazó un código `CRZ-` (el campo `error` de `preview_invite` y `redeem_invite`).
-public enum InviteRejection: String, Equatable, Sendable {
-    /// No existe, venció o ya se usó.
-    case invalid
-    /// Es el código de quien lo usa.
-    case own
-    /// 5 intentos fallidos en la última hora.
-    case tooManyAttempts = "too_many_attempts"
-    /// Ya hay un cruce con quien invitó (un cruce por pareja).
-    case alreadyLinked = "already_linked"
-}
-
 /// Resultado de ver o canjear un código: de quién es, o por qué no sirve con el mensaje de la base.
 public enum InviteCheck: Equatable, Sendable {
     case valid(inviterName: String)
-    case rejected(InviteRejection, message: String)
+    case rejected(CodeRejection, message: String)
 }
 
 /// Traducción del JSON de las funciones de vinculación (`preview_invite`, `redeem_invite` y `my_cruces`).
 /// No depende de supabase-swift, así se prueba con `swift test`.
 public enum CruceRemote {
     /// Mensaje de respaldo si la base no manda uno.
-    static let invalidMessage = "El código no es válido o ya venció"
+    static let invalidMessage = CodeRejection.invalid.defaultMessage
 
     private struct InviteResponse: Decodable {
         let ok: Bool
@@ -97,7 +85,7 @@ public enum CruceRemote {
             }
             return .valid(inviterName: name)
         }
-        let kind = response.error.flatMap(InviteRejection.init(rawValue:)) ?? .invalid
+        let kind = response.error.flatMap(CodeRejection.init(rawValue:)) ?? .invalid
         return .rejected(kind, message: response.message ?? invalidMessage)
     }
 

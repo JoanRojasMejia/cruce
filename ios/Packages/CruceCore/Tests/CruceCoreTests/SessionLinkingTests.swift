@@ -64,7 +64,7 @@ struct SessionLinkingTests {
         let joan = await session(joanID, directory)
         await joan.loadInviteCode()
         let jesus = await session(jesusID, directory)
-        jesus.phase = .join
+        jesus.phase = .invite
         await jesus.checkCode(digits(joan.inviteCode))
         #expect(jesus.invitePreview == .valid(inviterName: "Joan"))
         #expect(try await directory.cruces(for: jesusID).isEmpty)
@@ -76,7 +76,7 @@ struct SessionLinkingTests {
         let joan = await session(joanID, directory)
         await joan.loadInviteCode()
         let jesus = await session(jesusID, directory)
-        jesus.phase = .join
+        jesus.phase = .invite
         #expect(await jesus.join(code: digits(joan.inviteCode)))
         #expect(jesus.phase == .connected)
         #expect(jesus.partner.id == joanID)
@@ -88,14 +88,14 @@ struct SessionLinkingTests {
         #expect(jesus.cruces.count == 1)
     }
 
-    @Test("Un código inválido deja el mensaje en español y sigue en unirse")
+    @Test("Un código inválido deja el mensaje en español y sigue en invitar")
     func joinInvalidCode() async {
         let directory = makeDirectory()
         let jesus = await session(jesusID, directory)
-        jesus.phase = .join
+        jesus.phase = .invite
         #expect(!(await jesus.join(code: "0000")))
-        #expect(jesus.phase == .join)
-        #expect(jesus.error?.message == "El código no es válido o ya venció")
+        #expect(jesus.phase == .invite)
+        #expect(jesus.error?.message == "Ese código no existe. Revisa que esté bien escrito.")
     }
 
     @Test("Un código con menos de 4 dígitos no se consulta")
@@ -115,7 +115,7 @@ struct SessionLinkingTests {
         let jesus = await session(jesusID, directory)
         _ = await jesus.join(code: digits(joan.inviteCode))
         await joan.loadInviteCode()  // Joan pide otro código: sale de una cuenta pendiente nueva.
-        jesus.phase = .join
+        jesus.phase = .invite
         #expect(!(await jesus.join(code: digits(joan.inviteCode))))
         #expect(jesus.error?.message == "Ya tienes un cruce con Joan")
         #expect(jesus.cruces.count == 1)
@@ -198,11 +198,11 @@ struct SessionLinkingTests {
         await directory.link(joanID, jesusID)
         let joan = await session(joanID, directory)
         await joan.loadInviteCode()
-        joan.pendingJoinCode = "CRZ-1234"
+        joan.pendingCode = "CRZ-1234"
         await joan.signOut()
         #expect(joan.cruces.isEmpty)
         #expect(joan.inviteCode == nil)
-        #expect(joan.pendingJoinCode == nil)
+        #expect(joan.pendingCode == nil)
         #expect(joan.invitePreview == nil)
     }
 

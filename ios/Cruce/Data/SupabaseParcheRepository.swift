@@ -68,6 +68,10 @@ struct SupabaseParcheRepository: ParcheRepository {
         return try await loadParche(id: ParcheRemote.uuid(from: parcheID))
     }
 
+    func previewCode(_ code: String) async throws -> CodePreview {
+        try ParcheRemote.codePreview(from: try await call("preview_parche_code", ParcheRemote.CodeParams(code: code)))
+    }
+
     // MARK: - Gastos y pagos
 
     func saveExpense(_ expense: ParcheExpense) async throws {

@@ -22,12 +22,14 @@ struct CruceRemoteTests {
     @Test(
         "Cada rechazo de la base conserva su tipo y su mensaje en español",
         arguments: [
-            ("invalid", InviteRejection.invalid, "El código no es válido o ya venció"),
-            ("own", .own, "No puedes usar tu propio código"),
+            ("invalid", CodeRejection.invalid, "Ese código no existe. Revisa que esté bien escrito."),
+            ("expired", .expired, "Ese código ya venció. Pídele uno nuevo a quien te lo mandó."),
+            ("used", .used, "Ese código ya se usó. Pídele uno nuevo a quien te lo mandó."),
+            ("own", .own, "Ese código es tuyo. Mándaselo a la otra persona para que lo use."),
             ("too_many_attempts", .tooManyAttempts, "Hiciste demasiados intentos. Espera una hora e intenta de nuevo."),
             ("already_linked", .alreadyLinked, "Ya tienes un cruce con Joan"),
         ])
-    func rejections(error: String, kind: InviteRejection, message: String) throws {
+    func rejections(error: String, kind: CodeRejection, message: String) throws {
         let json = #"{"ok": false, "error": "\#(error)", "message": "\#(message)"}"#
         #expect(try CruceRemote.inviteCheck(from: data(json)) == .rejected(kind, message: message))
     }

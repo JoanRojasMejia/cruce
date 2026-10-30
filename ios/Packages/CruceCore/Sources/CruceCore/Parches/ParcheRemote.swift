@@ -403,6 +403,41 @@ public enum ParcheRemote {
         try decoder().decode(TransferRow.self, from: data).model
     }
 
+    private struct CodePreviewResponse: Decodable {
+        let ok: Bool
+        let kind: String?
+        let parcheName: String?
+        let personName: String?
+        let alreadyMember: Bool?
+        let error: String?
+        let message: String?
+
+        enum CodingKeys: String, CodingKey {
+            case ok, kind, error, message
+            case parcheName = "parche_name"
+            case personName = "person_name"
+            case alreadyMember = "already_member"
+        }
+    }
+
+    /// Lo que devuelve `preview_parche_code`: `{"ok": true, "kind": "parche", "parche_name", "already_member"}`,
+    /// `{"ok": true, "kind": "place", "parche_name", "person_name"}` o `{"ok": false, "error", "message"}`. Un `error`
+    /// que la app no conoce se trata como código que no existe, con el mensaje de la base.
+    public static func codePreview(from data: Data) throws -> CodePreview {
+        let response = try decoder().decode(CodePreviewResponse.self, from: data)
+        guard response.ok else {
+            let rejection = response.error.flatMap(CodeRejection.init(rawValue:)) ?? .invalid
+            return .rejected(rejection, message: response.message ?? rejection.defaultMessage)
+        }
+        switch (response.kind, response.parcheName, response.personName) {
+        case ("parche"?, let name?, _): return .parche(name: name, alreadyMember: response.alreadyMember ?? false)
+        case ("place"?, let parche?, let person?): return .place(parcheName: parche, personName: person)
+        default:
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: [], debugDescription: "Vista previa de código sin tipo o sin nombre"))
+        }
+    }
+
     /// El `uuid` que devuelven `create_parche`, `join_parche` y `claim_parche_place`.
     public static func uuid(from data: Data) throws -> UUID {
         try decoder().decode(UUID.self, from: data)
