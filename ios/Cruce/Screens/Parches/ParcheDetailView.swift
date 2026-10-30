@@ -56,8 +56,9 @@ struct ParcheDetailView: View {
                     Badge(text: parches.statusLabel(for: detail), fill: statusColor(detail))
                     Badge(text: peopleText(detail))
                 }
+                // Un solo aviso: el de conexión ya lo dice "Sin conexión"; otros problemas van aparte.
                 ParcheSyncBanner()
-                if let error = parches.error {
+                if let error = parches.visibleError {
                     ParcheProblem(text: error.message)
                 }
                 myBalance(detail)
@@ -198,9 +199,12 @@ struct ParcheDetailView: View {
             }
             ForEach(mine) { payment in
                 HStack(spacing: 10) {
-                    Text(parches.confirmationPrompt(for: payment, in: detail))
-                        .font(.archivo(15, .extraBold))
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(parches.confirmationPrompt(for: payment, in: detail))
+                            .font(.archivo(15, .extraBold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        if parches.isUnsent(payment.id) { UnsentLabel() }
+                    }
                     Spacer(minLength: 8)
                     Button("Confirmar") { confirming = payment }
                         .buttonStyle(
@@ -215,7 +219,12 @@ struct ParcheDetailView: View {
             }
             ForEach(others) { payment in
                 let receiver = detail.participant(payment.toID)?.displayName ?? "quien recibió"
-                VStack(alignment: .leading, spacing: 3) {
+                // "Por confirmar" con su propio estilo (etiqueta y fondo gris); lo que no se ha enviado lleva el reloj.
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Badge(text: "Por confirmar", fill: CruceColor.surface)
+                        if parches.isUnsent(payment.id) { UnsentLabel() }
+                    }
                     Text(paymentText(payment, in: detail)).font(.archivo(14, .extraBold))
                     Text("Falta que \(receiver) lo confirme · Anotado por \(detail.recorderName(payment.recordedBy))")
                         .textStyle(.secondary)
@@ -223,7 +232,7 @@ struct ParcheDetailView: View {
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .neoSurface(fill: .clear, radius: Radius.card, border: BorderWidth.thin, dashed: true)
+                .neoSurface(fill: CruceColor.neutral, radius: Radius.card, border: BorderWidth.thin)
             }
         }
     }
@@ -327,7 +336,9 @@ struct ParcheDetailView: View {
                     Button {
                         router.push(.editParcheExpense(parcheID: parcheID, expenseID: expense.id))
                     } label: {
-                        ParcheExpenseRow(expense: expense, detail: detail, editable: detail.parche.isOpen)
+                        ParcheExpenseRow(
+                            expense: expense, detail: detail, editable: detail.parche.isOpen,
+                            unsent: parches.isUnsent(expense.id))
                     }
                     .buttonStyle(.plain)
                     .disabled(!detail.parche.isOpen)
@@ -405,11 +416,14 @@ struct ParcheExpenseRow: View {
     let expense: ParcheExpense
     let detail: ParcheDetail
     var editable: Bool
+    /// Guardado en el teléfono y todavía sin enviar: reloj y "Sin enviar".
+    var unsent = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(expense.concept).textStyle(.rowTitle).lineLimit(2)
+                if unsent { UnsentLabel() }
                 Text(payersText).textStyle(.secondary).foregroundStyle(CruceColor.textSecondary)
                 Text("Anotado por \(detail.recorderName(expense.recordedBy)) · \(DateText.relative(expense.spentOn))")
                     .textStyle(.secondary)
@@ -529,7 +543,8 @@ struct CruceTransferPendingCard: View {
     }
 }
 
-/// Quien responde ve una tarjeta para actuar; quien espera, el borde punteado de "por confirmar".
+/// Quien responde ve una tarjeta para actuar; quien espera, el fondo gris de "por confirmar" (el borde punteado no:
+/// se confundía con lo que no se ha enviado).
 private struct PendingSurface: ViewModifier {
     let responds: Bool
 
@@ -537,7 +552,7 @@ private struct PendingSurface: ViewModifier {
         if responds {
             content.neoSurface(fill: CruceColor.lime, radius: Radius.card, shadow: ShadowOffset.m)
         } else {
-            content.neoSurface(fill: .clear, radius: Radius.card, border: BorderWidth.thin, dashed: true)
+            content.neoSurface(fill: CruceColor.neutral, radius: Radius.card, border: BorderWidth.thin)
         }
     }
 }

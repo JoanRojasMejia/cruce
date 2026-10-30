@@ -78,6 +78,21 @@ public final class ParcheStore {
 
     public var pendingSyncCount: Int { pending.count }
 
+    /// El aviso "Sin conexión" o "Enviando…" de los parches: sin señal o con cambios guardados sin enviar.
+    public var showsSyncNotice: Bool { isOffline || !pending.isEmpty }
+
+    /// El problema que se muestra junto al aviso de sincronización: uno de conexión ya lo dice ese aviso, así que no
+    /// se repite (un solo aviso).
+    public var visibleError: Problem? {
+        showsSyncNotice && error == .network ? nil : error
+    }
+
+    /// Si el gasto o pago con ese `id` tiene un cambio guardado en el teléfono que todavía no se envió: su fila lleva
+    /// el reloj y "Sin enviar".
+    public func isUnsent(_ id: UUID) -> Bool {
+        pending.contains { $0.itemID == id }
+    }
+
     /// Avisos sin ver en todos los parches.
     public var unseenTotal: Int { parches.map(\.unseenCount).reduce(0, +) }
 

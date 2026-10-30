@@ -733,6 +733,59 @@ struct ParcheStoreTests {
         #expect(try await pending.load().pending.isEmpty)
     }
 
+    @Test("Sin señal: cada gasto o pago sin enviar se marca y hay un solo aviso")
+    func unsentRowsAndSingleNotice() async throws {
+        let world = ParcheWorld()
+        let (jesus, _, parche, carlos) = try await santaMarta(world)
+        let me = try #require(parche.me)
+        let sent = try #require(
+            jesus.validateExpense(
+                in: parche.id, concept: "Lancha", base: 60_000, split: .equal(Set(parche.order)),
+                payers: [ParchePayer(participantID: me.id, amount: 60_000)]))
+        await jesus.save(sent)
+        #expect(!jesus.isUnsent(sent.id))
+        #expect(!jesus.showsSyncNotice)
+
+        await world.backend.setOffline(true)
+        let unsent = try #require(
+            jesus.validateExpense(
+                in: parche.id, concept: "Arepas", base: 24_000, split: .equal(Set(parche.order)),
+                payers: [ParchePayer(participantID: me.id, amount: 24_000)]))
+        await jesus.save(unsent)
+        let payment = try #require(await jesus.recordPayment(in: parche.id, from: carlos.id, to: me.id, amount: 10_000))
+        #expect(jesus.isUnsent(unsent.id))
+        #expect(jesus.isUnsent(payment.id))
+        #expect(!jesus.isUnsent(sent.id), "Lo que ya llegó no lleva Sin enviar")
+        #expect(jesus.showsSyncNotice)
+
+        // Recargar sin señal deja el error de conexión; el aviso "Sin conexión" ya lo dice.
+        await jesus.refresh(parche.id)
+        #expect(jesus.error == .network)
+        #expect(jesus.visibleError == nil, "Un solo aviso")
+
+        await world.backend.setOffline(false)
+        await jesus.retryPending()
+        #expect(!jesus.isUnsent(unsent.id))
+        #expect(!jesus.isUnsent(payment.id))
+        #expect(!jesus.showsSyncNotice)
+    }
+
+    @Test("Un error que no es de conexión se muestra aunque haya cosas sin enviar")
+    func otherErrorsStayVisible() async throws {
+        let world = ParcheWorld()
+        let (jesus, _, parche, _) = try await santaMarta(world)
+        await world.backend.setOffline(true)
+        let me = try #require(parche.me)
+        let expense = try #require(
+            jesus.validateExpense(
+                in: parche.id, concept: "Pan", base: 8_000, split: .equal([me.id]),
+                payers: [ParchePayer(participantID: me.id, amount: 8_000)]))
+        await jesus.save(expense)
+        #expect(await jesus.addParticipant(name: "", to: parche.id) == nil)
+        #expect(jesus.showsSyncNotice)
+        #expect(jesus.visibleError == .invalidPersonName)
+    }
+
     @Test("Si la respuesta se pierde, el reintento no duplica el gasto ni el pago")
     func retryIsIdempotent() async throws {
         let world = ParcheWorld()

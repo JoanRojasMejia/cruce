@@ -254,12 +254,19 @@
             case .parcheOffline:
                 RootView()
                     .task {
-                        // Se va la señal y un pago queda en la cola del teléfono.
+                        // Se va la señal y un pago y un gasto quedan en la cola del teléfono ("Sin enviar").
                         await stores.parches.load()
                         await Self.offlineBackend.setOffline(true)
                         await stores.parches.recordPayment(
                             in: MockParches.santaMartaID, from: MockParches.carlos, to: MockParches.jesus,
                             amount: 20_000)
+                        let people: Set = [MockParches.joan, MockParches.jesus, MockParches.ana, MockParches.carlos]
+                        if let expense = stores.parches.validateExpense(
+                            in: MockParches.santaMartaID, concept: "Hielo", base: 12_000, split: .equal(people),
+                            payers: [ParchePayer(participantID: MockParches.joan, amount: 12_000)])
+                        {
+                            await stores.parches.save(expense)
+                        }
                     }
             default: RootView()
             }

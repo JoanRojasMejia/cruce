@@ -169,7 +169,7 @@ struct ParcheSyncBanner: View {
     @Environment(ParcheStore.self) private var parches
 
     var body: some View {
-        if parches.isOffline || parches.pendingSyncCount > 0 {
+        if parches.showsSyncNotice {
             HStack(spacing: 10) {
                 Image(systemName: "wifi.slash").font(.system(size: 15, weight: .bold)).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
@@ -198,6 +198,17 @@ struct ParcheSyncBanner: View {
         case 1: return "1 cambio guardado en el teléfono, sin enviar."
         default: return "\(parches.pendingSyncCount) cambios guardados en el teléfono, sin enviar."
         }
+    }
+}
+
+/// La marca de un gasto o pago guardado en el teléfono que todavía no se envió: reloj y "Sin enviar".
+struct UnsentLabel: View {
+    var body: some View {
+        Label("Sin enviar", systemImage: "clock")
+            .labelStyle(.titleAndIcon)
+            .font(.archivo(12, .extraBold))
+            .foregroundStyle(CruceColor.ink)
+            .accessibilityLabel("Sin enviar")
     }
 }
 

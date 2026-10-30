@@ -14,6 +14,15 @@ public enum ParchePendingOperation: Codable, Hashable, Sendable {
         case .deleteExpense(_, let parcheID, _), .confirmPayment(_, let parcheID, _): parcheID
         }
     }
+
+    /// El gasto o pago que cambia: su fila lleva "Sin enviar" mientras la operación siga en la cola.
+    public var itemID: UUID {
+        switch self {
+        case .saveExpense(let expense): expense.id
+        case .recordPayment(let payment): payment.id
+        case .deleteExpense(let id, _, _), .confirmPayment(let id, _, _): id
+        }
+    }
 }
 
 /// Un par al que se le respondió "No, se salda en el parche". Se guarda en el dispositivo, no en la base.

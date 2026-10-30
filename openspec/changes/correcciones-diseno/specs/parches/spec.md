@@ -22,6 +22,18 @@ El parche SHALL mostrar su actividad (gastos anotados, editados o borrados; pago
 - **WHEN** Ana anota dos gastos y Jesús no ha abierto la actividad del parche desde entonces
 - **THEN** Jesús ve 2 avisos sin ver en el encabezado del parche, y al abrir la actividad el contador vuelve a cero y esos dos gastos se ven como nuevos
 
+### Requirement: Anotar sin conexión
+Los gastos y pagos SHALL poder anotarse sin conexión; MUST guardarse en el teléfono y enviarse al volver la conexión, sin duplicarse por reintentos. Mientras haya algo sin enviar, el parche SHALL mostrar un solo aviso ("Sin conexión" o "Enviando…", con "Reintentar"), sin repetir el error de conexión en otro aviso. Cada gasto o pago sin enviar MUST llevar el ícono de reloj y el texto "Sin enviar". Un pago "Por confirmar" SHALL tener su propio estilo (etiqueta "Por confirmar" y fondo gris), distinto del de lo que no se ha enviado.
+
+#### Scenario: Sin señal
+- **WHEN** Ana anota un gasto sin conexión y cierra la app
+- **THEN** al abrirla con conexión el gasto se envía una sola vez y los demás lo ven
+
+#### Scenario: Un aviso y las filas sin enviar
+- **WHEN** Joan, sin señal, anota el gasto "Hielo" y que Carlos le pagó $20.000 a Jesús, y desliza para recargar
+- **THEN** ve un solo aviso "Sin conexión" con "2 cambios guardados en el teléfono, sin enviar.", la fila de "Hielo" y la del pago llevan el reloj y "Sin enviar", y el pago además dice "Por confirmar"
+- **AND** al volver la señal y enviarse, las marcas "Sin enviar" desaparecen
+
 ## ADDED Requirements
 
 ### Requirement: Detalle del parche corto
