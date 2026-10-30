@@ -34,7 +34,8 @@
         /// Jesús borró su cuenta: "Tus cruces" con "Cuenta borrada" en "Cerrados" y el inicio de ese cruce.
         case crucesDeleted
         case cruceDeleted
-        /// "Santa Marta" donde Ana borró su cuenta: su lugar y sus gastos quedan como "Cuenta borrada".
+        /// "Santa Marta" donde Ana borró su cuenta (abre al final, en los saldos): su lugar y sus gastos quedan como
+        /// "Cuenta borrada".
         case parcheDeletedPlace
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
@@ -240,7 +241,7 @@
                     }
                     .toolbar(.hidden, for: .navigationBar)
                 }
-            case .parcheDetailEnd:
+            case .parcheDetailEnd, .parcheDeletedPlace:
                 NavigationStack {
                     ParcheDetailView(parcheID: MockParches.santaMartaID, startsAtBottom: true)
                         .toolbar(.hidden, for: .navigationBar)
