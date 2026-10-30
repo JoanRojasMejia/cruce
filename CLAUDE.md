@@ -321,7 +321,7 @@ Funciones del CP11 (sin captura en `docs/design/screens/`; se abren en Debug con
 ### Ilustraciones
 `Assets.xcassets/Illustrations/il-0X-*.imageset`. El enum `Illustration` las mapea; `Illustration.balance(_:variant:)` aplica la regla rosa o verde. Los originales están en `~/Downloads/new-idea-proyect/ilustrations/`.
 
-Hay 15 espacios más, de `il-09-revisa-correo` a `il-21-codigo-invalido` (casos `checkEmail`, `newParche`, `parchesEmpty`, `parcheArrival`, `placeClaimed`, `placeClaimedMini`, `closeParche`, `ticketPending`, `cruceTransfer`, `cruceClosed`, `parcheSettled`, `groupTheyOweYou`, `groupYouOwe`, `paymentPending` e `invalidCode`). Por ahora solo tienen `Contents.json`: mientras falte la imagen, `IllustrationView(fallback:)` dibuja la ilustración que esa pantalla usaba antes, o nada. Dónde va cada una y su tamaño: `docs/diseno.md`. Los tickets y todo lo de parches usan ilustraciones neutrales.
+Hay 15 espacios más, de `il-09-revisa-correo` a `il-21-codigo-invalido` (casos `checkEmail`, `newParche`, `parchesEmpty`, `parcheArrival`, `placeClaimed`, `placeClaimedMini`, `closeParche`, `ticketPending`, `cruceTransfer`, `cruceClosed`, `parcheSettled`, `groupTheyOweYou`, `groupYouOwe`, `paymentPending` e `invalidCode`). Todas tienen sus PNG @2x y @3x (30 oct 2026); si alguna llegara a faltar, `IllustrationView(fallback:)` dibuja la ilustración que esa pantalla usaba antes, o nada. Dónde va cada una y su tamaño: `docs/diseno.md`. Los tickets y todo lo de parches usan ilustraciones neutrales.
 
 ---
 
@@ -426,7 +426,7 @@ iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPh
   - `my_cruces()` sigue devolviendo en `my_avatar` y `partner_avatar` el color del rol (amarillo o violeta), porque esas versiones no cargan ningún cruce si llega otro color; la app nueva lee `my_color` y `partner_color`.
   - `move_parche_debt_to_cruce` ahora solo propone: lo que pase una versión anterior queda "por confirmar" hasta que alguien con la versión nueva lo acepte.
   - Si una versión anterior edita un gasto "Por consumo" con ítems con nombre, los ítems se guardan sin nombre.
-- **Ilustraciones pendientes:** los 15 espacios `il-09` a `il-21` no tienen imagen todavía; cada pantalla muestra la ilustración de antes (o nada) hasta que se agreguen los PNG @2x y @3x.
+- **Peso de las ilustraciones:** con `il-09` a `il-21` la carpeta `Illustrations` pesa unos 20 MB; se pueden comprimir los PNG antes de TestFlight.
 - **Enlaces con un código:** solo el esquema propio (`cruce-dev://`, `cruce-test://`, `cruce://`), que solo abre la app si está instalada; el enlace universal (`https://`) necesita la membresía de Apple y un dominio (CP13).
 - **Intentos con códigos de parche:** `preview_parche_code` cuenta los intentos fallidos (5 por hora, junto con `CRZ-`), pero `join_parche` y `claim_parche_place` todavía no los cuentan. Falta decidir si se agrega (ver `ROADMAP.md`).
 - **Borrar un usuario que está en un parche falla** (ya pasaba antes de este cambio): el `on delete set null` de `parche_participants` choca con el trigger `parche_participants_before_update`. Va con la decisión abierta "Borrar la cuenta de usuario".

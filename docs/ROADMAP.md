@@ -45,7 +45,7 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 - [x] 15 espacios de ilustración (`il-09` a `il-21`) con respaldo a la ilustración de antes.
 - [ ] Recorrido en el simulador de los flujos pedidos (tarea 5.1 del cambio).
 - [ ] Respaldar testing y subir las siete migraciones con `scripts/db-push.sh testing`; probar en "Cruce Test" con Joan, Jesús y una tercera cuenta.
-- [ ] Agregar las imágenes de `il-09` a `il-21` (PNG @2x y @3x).
+- [x] Agregar las imágenes de `il-09` a `il-21` (PNG @2x y @3x), el 30 oct 2026.
 
 **Límites conocidos:** con una versión anterior de la app, lo que se pasa al cruce queda "por confirmar" hasta que alguien con la versión nueva lo acepte, y editar un gasto con ítems con nombre los guarda sin nombre. El enlace universal (`https://`) queda para el CP13. "Cómo pagarle a cada quien" e "Intentos con códigos de parche" están en las decisiones abiertas.
 
