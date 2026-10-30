@@ -147,6 +147,22 @@ public final class ParcheStore {
         "\(paymentPhrase(from: payment.fromID, to: payment.toID, amount: payment.amount, in: detail)), ¿confirmas?"
     }
 
+    /// Antes de anotar un pago de más (lo anota quien usa la app): "Carlos te debe $47.000 en el parche. Anotaste
+    /// $50.000."; `nil` si no supera lo que dice el plan "Para saldar" entre los dos.
+    public func overpaymentWarning(from fromID: UUID, to toID: UUID, amount: Int, in detail: ParcheDetail) -> String? {
+        detail.overpayment(from: fromID, to: toID, amount: amount).map {
+            overpaymentText($0, recordedBy: detail.myParticipantID, in: detail)
+        }
+    }
+
+    /// Antes de confirmar un pago de más, comparado con el plan sin ese pago: "Carlos te debe $47.000 en el parche.
+    /// Ana anotó $50.000."
+    public func overpaymentWarning(for payment: ParchePayment, in detail: ParcheDetail) -> String? {
+        detail.overpayment(from: payment.fromID, to: payment.toID, amount: payment.amount, excluding: payment.id).map {
+            overpaymentText($0, recordedBy: payment.recordedBy, in: detail)
+        }
+    }
+
     /// El aviso de la actividad desde la vista de quien usa la app ("Ana editó un gasto que anotaste").
     public func phrase(for activity: ParcheActivity, in detail: ParcheDetail) -> String {
         let me = detail.myParticipantID
@@ -650,6 +666,27 @@ public final class ParcheStore {
 
     private func name(_ id: UUID, in detail: ParcheDetail) -> String {
         detail.participant(id)?.displayName ?? "Alguien"
+    }
+
+    /// "Carlos te debe $47.000 en el parche.", "Le debes…", "Carlos le debe… a Jesús…" o, sin transferencia en el
+    /// plan, "Carlos no le debe nada a Joan en el parche.", seguido de lo que se anotó.
+    private func overpaymentText(_ over: ParcheOverpayment, recordedBy: UUID?, in detail: ParcheDetail) -> String {
+        let me = detail.myParticipantID
+        let from = name(over.fromID, in: detail)
+        let to = name(over.toID, in: detail)
+        let planned = Money.format(over.planned)
+        let debt: String
+        switch (over.fromID == me, over.toID == me, over.planned > 0) {
+        case (true, _, true): debt = "Le debes \(planned) a \(to)"
+        case (true, _, false): debt = "No le debes nada a \(to)"
+        case (_, true, true): debt = "\(from) te debe \(planned)"
+        case (_, true, false): debt = "\(from) no te debe nada"
+        case (_, _, true): debt = "\(from) le debe \(planned) a \(to)"
+        case (_, _, false): debt = "\(from) no le debe nada a \(to)"
+        }
+        let amount = Money.format(over.amount)
+        guard let recordedBy, recordedBy != me else { return "\(debt) en el parche. Anotaste \(amount)." }
+        return "\(debt) en el parche. \(name(recordedBy, in: detail)) anotó \(amount)."
     }
 
     /// En un aviso de pasar al cruce: la otra persona del par si quien usa la app es parte de él.

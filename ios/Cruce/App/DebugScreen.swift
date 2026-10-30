@@ -13,7 +13,8 @@
         case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
-        case parcheDelete, parchePayment, parcheClose, parcheCruce, parcheCrucePending, parcheClosed, parcheOffline
+        case parcheDelete, parchePayment, parchePaymentOver, parcheClose, parcheCruce, parcheCrucePending, parcheClosed,
+            parcheOffline
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
         static var current: DebugScreen? {
@@ -98,7 +99,8 @@
                     .parche(MockParches.santaMartaID),
                     .parcheTicket(parcheID: MockParches.santaMartaID, participantID: nil),
                 ])
-            case .parchePayment: return stores(path: [.parchePayment(parcheID: MockParches.santaMartaID)])
+            case .parchePayment, .parchePaymentOver:
+                return stores(path: [.parchePayment(parcheID: MockParches.santaMartaID)])
             case .parcheClose: return stores(path: [.closeParche(parcheID: MockParches.santaMartaID)])
             case .parcheCruce:
                 return stores(
@@ -148,6 +150,14 @@
                 NavigationStack {
                     ParcheDetailView(parcheID: MockParches.santaMartaID, startsAtBottom: true)
                         .toolbar(.hidden, for: .navigationBar)
+                }
+            case .parchePaymentOver:
+                NavigationStack {
+                    ParchePaymentView(
+                        parcheID: MockParches.santaMartaID,
+                        overpayment: "Carlos te debe $47.000 en el parche. Anotaste $50.000."
+                    )
+                    .toolbar(.hidden, for: .navigationBar)
                 }
             case .parcheCruce:
                 NavigationStack {

@@ -2,7 +2,8 @@ import CruceCore
 import SwiftUI
 
 /// Anotar un pago entre dos del parche. Cuenta de una vez si lo anota quien recibe o si quien recibe no tiene la app;
-/// si no, queda pendiente hasta que lo confirme.
+/// si no, queda pendiente hasta que lo confirme. Si el pago supera lo que dice "Para saldar" entre los dos, avisa antes
+/// de anotarlo.
 struct ParchePaymentView: View {
     @Environment(ParcheStore.self) private var parches
     @Environment(Router.self) private var router
@@ -12,9 +13,12 @@ struct ParchePaymentView: View {
     @State private var toID: UUID?
     @State private var amount = 0
     @State private var problem: String?
+    /// El aviso de pago de más, mientras se decide si corregir o anotarlo de todas formas.
+    @State private var overpayment: String?
 
-    init(parcheID: UUID) {
+    init(parcheID: UUID, overpayment: String? = nil) {
         self.parcheID = parcheID
+        _overpayment = State(initialValue: overpayment)
     }
 
     var body: some View {
@@ -31,7 +35,7 @@ struct ParchePaymentView: View {
                 ScreenHeader(title: "Anotar un pago")
                 suggestions(detail)
                 picker("¿Quién pagó?", detail: detail, selection: $fromID)
-                picker("¿A quién le pagó?", detail: detail, selection: $toID)
+                picker("¿A quién le pagó?", detail: detail, selection: $toID, excluding: fromID)
                 MoneyField(label: "Monto", amount: $amount, height: 52)
                 if let from = fromID, let to = toID, from != to, amount > 0 {
                     Text(summary(from: from, to: to, in: detail))
@@ -52,7 +56,7 @@ struct ParchePaymentView: View {
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            Button("Anotar el pago") { Task { await save() } }
+            Button("Anotar el pago") { review(detail) }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
                 .disabled(fromID == nil || toID == nil || fromID == toID || amount == 0)
                 .padding(.horizontal, Spacing.screen)
@@ -63,6 +67,28 @@ struct ParchePaymentView: View {
         .screenBackground()
         .foregroundStyle(CruceColor.ink)
         .onChange(of: amount) { problem = nil }
+        .onChange(of: fromID) {
+            // Quien pagó no aparece en "¿A quién le pagó?": si ya estaba elegido ahí, se quita.
+            if toID == fromID { toID = nil }
+        }
+        .overlay {
+            if let overpayment {
+                NeoDialog(
+                    systemImage: "exclamationmark.triangle", iconFill: CruceColor.peach,
+                    title: "¿Es más de lo que debe?", message: overpayment,
+                    onDismiss: { self.overpayment = nil }
+                ) {
+                    Button("Corregir") { self.overpayment = nil }
+                        .buttonStyle(.dialog(.primary))
+                    Button("Anotar de todas formas") {
+                        self.overpayment = nil
+                        Task { await save() }
+                    }
+                    .buttonStyle(.dialog(.secondary))
+                }
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: overpayment)
     }
 
     @ViewBuilder
@@ -98,11 +124,13 @@ struct ParchePaymentView: View {
         }
     }
 
-    private func picker(_ title: String, detail: ParcheDetail, selection: Binding<UUID?>) -> some View {
+    private func picker(
+        _ title: String, detail: ParcheDetail, selection: Binding<UUID?>, excluding excluded: UUID? = nil
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).textStyle(.fieldLabel)
             FlowLayout(spacing: 8) {
-                ForEach(detail.order, id: \.self) { id in
+                ForEach(detail.order.filter { $0 != excluded }, id: \.self) { id in
                     Chip(title: name(id, in: detail), isSelected: selection.wrappedValue == id) {
                         selection.wrappedValue = id
                     }
@@ -130,6 +158,16 @@ struct ParchePaymentView: View {
         }
         let receiver = detail.participant(to)?.displayName ?? "quien recibió"
         return "\(phrase). Queda pendiente hasta que \(receiver) lo confirme."
+    }
+
+    /// Si el pago supera lo que dice el plan entre los dos, primero muestra el aviso; si no, lo anota.
+    private func review(_ detail: ParcheDetail) {
+        guard let fromID, let toID else { return }
+        if let warning = parches.overpaymentWarning(from: fromID, to: toID, amount: amount, in: detail) {
+            overpayment = warning
+        } else {
+            Task { await save() }
+        }
     }
 
     private func save() async {
@@ -277,6 +315,19 @@ struct CloseParcheView: View {
         let stores = AppStores.sample()
         return NavigationStack {
             ParchePaymentView(parcheID: MockParches.santaMartaID).toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(stores)
+        .task { await stores.parches.load() }
+    }
+
+    #Preview("Anotar un pago de más") {
+        let stores = AppStores.sample()
+        return NavigationStack {
+            ParchePaymentView(
+                parcheID: MockParches.santaMartaID,
+                overpayment: "Carlos te debe $47.000 en el parche. Anotaste $50.000."
+            )
+            .toolbar(.hidden, for: .navigationBar)
         }
         .cruceStores(stores)
         .task { await stores.parches.load() }

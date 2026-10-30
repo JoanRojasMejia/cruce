@@ -88,10 +88,14 @@ struct ParcheDetailView: View {
         .foregroundStyle(CruceColor.ink)
         .overlay {
             if let payment = confirming {
+                // Si el pago supera lo que dice "Para saldar" entre los dos, el diálogo lo avisa antes de confirmar.
+                let warning = parches.overpaymentWarning(for: payment, in: detail)
                 NeoDialog(
-                    systemImage: "checkmark", iconFill: CruceColor.green,
+                    systemImage: warning == nil ? "checkmark" : "exclamationmark.triangle",
+                    iconFill: warning == nil ? CruceColor.green : CruceColor.peach,
                     title: parches.confirmationPrompt(for: payment, in: detail),
-                    message: "Cuando confirmes, el pago cuenta en los saldos del parche.",
+                    message: warning.map { "\($0) Si confirmas, el pago cuenta así en los saldos del parche." }
+                        ?? "Cuando confirmes, el pago cuenta en los saldos del parche.",
                     onDismiss: dismissConfirmation
                 ) {
                     Button("Sí, confirmo") {

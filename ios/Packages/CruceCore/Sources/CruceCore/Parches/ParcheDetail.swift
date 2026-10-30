@@ -90,6 +90,23 @@ public struct ParcheActivity: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+/// Un pago del parche mayor que lo que el plan "Para saldar" dice entre esas dos personas. Se puede anotar o
+/// confirmar igual; la pantalla avisa antes.
+public struct ParcheOverpayment: Hashable, Sendable {
+    public let fromID: UUID
+    public let toID: UUID
+    /// Lo que dice el plan (0 si no hay transferencia entre los dos en ese sentido).
+    public let planned: Int
+    public let amount: Int
+
+    public init(fromID: UUID, toID: UUID, planned: Int, amount: Int) {
+        self.fromID = fromID
+        self.toID = toID
+        self.planned = planned
+        self.amount = amount
+    }
+}
+
 /// Todo lo de un parche visto por quien usa la app. Los saldos se calculan, nunca se guardan.
 public struct ParcheDetail: Identifiable, Codable, Hashable, Sendable {
     public var parche: Parche
@@ -179,6 +196,27 @@ public struct ParcheDetail: Identifiable, Codable, Hashable, Sendable {
     /// Cómo saldar con el menor número de transferencias.
     public var suggestedTransfers: [ParcheTransfer] {
         ParcheCalculator.minimumTransfers(balances)
+    }
+
+    /// Lo que el plan "Para saldar" dice que `from` le paga a `to` (0 si el plan no tiene esa transferencia).
+    /// Los pagos por confirmar ya no cuentan en los saldos; con `excluding` tampoco cuenta ese pago aunque esté
+    /// confirmado, para comparar un pago contra el plan de antes de él.
+    public func plannedAmount(from: UUID, to: UUID, excluding paymentID: UUID? = nil) -> Int {
+        let plan =
+            paymentID.map { id in
+                ParcheCalculator.minimumTransfers(
+                    ParcheCalculator.balances(
+                        order: order, expenses: expenses, payments: payments.filter { $0.id != id },
+                        transfers: transfers))
+            } ?? suggestedTransfers
+        return plan.filter { $0.fromID == from && $0.toID == to }.map(\.amount).reduce(0, +)
+    }
+
+    /// Un pago de `from` a `to` mayor que lo que dice el plan entre los dos; `nil` si no se pasa.
+    public func overpayment(from: UUID, to: UUID, amount: Int, excluding paymentID: UUID? = nil) -> ParcheOverpayment? {
+        let planned = plannedAmount(from: from, to: to, excluding: paymentID)
+        guard amount > planned else { return nil }
+        return ParcheOverpayment(fromID: from, toID: to, planned: planned, amount: amount)
     }
 
     /// La transferencia al cruce entre esas dos personas que sigue viva (por confirmar o aceptada), si la hay.
