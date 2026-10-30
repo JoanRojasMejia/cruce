@@ -122,13 +122,22 @@ public struct ParcheDetail: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID { parche.id }
 
     /// Orden del parche (orden de unión); decide los empates del redondeo y de las transferencias.
+    /// Igual que en la base (`order by joined_at, id`): si dos entraron al mismo tiempo, va primero el `id` menor.
     public var order: [UUID] {
-        participants.enumerated()
+        participants
             .sorted {
-                $0.element.joinedAt != $1.element.joinedAt
-                    ? $0.element.joinedAt < $1.element.joinedAt : $0.offset < $1.offset
+                $0.joinedAt != $1.joinedAt ? $0.joinedAt < $1.joinedAt : Self.precedes($0.id, $1.id)
             }
-            .map(\.element.id)
+            .map(\.id)
+    }
+
+    /// Postgres compara los `uuid` byte a byte (sus 16 bytes, como `memcmp`).
+    static func precedes(_ lhs: UUID, _ rhs: UUID) -> Bool {
+        withUnsafeBytes(of: lhs.uuid) { left in
+            withUnsafeBytes(of: rhs.uuid) { right in
+                left.lexicographicallyPrecedes(right)
+            }
+        }
     }
 
     public var me: ParcheParticipant? {
