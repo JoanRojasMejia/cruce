@@ -40,7 +40,7 @@ select is(public.preview_invite((select code from joan_code2))->>'error', 'own',
 
 select set_config('request.jwt.claims', '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', true);
 select is(public.preview_invite(' ' || lower((select code from joan_code2)) || ' '),
-  '{"ok": true, "inviter_name": "Joan"}'::jsonb,
+  '{"ok": true, "inviter_name": "Joan", "inviter_username": "joan"}'::jsonb,
   'La vista previa dice de quién es el código, sin importar mayúsculas ni espacios');
 select ok(
   (select count(*) = 0 from public.ledger_members where user_id = '22222222-2222-2222-2222-222222222222')
