@@ -1,25 +1,24 @@
 import CruceCore
 import SwiftUI
 
-/// Teclado numérico propio de la pantalla "Nuevo movimiento".
+/// Teclado de Cruce para el monto principal (1 a 9, `000`, `0` y borrar). La regla de cada tecla vive en
+/// `AmountEntry`; después de cada tecla, VoiceOver anuncia el monto nuevo ("Monto: 60000 pesos").
 struct AmountKeypad: View {
-    @Binding var digits: String
-    var maxDigits: Int = 9
+    @Binding var amount: Int
 
-    private static let keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "000", "0", "⌫"]
     private static let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 3)
 
     var body: some View {
         LazyVGrid(columns: Self.columns, spacing: 6) {
-            ForEach(Self.keys, id: \.self) { key in
+            ForEach(AmountKey.layout, id: \.self) { key in
                 Button {
                     tap(key)
                 } label: {
                     Group {
-                        if key == "⌫" {
+                        if key == .delete {
                             Image(systemName: "delete.left").font(.system(size: 20, weight: .semibold))
                         } else {
-                            Text(key).font(.archivo(key == "000" ? 16 : 18, .extraBold))
+                            Text(key.title).font(.archivo(key == .tripleZero ? 16 : 18, .extraBold))
                         }
                     }
                     .foregroundStyle(CruceColor.ink)
@@ -29,35 +28,30 @@ struct AmountKeypad: View {
                     .contentShape(Rectangle().inset(by: -2))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(key == "⌫" ? "Borrar" : key)
+                .accessibilityLabel(key.accessibilityLabel)
             }
         }
     }
 
-    private func tap(_ key: String) {
-        switch key {
-        case "⌫":
-            if !digits.isEmpty { digits.removeLast() }
-        default:
-            let next = digits + key
-            let trimmed = String(next.drop { $0 == "0" })
-            guard trimmed.count <= maxDigits else { return }
-            digits = trimmed
-        }
+    private func tap(_ key: AmountKey) {
+        amount = AmountEntry.press(key, on: amount)
+        AccessibilityNotification.Announcement(AmountEntry.announcement(amount)).post()
     }
 }
 
-#Preview {
-    struct Wrapper: View {
-        @State var digits = "60000"
-        var body: some View {
-            VStack {
-                Text(Money.format(Money.parse(digits: digits))).textStyle(.amountMedium)
-                AmountKeypad(digits: $digits)
+#if DEBUG
+    #Preview {
+        struct Wrapper: View {
+            @State var amount = 60_000
+            var body: some View {
+                VStack {
+                    Text(Money.format(amount)).textStyle(.amountMedium)
+                    AmountKeypad(amount: $amount)
+                }
+                .padding()
+                .screenBackground()
             }
-            .padding()
-            .screenBackground()
         }
+        return Wrapper()
     }
-    return Wrapper()
-}
+#endif

@@ -37,6 +37,8 @@
         /// "Santa Marta" donde Ana borró su cuenta (abre al final, en los saldos): su lugar y sus gastos quedan como
         /// "Cuenta borrada".
         case parcheDeletedPlace
+        /// "Editar movimiento": al editar no arranca ningún teclado (se abre al tocar la tarjeta del monto).
+        case editMovement
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
         static var current: DebugScreen? {
@@ -77,6 +79,10 @@
                 stores.router.push(.cruce(MockData.joanAnaCruceID))
                 return stores
             case .add: return stores(path: [.addMovement])
+            case .editMovement:
+                let stores = AppStores.sample()
+                stores.router.path = [.editMovement(stores.ledger.visibleMovements[0].id)]
+                return stores
             case .history: return stores(path: [.history])
             case .detail, .delete: return .sample()
             case .settle: return stores(path: [.settle])

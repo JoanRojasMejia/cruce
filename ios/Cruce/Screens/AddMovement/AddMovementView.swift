@@ -20,7 +20,10 @@ struct AddMovementView: View {
     @Environment(Router.self) private var router
 
     private let editing: Movement?
-    @State private var digits: String
+    /// El monto principal; se escribe con el teclado de Cruce.
+    @State private var amount: Int
+    /// Qué teclado está abierto: al anotar arranca el de Cruce; al editar, ninguno.
+    @State private var focus: AmountEntryFocus
     @State private var payerID: UUID?
     @State private var concept: String
     @State private var category: MovementCategory
@@ -32,7 +35,8 @@ struct AddMovementView: View {
     /// usa el reparto del movimiento.
     init(editing: Movement? = nil, defaultSplit: SplitRule = .equal) {
         self.editing = editing
-        _digits = State(initialValue: editing.map { String($0.amount) } ?? "")
+        _amount = State(initialValue: editing?.amount ?? 0)
+        _focus = State(initialValue: .initial(isEditing: editing != nil))
         _payerID = State(initialValue: editing?.payerID)
         _concept = State(initialValue: editing?.concept ?? "")
         _category = State(initialValue: editing?.category ?? .comida)
@@ -54,38 +58,17 @@ struct AddMovementView: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            ScrollView {
-                content
-                    // Ocupa al menos el alto visible, para que tocar el espacio vacío de abajo también baje el teclado.
-                    .frame(minHeight: proxy.size.height, alignment: .top)
-                    // Tocar el espacio vacío baja el teclado del sistema y vuelve a mostrar el del monto. Va en el
-                    // fondo, no en el contenedor, para que tocar el campo del concepto no le quite el foco.
-                    .background {
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .onTapGesture { editingConcept = false }
-                    }
+        // El teclado de Cruce va acoplado abajo, debajo del botón; tocar el espacio vacío cierra los dos teclados.
+        AmountEntryScreen(focus: $focus, amount: $amount) {
+            content
+        } actions: {
+            Button(editing == nil ? "Guardar movimiento" : "Guardar cambios") {
+                Task { await save() }
             }
-            .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
+            .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
+            .disabled(amount == 0)
         }
-        // Solo el botón queda fijo: el teclado numérico va en el contenido, debajo de la vista previa,
-        // para que nunca la tape. En pantallas chicas se llega con scroll.
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 12) {
-                Button(editing == nil ? "Guardar movimiento" : "Guardar cambios") {
-                    Task { await save() }
-                }
-                .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
-                .disabled(amount == 0)
-            }
-            .padding(.horizontal, Spacing.screen)
-            .padding(.top, 10)
-            .padding(.bottom, 8)
-            .background(CruceColor.cream)
-        }
-        // Elegir quién pagó, la categoría o el reparto también baja el teclado.
+        // Elegir quién pagó, la categoría o el reparto también baja el teclado del sistema (el de Cruce sigue).
         .onChange(of: payerID) { editingConcept = false }
         .onChange(of: category) { editingConcept = false }
         .onChange(of: splitMode) { editingConcept = false }
@@ -96,7 +79,7 @@ struct AddMovementView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 8) {
             ScreenHeader(title: editing == nil ? "Nuevo movimiento" : "Editar movimiento")
-            amountCard
+            MainAmountCard(amount: amount, focus: $focus)
             payerPicker
             NeoTextField(label: "Concepto", text: $concept, placeholder: "Ej. Cena viernes", focus: $editingConcept)
                 .submitLabel(.done)
@@ -107,10 +90,6 @@ struct AddMovementView: View {
             categoryPicker
             splitPicker
             previewCard
-            // Mientras se escribe el concepto, el teclado del sistema reemplaza al numérico.
-            if !editingConcept {
-                AmountKeypad(digits: $digits)
-            }
         }
         .padding(.horizontal, Spacing.screen)
         .padding(.top, 8)
@@ -118,29 +97,6 @@ struct AddMovementView: View {
     }
 
     // MARK: - Secciones
-
-    private var amountCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("MONTO").textStyle(.label)
-            HStack(spacing: 4) {
-                Text(Money.format(amount))
-                    .font(.archivo(46, .black, relativeTo: .largeTitle))
-                    .tracking(-2)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Rectangle().fill(CruceColor.ink).frame(width: 3, height: 40)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .neoSurface(fill: CruceColor.yellow, radius: Radius.card, shadow: ShadowOffset.m)
-        // Tocar el monto mientras se escribe el concepto baja el teclado y muestra el teclado del monto.
-        .contentShape(Rectangle())
-        .onTapGesture { editingConcept = false }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Monto \(Money.format(amount))")
-    }
 
     private var payerPicker: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -231,8 +187,6 @@ struct AddMovementView: View {
 
     // MARK: - Cálculos
 
-    private var amount: Int { Money.parse(digits: digits) }
-
     private var currentPayerID: UUID { payerID ?? session.me.id }
 
     private var otherMember: Member {
@@ -285,5 +239,14 @@ struct AddMovementView: View {
                 .toolbar(.hidden, for: .navigationBar)
         }
         .cruceStores(.sample())
+    }
+
+    #Preview("Editar movimiento") {
+        let stores = AppStores.sample()
+        return NavigationStack {
+            AddMovementView(editing: stores.ledger.visibleMovements.first)
+                .toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(stores)
     }
 #endif

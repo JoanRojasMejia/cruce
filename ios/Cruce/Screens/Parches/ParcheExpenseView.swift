@@ -64,11 +64,14 @@ struct ParcheExpenseView: View {
     @State private var problem: String?
     @State private var duplicate: (expense: ParcheExpense, message: String)?
     @State private var confirmingDelete = false
+    /// Qué teclado está abierto: al anotar arranca el de Cruce (el monto); al editar, ninguno.
+    @State private var focus: AmountEntryFocus
 
     init(parcheID: UUID, editing expenseID: UUID? = nil, confirmingDelete: Bool = false) {
         self.parcheID = parcheID
         self.expenseID = expenseID
         _confirmingDelete = State(initialValue: confirmingDelete)
+        _focus = State(initialValue: .initial(isEditing: expenseID != nil))
     }
 
     var body: some View {
@@ -81,12 +84,14 @@ struct ParcheExpenseView: View {
     }
 
     private func form(_ detail: ParcheDetail) -> some View {
-        ScrollView {
+        // El monto se escribe con el teclado de Cruce, acoplado abajo; pagadores, ítems y propina, con el del sistema.
+        AmountEntryScreen(focus: $focus, amount: $base) {
             VStack(alignment: .leading, spacing: 16) {
                 ScreenHeader(title: expenseID == nil ? "Anotar un gasto" : "Editar el gasto")
                 NeoTextField(label: "Concepto", text: $concept, placeholder: "Ej. Almuerzo en Taganga")
                     .submitLabel(.done)
-                amountCard
+                MainAmountCard(
+                    title: "MONTO (SIN PROPINA)", amount: base, focus: $focus, accessibilityName: "Monto sin propina")
                 payersSection(detail)
                 methodSection(detail)
                 tipSection
@@ -98,10 +103,7 @@ struct ParcheExpenseView: View {
             .padding(.horizontal, Spacing.screen)
             .padding(.top, 8)
             .padding(.bottom, 16)
-        }
-        .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
+        } actions: {
             VStack(spacing: 6) {
                 Button(expenseID == nil ? "Guardar el gasto" : "Guardar cambios") { save(detail) }
                     .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
@@ -115,15 +117,11 @@ struct ParcheExpenseView: View {
                         .frame(minHeight: 44)
                 }
             }
-            .padding(.horizontal, Spacing.screen)
-            .padding(.top, 10)
-            .padding(.bottom, 8)
-            .background(CruceColor.cream)
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Listo") { hideKeyboard() }.font(.archivo(16, .extraBold))
+                Button("Listo") { hideSystemKeyboard() }.font(.archivo(16, .extraBold))
             }
         }
         .screenBackground()
@@ -137,26 +135,6 @@ struct ParcheExpenseView: View {
     }
 
     // MARK: - Secciones
-
-    private var amountCard: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("MONTO (SIN PROPINA)").textStyle(.label)
-            TextField(
-                "$0",
-                text: Binding(
-                    get: { base == 0 ? "" : Money.format(base) },
-                    set: { base = Money.parse(digits: $0) })
-            )
-            .keyboardType(.numberPad)
-            .font(.archivo(40, .black, relativeTo: .largeTitle))
-            .tracking(-1.6)
-            .accessibilityLabel("Monto sin propina")
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .neoSurface(fill: CruceColor.yellow, radius: Radius.card, shadow: ShadowOffset.m)
-    }
 
     private func payersSection(_ detail: ParcheDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -512,7 +490,7 @@ struct ParcheExpenseView: View {
     }
 
     private func save(_ detail: ParcheDetail) {
-        hideKeyboard()
+        hideSystemKeyboard()
         guard
             let expense = parches.validateExpense(
                 in: parcheID, editing: expenseID, concept: concept, base: base, tipPercent: tip,
@@ -537,10 +515,6 @@ struct ParcheExpenseView: View {
     private func dismissDialogs() {
         confirmingDelete = false
         duplicate = nil
-    }
-
-    private func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 
@@ -598,6 +572,19 @@ struct FlowLayout: Layout {
         let stores = AppStores.sample()
         return NavigationStack {
             ParcheExpenseView(parcheID: MockParches.santaMartaID).toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(stores)
+        .task { await stores.parches.load() }
+    }
+
+    #Preview("Editar el gasto") {
+        let stores = AppStores.sample()
+        return NavigationStack {
+            ParcheExpenseView(
+                parcheID: MockParches.santaMartaID,
+                editing: UUID(uuidString: "00000000-0000-0000-0000-00000000E001")!
+            )
+            .toolbar(.hidden, for: .navigationBar)
         }
         .cruceStores(stores)
         .task { await stores.parches.load() }

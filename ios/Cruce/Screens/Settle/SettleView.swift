@@ -180,16 +180,15 @@ struct ChangeAmountSheet: View {
     @Environment(\.dismiss) private var dismiss
     private let total: Int
     private let onDone: (Int) -> Void
-    @State private var digits: String
+    @State private var amount: Int
 
     /// `initial`: el monto elegido antes; sin él, el teclado arranca vacío para escribir el pago parcial.
     init(total: Int, initial: Int?, onDone: @escaping (Int) -> Void) {
         self.total = total
         self.onDone = onDone
-        _digits = State(initialValue: initial.map(String.init) ?? "")
+        _amount = State(initialValue: initial ?? 0)
     }
 
-    private var amount: Int { Money.parse(digits: digits) }
     private var isValid: Bool { (1...max(total, 1)).contains(amount) }
 
     var body: some View {
@@ -206,7 +205,7 @@ struct ChangeAmountSheet: View {
                     .foregroundStyle(amount > total ? CruceColor.ink : CruceColor.textSecondary)
             }
             .accessibilityElement(children: .combine)
-            AmountKeypad(digits: $digits)
+            AmountKeypad(amount: $amount)
             Spacer(minLength: 0)
             Button("Listo") {
                 onDone(amount)
