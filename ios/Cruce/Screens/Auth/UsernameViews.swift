@@ -104,9 +104,14 @@ struct UsernameField: View {
         // Solo la respuesta del @usuario que está escrito ahora (mientras se escribe otro, "Revisando…").
         switch session.usernameChecked == normalized ? session.usernameCheck : nil {
         case .available(let checked):
-            Label("\(Username.display(checked)) está disponible", systemImage: "checkmark.circle.fill")
-                .font(.archivo(14, .bold))
-                .accessibilityAddTraits(.updatesFrequently)
+            // En Tu perfil, el que ya tiene no se anuncia como "disponible".
+            Label(
+                checked == session.me.username
+                    ? "Es tu @usuario" : "\(Username.display(checked)) está disponible",
+                systemImage: "checkmark.circle.fill"
+            )
+            .font(.archivo(14, .bold))
+            .accessibilityAddTraits(.updatesFrequently)
         case .rejected(_, let message):
             Label(message, systemImage: "exclamationmark.triangle.fill")
                 .font(.archivo(14, .bold))
