@@ -12,10 +12,12 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 - [x] **Hosting del backend de Go:** *Decidido el 27 oct 2026: **Fly.io**, una máquina pequeña siempre prendida (unos US$2 al mes). Render gratis se duerme a los 15 minutos y perdería los webhooks de Supabase; Railway cuesta US$5 al mes como mínimo.*
 - [x] **Persistencia local para el modo sin conexión:** *Decidido el 27 oct 2026: archivo JSON (`Application Support/Cruce/movimientos.json`), con el mismo patrón que la cola de parches.*
 - [x] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? *Decidido el 27 oct 2026: **sí, de $1 hasta el total**; queda como un pago más y la pantalla dice "Pago anotado". Implementado en el CP11.*
-- [x] **Desvincular:** ¿qué pasa con el cruce y su historial? *Decidido el 27 oct 2026: **se cierra para los dos**; nadie anota ni salda, los dos ven y exportan el historial, y para volver se vinculan con un código nuevo (un cruce nuevo). Implementado en el CP11.*
+- [x] **Desvincular:** ¿qué pasa con el cruce y su historial? *Decidido el 27 oct 2026: **se cierra para los dos**; nadie anota ni salda, los dos ven y exportan el historial, y para volver se vinculan con un código nuevo (un cruce nuevo). Implementado en el CP11. El 29 oct 2026 Joan la confirmó otra vez ("sigamos con esa misma decision del 27 de octubre": un cruce cerrado no acepta gastos ni pagos) y se agregó "Saldar primero" en la confirmación cuando el saldo no es $0 (`correcciones-diseno`).*
 - [ ] **Pruebas de captura:** ¿se agrega `swift-snapshot-testing`? (CP12).
 - [x] **Una cuenta por persona:** ¿una persona puede pertenecer a más de una cuenta compartida? *Decidido el 27 oct 2026: **varios cruces, uno por pareja**. Con uno solo el inicio es ese cruce; con varios, el inicio muestra "Tus cruces". La regla va en el CP4 y la lista en el CP4b.*
-- [ ] **Borrar la cuenta de usuario:** Apple lo exige; falta definir qué pasa con sus cruces y los movimientos de los otros (CP11 o CP13).
+- [ ] **Borrar la cuenta de usuario:** Apple lo exige; falta definir qué pasa con sus cruces y los movimientos de los otros (CP11 o CP13). Hoy borrar en `auth.users` a alguien que está en un parche falla (ya pasaba antes de `correcciones-diseno`): el `on delete set null` de `parche_participants` choca con el trigger `parche_participants_before_update`. La decisión tiene que resolverlo.
+- [ ] **Intentos con códigos de parche:** `preview_parche_code` cuenta los intentos fallidos (5 por hora, junto con `CRZ-`), pero `join_parche` y `claim_parche_place` todavía no. ¿Se cuentan también ahí?
+- [ ] **Cómo pagarle a cada quien (Nequi o llave):** los tickets no lo muestran porque el dato no existe. ¿Se guarda en el perfil y se muestra en el ticket?
 
 ---
 
@@ -28,6 +30,24 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 - [x] Probado contra Supabase local con tres cuentas y en el simulador.
 
 **Límites conocidos:** sin tiempo real (lo de los demás se ve al abrir el parche o al recargar); el movimiento que deja "pasar al cruce" está en `movements` pero la app solo lo muestra cuando llegue el CP5; sin notificaciones push (los avisos son dentro de la app); la cola sin conexión es del teléfono, no de la cuenta.
+
+## Correcciones de la revisión de diseño
+*Hecho en el cambio `correcciones-diseno` (29 oct 2026), fuera del orden de los checkpoints, con las decisiones D1–D8 de Joan (en `openspec/changes/correcciones-diseno/brief.md`). Probado en local: 374 pruebas pgTAP y 321 de Swift en verde. Las siete migraciones (`20261029100000` a `20261029160000`) están solo en local.*
+- [x] Pasar al cruce solo desde "Para saldar", entre dos personas con un cruce abierto, con propuesta, aceptar o rechazar (`parche_cruce_transfers.status`; pgTAP `10_pasar_al_cruce`).
+- [x] Desvincular ofrece "Saldar primero" cuando el saldo no es $0; un cruce cerrado sigue sin aceptar gastos ni pagos (D4).
+- [x] Color fijo por persona (`profiles.avatar_color`, paleta de 6) y para quien está sin la app (`parche_participants.avatar_color`); el recibo rosa o verde sigue por cruce (pgTAP `11_colores`). `my_cruces()` conserva los colores por rol para las versiones anteriores y agrega `my_color` y `partner_color`.
+- [x] Varios pagadores con monto por cada uno ("¿Cuánto puso cada uno?", partes iguales por defecto, "Faltan $X" o "Sobran $X"), con la prueba del Hospedaje de Santa Marta.
+- [x] Aviso de pago de más al anotar y al confirmar; quien pagó no aparece en "¿A quién le pagó?".
+- [x] Solo quien creó el parche lo cierra (`parches.created_by`; pgTAP `12_cerrar_parche`).
+- [x] Una sola pantalla "Tengo un código" con errores separados (vencido, ya usado, tuyo, inexistente), `preview_parche_code` (pgTAP `13_codigos`) y enlace `<esquema>://codigo/<CÓDIGO>` por ambiente (`cruce-dev`, `cruce-test`, `cruce`).
+- [x] Ajustes de la cuenta y Ajustes del cruce (D3); detalle del parche más corto con la hoja de "Los del parche" y la actividad aparte; llegada con `PCH-` y `SOY-`; cruces cerrados en "Cerrados"; el cruce abierto desde la lista no repite "Tus parches" (D8).
+- [x] Un solo aviso sin conexión y "Sin enviar"; ítems con nombre (pgTAP `14_items`); formas de reparto con ejemplo; deshacer al borrar un gasto (5 s); espera de 30 s para pedir otro código; enlace `SOY-` en el ticket.
+- [x] 15 espacios de ilustración (`il-09` a `il-21`) con respaldo a la ilustración de antes.
+- [ ] Recorrido en el simulador de los flujos pedidos (tarea 5.1 del cambio).
+- [ ] Respaldar testing y subir las siete migraciones con `scripts/db-push.sh testing`; probar en "Cruce Test" con Joan, Jesús y una tercera cuenta.
+- [ ] Agregar las imágenes de `il-09` a `il-21` (PNG @2x y @3x).
+
+**Límites conocidos:** con una versión anterior de la app, lo que se pasa al cruce queda "por confirmar" hasta que alguien con la versión nueva lo acepte, y editar un gasto con ítems con nombre los guarda sin nombre. El enlace universal (`https://`) queda para el CP13. "Cómo pagarle a cada quien" e "Intentos con códigos de parche" están en las decisiones abiertas.
 
 ## CP0 · Levantar el proyecto y compilar
 - [x] `git init`, primer commit con todo lo que hay.
@@ -183,5 +203,6 @@ Diferencias vistas en el recorrido del CP0 (punto de partida, no la lista comple
 - [ ] `PrivacyInfo.xcprivacy` y textos de permisos (notificaciones).
 - [ ] Ícono final y pantalla de arranque.
 - [ ] Subir el build a App Store Connect e invitar a Jesús como probador.
+- [ ] Enlace universal (`https://…/codigo/<CÓDIGO>`) para los códigos, con un dominio propio y el archivo `apple-app-site-association`; hoy se usa el esquema propio `cruce://codigo/…` (D5 de `correcciones-diseno`).
 
 **Hecho cuando:** Joan y Jesús tienen Cruce instalada desde TestFlight y llevan sus cuentas reales.

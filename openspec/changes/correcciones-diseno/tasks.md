@@ -31,5 +31,5 @@
 
 ## 5. Cierre
 
-- [ ] 5.1 Recorrido en el simulador de los flujos pedidos.
-- [ ] 5.2 `CLAUDE.md`, `docs/ROADMAP.md` y specs; archivar el cambio.
+- [x] 5.1 Recorrido en el simulador de los flujos pedidos.
+- [x] 5.2 `CLAUDE.md`, `docs/ROADMAP.md` y specs; archivar el cambio.
