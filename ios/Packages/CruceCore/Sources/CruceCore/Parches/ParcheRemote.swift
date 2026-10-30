@@ -10,7 +10,7 @@ public enum ParcheRemote {
         id, name, code, status, created_at, closed_at, created_by, parche_participants(*), \
         parche_expenses(*, parche_expense_payers(participant_id, amount), \
         parche_expense_shares(participant_id, amount, input), \
-        parche_expense_items(id, position, amount, participant_ids)), \
+        parche_expense_items(id, position, amount, participant_ids, name)), \
         parche_payments(*), parche_cruce_transfers(*), parche_activity(*)
         """
 
@@ -121,9 +121,11 @@ public enum ParcheRemote {
         let position: Int
         let amount: Int
         let participantIDs: [UUID]
+        /// Opcional: sin la columna (antes de `items_con_nombre`) llega `nil`.
+        let name: String?
 
         enum CodingKeys: String, CodingKey {
-            case id, position, amount
+            case id, position, amount, name
             case participantIDs = "participant_ids"
         }
     }
@@ -183,7 +185,8 @@ public enum ParcheRemote {
             case "items":
                 split = .items(
                     (items ?? []).sorted { $0.position < $1.position }.map {
-                        ParcheSplitItem(id: $0.id, amount: $0.amount, participantIDs: Set($0.participantIDs))
+                        ParcheSplitItem(
+                            id: $0.id, amount: $0.amount, participantIDs: Set($0.participantIDs), name: $0.name)
                     })
             default:
                 throw DecodingError.dataCorrupted(
@@ -554,9 +557,11 @@ public enum ParcheRemote {
         struct Item: Encodable, Sendable {
             let amount: Int
             let participantIDs: [UUID]
+            /// Sin nombre no se manda la clave (la base lo guarda como null).
+            let name: String?
 
             enum CodingKeys: String, CodingKey {
-                case amount
+                case amount, name
                 case participantIDs = "participant_ids"
             }
         }
@@ -590,7 +595,9 @@ public enum ParcheRemote {
             }
             if case .items(let items) = expense.split {
                 pItems = items.map {
-                    Item(amount: $0.amount, participantIDs: $0.participantIDs.sorted { $0.uuidString < $1.uuidString })
+                    Item(
+                        amount: $0.amount, participantIDs: $0.participantIDs.sorted { $0.uuidString < $1.uuidString },
+                        name: $0.name)
                 }
             } else {
                 pItems = []

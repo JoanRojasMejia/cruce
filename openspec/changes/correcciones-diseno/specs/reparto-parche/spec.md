@@ -1,5 +1,25 @@
 ## MODIFIED Requirements
 
+### Requirement: Reparto por consumo
+Un gasto SHALL poder repartirse por ítems: cada ítem tiene un monto, una o varias personas que lo consumieron y un nombre opcional de hasta 40 caracteres ("Mojarra"), y se reparte en partes iguales entre ellas. Lo que le toca a cada persona es la suma de sus partes de los ítems. Mientras los ítems no sumen el monto sin propina, la pantalla MUST mostrar "Faltan $X por repartir" (o "Sobran $X: los ítems suman más que el monto") y el gasto no se guarda. La vista previa SHALL titularse "Lo que le toca a cada quien". Al editar un gasto, "Borrar el gasto" SHALL ser un botón de texto debajo de "Guardar cambios".
+
+#### Scenario: Cada uno su plato
+- **WHEN** un almuerzo tiene ítems de $100.000 (Jesús), $50.000 (Ana), $20.000 (Carlos) y $30.000 (Joan)
+- **THEN** les tocan $100.000, $50.000, $20.000 y $30.000
+
+#### Scenario: Cuenta mixta
+- **WHEN** una cuenta tiene una entrada de $40.000 para los 4 y platos de $30.000 (Jesús) y $20.000 (Ana)
+- **THEN** a Jesús le tocan $40.000, a Ana $30.000, a Carlos $10.000 y a Joan $10.000
+
+#### Scenario: Faltan pesos por repartir
+- **WHEN** el monto es $50.000 y solo hay un ítem de $20.000
+- **THEN** la pantalla dice "Faltan $30.000 por repartir"
+
+#### Scenario: Ítems con nombre
+- **WHEN** Joan le pone "Mojarra" al ítem de $20.000 de Carlos y guarda
+- **THEN** el ítem queda con su nombre, y un ítem sin nombre se guarda igual
+
+
 ### Requirement: Varios pagadores
 Un gasto SHALL poder tener uno o varios pagadores con montos que sumen exactamente el total, y MUST guardar cuánto puso cada uno. Con más de un pagador, la app SHALL mostrar "¿Cuánto puso cada uno?" con un campo por pagador. Por defecto el total SHALL repartirse en partes iguales entre los pagadores (pesos enteros, con el mismo redondeo del reparto) y volver a repartirse al agregar o quitar pagadores o al cambiar el total, hasta que alguien escriba un monto a mano. Mientras la suma no dé el total, la app MUST mostrar "Faltan $X" o "Sobran $X" y MUST NOT dejar guardar.
 

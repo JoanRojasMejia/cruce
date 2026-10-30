@@ -55,7 +55,7 @@ struct ParcheRemoteTests {
                    {"id": "40000000-0000-0000-0000-000000000002", "position": 1, "amount": 10000,
                     "participant_ids": ["\(jesus)"]},
                    {"id": "40000000-0000-0000-0000-000000000001", "position": 0, "amount": 20000,
-                    "participant_ids": ["\(jesus)", "\(ana)"]}]}
+                    "participant_ids": ["\(jesus)", "\(ana)"], "name": "Mojarra"}]}
               ],
               "parche_payments": [
                 {"id": "50000000-0000-0000-0000-000000000001", "parche_id": "\(parcheID)", "from_id": "\(carlos)",
@@ -160,6 +160,8 @@ struct ParcheRemoteTests {
         }
         #expect(items.map(\.amount) == [20000, 10000])
         #expect(items.first?.participantIDs == [jesus, ana])
+        // El nombre es opcional: sin "name" (una base o una consulta de antes) el ítem queda sin nombre.
+        #expect(items.map(\.name) == ["Mojarra", nil])
         #expect(expense.tipPercent == 10)
         #expect(expense.amount == 33000)
         #expect(expense.isDeleted)
@@ -301,7 +303,7 @@ struct ParcheRemoteTests {
     func saveExpenseParams() throws {
         let order = [jesus, ana, carlos]
         let items = ParcheSplit.items([
-            ParcheSplitItem(amount: 20000, participantIDs: [ana, jesus]),
+            ParcheSplitItem(amount: 20000, participantIDs: [ana, jesus], name: "Mojarra"),
             ParcheSplitItem(amount: 10000, participantIDs: [carlos]),
         ])
         let expense = try ParcheExpense.resolve(
@@ -327,6 +329,7 @@ struct ParcheRemoteTests {
         let sentItems = try #require(params["p_items"] as? [[String: Any]])
         #expect(sentItems.map { $0["amount"] as? Int } == [20000, 10000])
         #expect((sentItems.first?["participant_ids"] as? [String])?.count == 2)
+        #expect(sentItems.map { $0["name"] as? String } == ["Mojarra", nil])
     }
 
     @Test("Por porcentaje cada parte lleva su porcentaje y no hay ítems")
@@ -338,6 +341,7 @@ struct ParcheRemoteTests {
         let params = try json(ParcheRemote.SaveExpenseParams(expense))
         let shares = try #require(params["p_shares"] as? [[String: Any]])
         #expect(shares.map { $0["input"] as? Int } == [50, 50])
+        #expect(ParcheRemote.detailSelect.contains("parche_expense_items(id, position, amount, participant_ids, name)"))
         #expect((params["p_items"] as? [Any])?.isEmpty == true)
     }
 

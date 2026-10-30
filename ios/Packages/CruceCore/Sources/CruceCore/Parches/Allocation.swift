@@ -1,15 +1,30 @@
 import Foundation
 
-/// Un ítem de una cuenta repartida por consumo: su monto y quiénes lo consumieron.
+/// Un ítem de una cuenta repartida por consumo: su monto, quiénes lo consumieron y, si se quiere, su nombre
+/// ("Mojarra"), que sale en el ticket.
 public struct ParcheSplitItem: Identifiable, Codable, Hashable, Sendable {
+    /// Largo máximo del nombre (igual que el `check` de `parche_expense_items.name`).
+    public static let maxNameLength = 40
+
     public let id: UUID
     public var amount: Int
     public var participantIDs: Set<UUID>
+    /// Opcional: sin espacios a los lados y `nil` si queda vacío. Los gastos guardados antes no lo tienen.
+    public var name: String?
 
-    public init(id: UUID = UUID(), amount: Int, participantIDs: Set<UUID>) {
+    public init(id: UUID = UUID(), amount: Int, participantIDs: Set<UUID>, name: String? = nil) {
         self.id = id
         self.amount = amount
         self.participantIDs = participantIDs
+        self.name = Self.normalizedName(name)
+    }
+
+    /// "  Mojarra " → "Mojarra"; vacío → `nil`; más de 40 caracteres se corta.
+    public static func normalizedName(_ name: String?) -> String? {
+        guard let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return String(trimmed.prefix(maxNameLength))
     }
 }
 
@@ -85,8 +100,8 @@ public enum ParcheSplitError: Error, Equatable, Sendable {
         case .invalidItemAmount: "Cada ítem necesita un monto mayor que $0."
         case .itemsDoNotMatch(let difference):
             difference > 0
-                ? "Los ítems suman \(Money.format(difference)) menos que el monto."
-                : "Los ítems suman \(Money.format(-difference)) más que el monto."
+                ? "Faltan \(Money.format(difference)) por repartir."
+                : "Sobran \(Money.format(-difference)): los ítems suman más que el monto."
         case .percentagesDoNotSum(let total): "Los porcentajes suman \(total) % y deben sumar 100 %."
         case .invalidTip: "La propina va de 0 a 100 %."
         }
@@ -122,6 +137,19 @@ public enum Allocation {
             amounts[winner.index] += 1
         }
         return amounts
+    }
+
+    /// Lo que falta por repartir entre los ítems de un gasto por consumo: positivo si faltan pesos, negativo si sobran.
+    public static func itemsRemaining(base: Int, items: [ParcheSplitItem]) -> Int {
+        base - items.map(\.amount).reduce(0, +)
+    }
+
+    /// "Faltan $30.000 por repartir" o "Sobran $5.000: los ítems suman más que el monto"; `nil` cuando cuadran.
+    public static func itemsRemainingText(base: Int, items: [ParcheSplitItem]) -> String? {
+        let remaining = itemsRemaining(base: base, items: items)
+        if remaining > 0 { return "Faltan \(Money.format(remaining)) por repartir" }
+        if remaining < 0 { return "Sobran \(Money.format(-remaining)): los ítems suman más que el monto" }
+        return nil
     }
 
     /// Resuelve el reparto de un gasto de `base` pesos más la propina (0–100 %, redondeada hacia abajo).

@@ -145,6 +145,33 @@ struct AllocationTests {
         }
     }
 
+    @Test("Por consumo: mientras los ítems no sumen el monto, faltan o sobran pesos por repartir")
+    func itemsRemaining() {
+        let items = [
+            ParcheSplitItem(amount: 20_000, participantIDs: [jesus]),
+            ParcheSplitItem(amount: 0, participantIDs: []),
+        ]
+        #expect(Allocation.itemsRemaining(base: 50_000, items: items) == 30_000)
+        #expect(Allocation.itemsRemaining(base: 20_000, items: items) == 0)
+        #expect(Allocation.itemsRemaining(base: 15_000, items: items) == -5_000)
+        #expect(Allocation.itemsRemainingText(base: 50_000, items: items) == "Faltan $30.000 por repartir")
+        #expect(
+            Allocation.itemsRemainingText(base: 15_000, items: items)
+                == "Sobran $5.000: los ítems suman más que el monto")
+        #expect(Allocation.itemsRemainingText(base: 20_000, items: items) == nil)
+        #expect(ParcheSplitError.itemsDoNotMatch(difference: 30_000).message == "Faltan $30.000 por repartir.")
+    }
+
+    @Test("El nombre de un ítem es opcional: sin espacios, vacío es sin nombre y hasta 40 caracteres")
+    func itemName() {
+        #expect(ParcheSplitItem(amount: 1, participantIDs: [jesus], name: "  Mojarra ").name == "Mojarra")
+        #expect(ParcheSplitItem(amount: 1, participantIDs: [jesus], name: "   ").name == nil)
+        #expect(ParcheSplitItem(amount: 1, participantIDs: [jesus]).name == nil)
+        let long = String(repeating: "a", count: 45)
+        #expect(ParcheSplitItem(amount: 1, participantIDs: [jesus], name: long).name?.count == 40)
+        #expect(ParcheSplitItem.maxNameLength == 40)
+    }
+
     @Test("Por consumo: un ítem sin personas o en cero da error")
     func itemsNeedPeopleAndAmount() {
         #expect(throws: ParcheSplitError.noParticipants) {

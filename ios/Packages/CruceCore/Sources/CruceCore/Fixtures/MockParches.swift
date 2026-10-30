@@ -55,10 +55,10 @@ public enum MockParches {
             id: UUID(uuidString: "00000000-0000-0000-0000-00000000E001")!, parcheID: santaMartaID,
             concept: "Almuerzo en Taganga", base: 200_000, tipPercent: 10,
             split: .items([
-                ParcheSplitItem(amount: 30_000, participantIDs: [joan]),
-                ParcheSplitItem(amount: 100_000, participantIDs: [jesus]),
-                ParcheSplitItem(amount: 50_000, participantIDs: [ana]),
-                ParcheSplitItem(amount: 20_000, participantIDs: [carlos]),
+                ParcheSplitItem(amount: 30_000, participantIDs: [joan], name: "Arroz de coco"),
+                ParcheSplitItem(amount: 100_000, participantIDs: [jesus], name: "Langosta"),
+                ParcheSplitItem(amount: 50_000, participantIDs: [ana], name: "Cazuela"),
+                ParcheSplitItem(amount: 20_000, participantIDs: [carlos], name: "Mojarra"),
             ]),
             payers: [ParchePayer(participantID: ana, amount: 220_000)], order: order, recordedBy: ana, at: hoursAgo(5))
         let lodging = try! ParcheExpense.resolve(

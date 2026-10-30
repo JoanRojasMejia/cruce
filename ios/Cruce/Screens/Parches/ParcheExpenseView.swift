@@ -2,7 +2,7 @@ import CruceCore
 import SwiftUI
 
 /// Anotar un gasto del parche (o editarlo): concepto, monto, quién pagó, reparto, propina y la vista previa de lo
-/// que paga cada quien. Antes de guardar avisa si parece un gasto ya anotado.
+/// que le toca a cada quien. Antes de guardar avisa si parece un gasto ya anotado.
 struct ParcheExpenseView: View {
     /// Cómo se reparte el gasto.
     enum Method: Hashable, CaseIterable {
@@ -24,6 +24,8 @@ struct ParcheExpenseView: View {
         let id: UUID
         var amount: Int
         var people: Set<UUID>
+        /// Opcional ("Mojarra"); sale en el ticket.
+        var name = ""
     }
 
     @Environment(ParcheStore.self) private var parches
@@ -76,11 +78,6 @@ struct ParcheExpenseView: View {
                 if let problem {
                     ParcheProblem(text: problem)
                 }
-                if expenseID != nil {
-                    Button("Borrar el gasto") { confirmingDelete = true }
-                        .buttonStyle(.neoDestructive)
-                        .padding(.top, 4)
-                }
             }
             .padding(.horizontal, Spacing.screen)
             .padding(.top, 8)
@@ -89,15 +86,23 @@ struct ParcheExpenseView: View {
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            Button(expenseID == nil ? "Guardar el gasto" : "Guardar cambios") { save(detail) }
-                .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
-                .disabled(
-                    base == 0 || concept.trimmingCharacters(in: .whitespaces).isEmpty || !payersDraft.canSave
-                )
-                .padding(.horizontal, Spacing.screen)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-                .background(CruceColor.cream)
+            VStack(spacing: 6) {
+                Button(expenseID == nil ? "Guardar el gasto" : "Guardar cambios") { save(detail) }
+                    .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
+                    .disabled(
+                        base == 0 || concept.trimmingCharacters(in: .whitespaces).isEmpty || !payersDraft.canSave
+                    )
+                // Al editar, borrar es un botón de texto debajo de guardar (pide confirmación).
+                if expenseID != nil {
+                    Button("Borrar el gasto") { confirmingDelete = true }
+                        .buttonStyle(.neoLink)
+                        .frame(minHeight: 44)
+                }
+            }
+            .padding(.horizontal, Spacing.screen)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+            .background(CruceColor.cream)
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -200,6 +205,17 @@ struct ParcheExpenseView: View {
                 .foregroundStyle(CruceColor.textSecondary)
             ForEach($items) { $item in
                 VStack(alignment: .leading, spacing: 8) {
+                    TextField(
+                        "Nombre (opcional), ej. Mojarra",
+                        text: Binding(
+                            get: { item.name },
+                            set: { item.name = String($0.prefix(ParcheSplitItem.maxNameLength)) })
+                    )
+                    .font(.archivo(15, .bold))
+                    .padding(.horizontal, 12)
+                    .frame(height: 40)
+                    .neoSurface(radius: Radius.input, border: BorderWidth.thin)
+                    .accessibilityLabel("Nombre del ítem")
                     HStack(spacing: 10) {
                         MoneyField(label: nil, amount: $item.amount, height: 40, accessibilityName: "Monto del ítem")
                         IconButton(systemName: "trash", accessibilityLabel: "Quitar el ítem", size: 40) {
@@ -220,6 +236,10 @@ struct ParcheExpenseView: View {
             }
             .buttonStyle(.dialog(.secondary))
             .labelStyle(NeoLabelStyle())
+            // Mientras los ítems no sumen el monto: "Faltan $X por repartir" (o cuánto sobra).
+            if base > 0, let remaining = Allocation.itemsRemainingText(base: base, items: splitItems) {
+                ParcheProblem(text: remaining)
+            }
         }
     }
 
@@ -265,7 +285,7 @@ struct ParcheExpenseView: View {
     private func preview(_ detail: ParcheDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Lo que paga cada quien").font(.archivo(15, .black))
+                Text("Lo que le toca a cada quien").font(.archivo(15, .black))
                 Spacer()
                 if tip > 0 && base > 0 {
                     Text("Total \(Money.format(total))").font(.archivo(13, .extraBold))
@@ -354,12 +374,17 @@ struct ParcheExpenseView: View {
 
     private var total: Int { base + base * tip / 100 }
 
+    /// Los ítems del reparto por consumo como los guarda CruceCore (el nombre sin espacios; vacío es sin nombre).
+    private var splitItems: [ParcheSplitItem] {
+        items.map { ParcheSplitItem(id: $0.id, amount: $0.amount, participantIDs: $0.people, name: $0.name) }
+    }
+
     private func split(_ detail: ParcheDetail) -> ParcheSplit {
         switch method {
         case .equalAll: return .equal(Set(detail.order))
         case .equalSome: return .equal(someIDs)
         case .items:
-            return .items(items.map { ParcheSplitItem(id: $0.id, amount: $0.amount, participantIDs: $0.people) })
+            return .items(splitItems)
         case .shares: return .shares(shares.filter { $0.value > 0 })
         case .percentage: return .percentage(percents.filter { $0.value > 0 })
         }
@@ -411,7 +436,9 @@ struct ParcheExpenseView: View {
             }
         case .items(let list):
             method = .items
-            items = list.map { ItemDraft(id: $0.id, amount: $0.amount, people: $0.participantIDs) }
+            items = list.map {
+                ItemDraft(id: $0.id, amount: $0.amount, people: $0.participantIDs, name: $0.name ?? "")
+            }
         case .shares(let values):
             method = .shares
             shares = values

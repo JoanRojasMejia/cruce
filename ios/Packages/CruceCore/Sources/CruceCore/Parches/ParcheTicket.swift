@@ -9,11 +9,20 @@ public struct ParcheTicket: Hashable, Sendable {
         case settled = "A paz y salvo"
     }
 
-    /// Un gasto en el ticket personal: lo que le tocó a la persona y lo que pagó.
+    /// Un gasto en el ticket personal: lo que le tocó a la persona, lo que pagó y, en uno por consumo, los ítems con
+    /// nombre que consumió ("Mojarra").
     public struct Line: Hashable, Sendable {
         public let concept: String
         public let share: Int
         public let paid: Int
+        public let items: [String]
+
+        public init(concept: String, share: Int, paid: Int, items: [String] = []) {
+            self.concept = concept
+            self.share = share
+            self.paid = paid
+            self.items = items
+        }
     }
 
     public let parcheName: String
@@ -67,7 +76,11 @@ public struct ParcheTicket: Hashable, Sendable {
             let share = expense.share(of: participantID)
             let paid = expense.paid(by: participantID)
             guard share > 0 || paid > 0 else { return nil }
-            return Line(concept: expense.concept, share: share, paid: paid)
+            var items: [String] = []
+            if case .items(let list) = expense.split {
+                items = list.filter { $0.participantIDs.contains(participantID) }.compactMap(\.name)
+            }
+            return Line(concept: expense.concept, share: share, paid: paid, items: items)
         }
         return ParcheTicket(
             parcheName: detail.parche.name, personName: name, person: person, headline: headline, amount: net,

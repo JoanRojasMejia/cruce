@@ -20,6 +20,8 @@ struct ParcheTicketTests {
             Set(ticket.transfers) == ["Carlos le paga $125.000 a Jesús", "Carlos le paga $47.000 a Joan"])
         #expect(ticket.lines.map(\.concept) == ["Almuerzo en Taganga", "Hospedaje"])
         #expect(ticket.lines.map(\.share) == [22_000, 150_000])
+        // Del almuerzo por consumo, el ticket dice qué consumió Carlos (los ítems con nombre).
+        #expect(ticket.lines.map(\.items) == [["Mojarra"], []])
         #expect(ticket.stamp == .pending)
         #expect(ticket.cutAt == cut)
         #expect(ticket.claimCode == "SOY-K7QX2M")

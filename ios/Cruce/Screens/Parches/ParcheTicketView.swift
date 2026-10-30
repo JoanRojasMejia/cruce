@@ -167,6 +167,12 @@ struct TicketCard: View {
                         HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(line.concept).font(.archivo(14, .bold))
+                                // En un gasto por consumo, lo que consumió (los ítems con nombre).
+                                if !line.items.isEmpty {
+                                    Text(line.items.joined(separator: ", "))
+                                        .textStyle(.secondary)
+                                        .foregroundStyle(CruceColor.textSecondary)
+                                }
                                 if line.paid > 0 {
                                     Text("Pagó \(Money.format(line.paid))")
                                         .textStyle(.secondary)
