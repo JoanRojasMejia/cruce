@@ -50,9 +50,10 @@ public struct CruceLink: Identifiable, Codable, Equatable, Sendable {
     }
 }
 
-/// Resultado de ver o canjear un código: de quién es, o por qué no sirve con el mensaje de la base.
+/// Resultado de ver o canjear un código: de quién es (con su @usuario si la base lo trae), o por qué no sirve con el
+/// mensaje de la base.
 public enum InviteCheck: Equatable, Sendable {
-    case valid(inviterName: String)
+    case valid(inviterName: String, username: String? = nil)
     case rejected(CodeRejection, message: String)
 }
 
@@ -65,12 +66,14 @@ public enum CruceRemote {
     private struct InviteResponse: Decodable {
         let ok: Bool
         let inviterName: String?
+        let inviterUsername: String?
         let error: String?
         let message: String?
 
         enum CodingKeys: String, CodingKey {
             case ok, error, message
             case inviterName = "inviter_name"
+            case inviterUsername = "inviter_username"
         }
     }
 
@@ -83,7 +86,7 @@ public enum CruceRemote {
                 throw DecodingError.dataCorrupted(
                     .init(codingPath: [], debugDescription: "Falta inviter_name en una respuesta correcta"))
             }
-            return .valid(inviterName: name)
+            return .valid(inviterName: name, username: response.inviterUsername)
         }
         let kind = response.error.flatMap(CodeRejection.init(rawValue:)) ?? .invalid
         return .rejected(kind, message: response.message ?? invalidMessage)
@@ -101,6 +104,9 @@ public enum CruceRemote {
         let linkedAt: Date
         let closedAt: Date?
         let defaultOtherPercent: Int?
+        /// El @usuario del otro y si borró su cuenta (desde `20261030100000_usuarios`). Una base vieja no los trae.
+        let partnerUsername: String?
+        let partnerDeleted: Bool?
 
         enum CodingKeys: String, CodingKey {
             case ledgerId = "ledger_id"
@@ -113,6 +119,8 @@ public enum CruceRemote {
             case linkedAt = "linked_at"
             case closedAt = "closed_at"
             case defaultOtherPercent = "default_other_percent"
+            case partnerUsername = "partner_username"
+            case partnerDeleted = "partner_deleted"
         }
     }
 
@@ -131,9 +139,28 @@ public enum CruceRemote {
                 id: row.ledgerId,
                 partner: Member(
                     id: row.partnerId, name: row.partnerName, avatarColor: row.partnerColor ?? row.partnerAvatar,
-                    tikeVariant: row.partnerTike),
+                    tikeVariant: row.partnerTike, username: row.partnerUsername,
+                    isDeleted: row.partnerDeleted ?? false),
                 myTikeVariant: row.myTike, linkedAt: row.linkedAt,
                 closedAt: row.closedAt, defaultOtherPercent: row.defaultOtherPercent ?? CruceLink.standardOtherPercent)
         }
+    }
+
+    private struct UsernameResponse: Decodable {
+        let ok: Bool
+        let username: String?
+        let error: String?
+        let message: String?
+    }
+
+    /// `check_username` y `set_username`: `{"ok": true, "username"}` o `{"ok": false, "error", "message"}`. Un `error`
+    /// que la app no conoce se trata como formato inválido, con el mensaje que mandó la base.
+    public static func usernameCheck(from data: Data) throws -> UsernameCheck {
+        let response = try JSONDecoder().decode(UsernameResponse.self, from: data)
+        if response.ok, let username = response.username {
+            return .available(username)
+        }
+        let kind = response.error.flatMap(UsernameRejection.init(rawValue:)) ?? .format
+        return .rejected(kind, message: response.message ?? kind.defaultMessage)
     }
 }

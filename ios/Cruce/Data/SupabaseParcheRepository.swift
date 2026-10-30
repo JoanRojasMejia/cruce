@@ -53,7 +53,7 @@ struct SupabaseParcheRepository: ParcheRepository {
 
     func joinParche(code: String, displayName: String) async throws -> ParcheDetail {
         let parcheID = try await call("join_parche", ParcheRemote.JoinParams(code: code, displayName: displayName))
-        return try await loadParche(id: ParcheRemote.uuid(from: parcheID))
+        return try await loadParche(id: ParcheRemote.joinedParcheID(from: parcheID))
     }
 
     func addParticipant(id: UUID, parcheID: UUID, displayName: String) async throws -> ParcheParticipant {
@@ -65,7 +65,7 @@ struct SupabaseParcheRepository: ParcheRepository {
 
     func claimPlace(code: String) async throws -> ParcheDetail {
         let parcheID = try await call("claim_parche_place", ParcheRemote.CodeParams(code: code))
-        return try await loadParche(id: ParcheRemote.uuid(from: parcheID))
+        return try await loadParche(id: ParcheRemote.joinedParcheID(from: parcheID))
     }
 
     func previewCode(_ code: String) async throws -> CodePreview {

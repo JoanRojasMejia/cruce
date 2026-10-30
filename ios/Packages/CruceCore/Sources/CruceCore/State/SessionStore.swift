@@ -11,6 +11,8 @@ public final class SessionStore {
     public enum Phase: Equatable, Sendable {
         case onboarding
         case signUp
+        /// Después del nombre: "Elige tu @usuario", con la sugerencia que puso la base.
+        case chooseUsername
         case invite
         case connected
         case main
@@ -25,6 +27,8 @@ public final class SessionStore {
         case network
         /// La base rechazó el código `CRZ-`; trae su mensaje en español.
         case inviteRejected(String)
+        /// El @usuario no cumple el formato o ya está ocupado; trae el mensaje de la base.
+        case usernameRejected(String)
 
         public var message: String {
             switch self {
@@ -34,6 +38,7 @@ public final class SessionStore {
             case .tooManyRequests: "Pediste muchos códigos seguidos. Espera un momento y vuelve a intentarlo."
             case .network: "No pudimos conectarnos. Revisa tu conexión y vuelve a intentarlo."
             case .inviteRejected(let message): message
+            case .usernameRejected(let message): message
             }
         }
     }
@@ -80,6 +85,10 @@ public final class SessionStore {
     }
     /// De quién es el código que se está escribiendo para unirse (`checkCode`).
     public var invitePreview: InviteCheck?
+    /// Si el @usuario que se está escribiendo está disponible (`checkUsername`); `nil` mientras se revisa.
+    public private(set) var usernameCheck: UsernameCheck?
+    /// El @usuario (normalizado) al que corresponde `usernameCheck`: si ya se escribió otro, la respuesta no aplica.
+    public private(set) var usernameChecked: String?
     /// Código que llegó por un enlace (`cruce://codigo/…`) y espera a que "Tengo un código" lo muestre: sin sesión,
     /// queda guardado hasta entrar. La pantalla lo toma (y lo vuelve `nil`) al abrirse.
     public var pendingCode: String?
@@ -105,6 +114,8 @@ public final class SessionStore {
     public private(set) var isReady: Bool
     /// Cuántas veces se pidió revisar un código: `checkCode` solo aplica la respuesta del último.
     private var codeCheck = 0
+    /// Lo mismo para `checkUsername`.
+    private var usernameCheckCount = 0
 
     private let auth: any AuthService
     private let directory: any AccountDirectory
@@ -164,7 +175,8 @@ public final class SessionStore {
                 return
             }
             me = Member(
-                id: user, name: profile.displayName, avatarColor: profile.avatarColor, tikeVariant: me.tikeVariant)
+                id: user, name: profile.displayName, avatarColor: profile.avatarColor, tikeVariant: me.tikeVariant,
+                username: profile.username)
             apply(try await directory.cruces(for: user))
             phase = cruces.isEmpty ? .invite : .main
             error = nil
@@ -252,7 +264,8 @@ public final class SessionStore {
         return ok
     }
 
-    /// Crea el perfil con ese nombre (de 1 a 40 caracteres, sin espacios a los lados) y pasa a la etapa siguiente.
+    /// Crea el perfil con ese nombre (de 1 a 40 caracteres, sin espacios a los lados) y pasa a "Elige tu @usuario",
+    /// con la sugerencia que la base le puso a partir del nombre (`me.username`).
     @discardableResult
     public func createProfile(name: String) async -> Bool {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -263,8 +276,99 @@ public final class SessionStore {
         let ok = await perform {
             try await directory.createProfile(Profile(id: user, displayName: trimmed))
         }
-        if ok { await refresh() }
+        if ok {
+            await refresh()
+            if error == nil && phase == .invite {
+                usernameCheck = me.username.map(UsernameCheck.available)
+                usernameChecked = me.username
+                phase = .chooseUsername
+            }
+        }
         return ok
+    }
+
+    // MARK: - @usuario
+
+    /// Revisa mientras se escribe si el @usuario está disponible. El formato se revisa aquí, sin preguntarle a la base;
+    /// el propio está disponible. Solo cuenta la respuesta del último que se pidió revisar.
+    public func checkUsername(_ text: String) async {
+        usernameCheckCount += 1
+        let check = usernameCheckCount
+        let normalized = Username.normalize(text)
+        usernameChecked = normalized
+        guard Username.isValid(normalized) else {
+            usernameCheck = .invalidFormat
+            return
+        }
+        if normalized == me.username {
+            usernameCheck = .available(normalized)
+            return
+        }
+        usernameCheck = nil
+        guard let user = userID else { return }
+        // Un error de red no se muestra aquí: al guardar se vuelve a revisar.
+        if let result = try? await directory.checkUsername(normalized, for: user), check == usernameCheckCount {
+            usernameCheck = result
+        }
+    }
+
+    /// "Seguir" en "Elige tu @usuario": guarda el @usuario (si cambió) y pasa a invitar. Si no sirve, deja el mensaje
+    /// en `error` y sigue en el mismo paso.
+    @discardableResult
+    public func chooseUsername(_ text: String) async -> Bool {
+        guard await saveUsername(text) else { return false }
+        await refresh()
+        return error == nil
+    }
+
+    /// Cambia el @usuario en Tu perfil. El anterior queda libre. Sin red deja el error y conserva el anterior.
+    @discardableResult
+    public func updateUsername(_ text: String) async -> Bool {
+        guard await saveUsername(text) else { return false }
+        await saveSnapshot()
+        return true
+    }
+
+    /// Guarda el @usuario si es distinto del actual (`set_username`) y lo deja en `me.username`.
+    private func saveUsername(_ text: String) async -> Bool {
+        let normalized = Username.normalize(text)
+        guard Username.isValid(normalized) else {
+            error = .usernameRejected(UsernameRejection.format.defaultMessage)
+            return false
+        }
+        guard let user = userID else { return false }
+        if normalized == me.username {
+            error = nil
+            return true
+        }
+        var result: UsernameCheck?
+        guard await perform({ result = try await directory.setUsername(normalized, for: user) }) else { return false }
+        switch result {
+        case .available(let saved):
+            me.username = saved
+            usernameCheck = .available(saved)
+            usernameChecked = saved
+            return true
+        case .rejected(_, let message):
+            error = .usernameRejected(message)
+            usernameCheck = result
+            usernameChecked = normalized
+            return false
+        case nil:
+            return false
+        }
+    }
+
+    // MARK: - Borrar la cuenta
+
+    /// Borra la cuenta (`delete_my_account`) y cierra la sesión como `signOut()`. Sin red deja el error y no cambia
+    /// nada. La navegación y lo guardado de los demás stores los limpia quien llama.
+    @discardableResult
+    public func deleteAccount() async -> Bool {
+        guard let user = userID else { return false }
+        guard await perform({ try await directory.deleteAccount(for: user) }) else { return false }
+        await signOut()
+        return true
     }
 
     // MARK: - Ajustes
@@ -471,6 +575,8 @@ public final class SessionStore {
         lastLinked = nil
         inviteCode = nil
         invitePreview = nil
+        usernameCheck = nil
+        usernameChecked = nil
         pendingCode = nil
         phase = .onboarding
     }

@@ -27,6 +27,15 @@
             parcheOffline, parcheUndo
         /// "Cena de Ana" cerrado con todos en $0 (A2-52) y "Santa Marta" visto por Carlos, que debe (A2-53).
         case parcheSettledAll, parcheYouOwe
+        /// "Elige tu @usuario" (después del nombre al entrar).
+        case chooseUsername
+        /// Tu perfil con el diálogo "¿Borrar tu cuenta?".
+        case deleteAccount
+        /// Jesús borró su cuenta: "Tus cruces" con "Cuenta borrada" en "Cerrados" y el inicio de ese cruce.
+        case crucesDeleted
+        case cruceDeleted
+        /// "Santa Marta" donde Ana borró su cuenta: su lugar y sus gastos quedan como "Cuenta borrada".
+        case parcheDeletedPlace
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
         static var current: DebugScreen? {
@@ -97,6 +106,15 @@
                 )
                 return stores
             case .crucesClosed: return .sample(withAna: true, closedJesus: true)
+            case .chooseUsername: return .sample(phase: .chooseUsername, userID: MockData.joan.id)
+            case .deleteAccount: return .sample()
+            case .crucesDeleted: return .sample(withAna: true, deletedJesus: true)
+            case .cruceDeleted:
+                let stores = AppStores.sample(withAna: true, deletedJesus: true)
+                stores.router.push(.cruce(MockData.joanJesusCruceID))
+                return stores
+            case .parcheDeletedPlace:
+                return stores(path: [.parche(MockParches.santaMartaID)], parcheBackend: Self.deletedAnaBackend())
             case .cruceClosed:
                 let stores = AppStores.sample(closedJesus: true)
                 stores.router.push(.cruce(MockData.joanJesusCruceID))
@@ -239,6 +257,10 @@
                             ]
                         }
                     }
+            case .deleteAccount:
+                NavigationStack {
+                    ProfileView(confirmingDelete: true).toolbar(.hidden, for: .navigationBar)
+                }
             case .parcheShare:
                 NavigationStack {
                     ParcheDetailView(parcheID: MockParches.santaMartaID, sharing: true)
@@ -316,6 +338,22 @@
             let stores = AppStores.sample(parcheBackend: backend)
             stores.router.path = path
             return stores
+        }
+
+        /// Los parches de ejemplo, con Ana como cuenta borrada en "Santa Marta" (como lo deja `forget_account`).
+        private static func deletedAnaBackend() -> InMemoryParcheBackend {
+            let parches = MockParches.parches().map { detail in
+                var detail = detail
+                if let index = detail.participants.firstIndex(where: { $0.id == MockParches.ana }) {
+                    detail.participants[index].userID = nil
+                    detail.participants[index].displayName = Profile.deletedName
+                    detail.participants[index].username = nil
+                    detail.participants[index].accountDeletedAt = .now
+                }
+                return detail
+            }
+            return InMemoryParcheBackend(
+                parches: parches, cruces: [[MockData.joan.id, MockData.jesus.id]], colors: MockParches.colors)
         }
 
         /// Los parches de ejemplo y "Finca", que no está en `MockParches.parches()` para no cambiar las pruebas.

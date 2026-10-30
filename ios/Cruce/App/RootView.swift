@@ -66,6 +66,7 @@ struct RootView: View {
             switch session.phase {
             case .onboarding: OnboardingView()
             case .signUp: SignUpView()
+            case .chooseUsername: ChooseUsernameView()
             case .invite: InviteFlow()
             case .connected: ConnectedView()
             case .main: MainView()

@@ -6,7 +6,8 @@
         /// Datos de ejemplo del canvas (solo Debug): por defecto los ve Joan y "Jesús te debe $20.000".
         /// En el inicio hay un cruce con Jesús; con `withAna`, Joan tiene también uno con Ana (el más reciente, abierto
         /// al arrancar) donde le debe $15.000, y el inicio muestra "Tus cruces". Con `closedJesus`, el cruce con Jesús
-        /// está cerrado (desvinculado).
+        /// está cerrado (desvinculado). Con `deletedJesus`, Jesús borró su cuenta: el cruce está cerrado y lo ve como
+        /// "Cuenta borrada", sin @usuario.
         /// Lo usan la app en Debug, `DebugScreen` y las vistas previas.
         @MainActor
         static func sample(
@@ -18,6 +19,7 @@
             pendingCode: String? = nil,
             withAna: Bool = false,
             closedJesus: Bool = false,
+            deletedJesus: Bool = false,
             parcheBackend: InMemoryParcheBackend? = nil
         ) -> AppStores {
             let other = viewer.id == MockData.joan.id ? MockData.jesus : MockData.joan
@@ -37,7 +39,12 @@
             var byCruce: [UUID: [Movement]] = [:]
             if phase == .main {
                 var jesusCruce = MockData.joanJesusCruce(viewer: viewer)
-                jesusCruce.closedAt = closedJesus ? .now : nil
+                jesusCruce.closedAt = closedJesus || deletedJesus ? .now : nil
+                if deletedJesus {
+                    jesusCruce.partner.name = Profile.deletedName
+                    jesusCruce.partner.username = nil
+                    jesusCruce.partner.isDeleted = true
+                }
                 cruces = [jesusCruce]
                 byCruce[MockData.joanJesusCruceID] = movements
                 if withAna {

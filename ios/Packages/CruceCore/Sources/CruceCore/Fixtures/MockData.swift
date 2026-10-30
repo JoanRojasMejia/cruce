@@ -7,14 +7,16 @@ public enum MockData {
         id: UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!,
         name: "Joan",
         avatarColor: .yellow,
-        tikeVariant: .rosa
+        tikeVariant: .rosa,
+        username: "joan"
     )
 
     public static let jesus = Member(
         id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!,
         name: "Jesús",
         avatarColor: .violet,
-        tikeVariant: .verde
+        tikeVariant: .verde,
+        username: "jesus"
     )
 
     /// Ana creó su cruce con Joan y Joan se unió con código: en ese cruce Ana ve el recibo rosa y Joan, el verde.
@@ -23,7 +25,8 @@ public enum MockData {
         id: UUID(uuidString: "00000000-0000-0000-0000-00000000000C")!,
         name: "Ana",
         avatarColor: .green,
-        tikeVariant: .rosa
+        tikeVariant: .rosa,
+        username: "ana"
     )
 
     /// El cruce de Joan y Jesús (el del canvas).

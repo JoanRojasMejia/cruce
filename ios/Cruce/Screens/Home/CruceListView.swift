@@ -86,10 +86,17 @@ struct CruceRow: View {
             Avatar(member: cruce.partner, size: 44)
             VStack(alignment: .leading, spacing: 4) {
                 // Abierto, una línea; cerrado, el nombre completo aunque ocupe dos (ya no hay etiqueta que lo corte).
-                Text("Con \(cruce.partner.name)")
+                Text(cruce.partner.withTitle)
                     .textStyle(.rowTitle)
                     .lineLimit(cruce.isClosed ? nil : 1)
                     .fixedSize(horizontal: false, vertical: cruce.isClosed)
+                if let handle = cruce.partner.handle {
+                    // El @usuario distingue a dos amigos con el mismo nombre.
+                    Text(handle)
+                        .font(.archivo(13, .bold))
+                        .foregroundStyle(CruceColor.textSecondary)
+                        .lineLimit(1)
+                }
                 Text(ledger.phrase(forNet: net, partner: cruce.partner))
                     .textStyle(.secondary)
                     .foregroundStyle(CruceColor.textSecondary)

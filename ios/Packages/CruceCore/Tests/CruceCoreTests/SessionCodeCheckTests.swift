@@ -124,4 +124,11 @@ actor ScriptedDirectory: AccountDirectory {
     func closeCruce(_ cruceID: UUID, for userID: UUID) async throws -> Date {
         try await base.closeCruce(cruceID, for: userID)
     }
+    func checkUsername(_ username: String, for userID: UUID) async throws -> UsernameCheck {
+        try await base.checkUsername(username, for: userID)
+    }
+    func setUsername(_ username: String, for userID: UUID) async throws -> UsernameCheck {
+        try await base.setUsername(username, for: userID)
+    }
+    func deleteAccount(for userID: UUID) async throws { try await base.deleteAccount(for: userID) }
 }

@@ -66,7 +66,7 @@ struct SessionLinkingTests {
         let jesus = await session(jesusID, directory)
         jesus.phase = .invite
         await jesus.checkCode(digits(joan.inviteCode))
-        #expect(jesus.invitePreview == .valid(inviterName: "Joan"))
+        #expect(jesus.invitePreview == .valid(inviterName: "Joan", username: "joan"))
         #expect(try await directory.cruces(for: jesusID).isEmpty)
     }
 

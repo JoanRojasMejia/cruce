@@ -239,7 +239,7 @@ struct SessionStoreTests {
 
     // MARK: - Perfil
 
-    @Test("Guardar el nombre crea el perfil y pasa a invitar")
+    @Test("Guardar el nombre crea el perfil, pasa a elegir el @usuario y después a invitar")
     func createProfileWithValidName() async {
         let user = UUID()
         let directory = InMemoryAccountDirectory()
@@ -249,6 +249,8 @@ struct SessionStoreTests {
         #expect(ok)
         #expect(await directory.storedProfile(for: user)?.displayName == "Joan")
         #expect(session.me.name == "Joan")
+        #expect(session.phase == .chooseUsername)
+        #expect(await session.chooseUsername("joan"))
         #expect(session.phase == .invite)
     }
 

@@ -7,7 +7,7 @@ public enum ParcheRemote {
     /// Lo que se pide de `parches` en una sola consulta: cada parche con todo lo suyo embebido (RLS solo deja ver
     /// los parches de quien pregunta).
     public static let detailSelect = """
-        id, name, code, status, created_at, closed_at, created_by, parche_participants(*), \
+        id, name, code, status, created_at, closed_at, created_by, parche_participants(*, participant_username), \
         parche_expenses(*, parche_expense_payers(participant_id, amount), \
         parche_expense_shares(participant_id, amount, input), \
         parche_expense_items(id, position, amount, participant_ids, name)), \
@@ -77,6 +77,9 @@ public enum ParcheRemote {
         let lastSeenAt: Date?
         /// Opcional para seguir leyendo una base sin la migración de colores (queda amarillo).
         let avatarColor: AvatarColor?
+        /// El campo calculado `participant_username` (solo en `detailSelect`) y `account_deleted_at`.
+        let username: String?
+        let accountDeletedAt: Date?
 
         enum CodingKeys: String, CodingKey {
             case id
@@ -86,12 +89,15 @@ public enum ParcheRemote {
             case joinedAt = "joined_at"
             case lastSeenAt = "last_seen_at"
             case avatarColor = "avatar_color"
+            case username = "participant_username"
+            case accountDeletedAt = "account_deleted_at"
         }
 
         var model: ParcheParticipant {
             ParcheParticipant(
                 id: id, userID: userID, displayName: displayName, claimCode: claimCode, joinedAt: joinedAt,
-                lastSeenAt: lastSeenAt, avatarColor: avatarColor ?? .yellow)
+                lastSeenAt: lastSeenAt, avatarColor: avatarColor ?? .yellow, username: username,
+                accountDeletedAt: accountDeletedAt)
         }
     }
 
@@ -446,6 +452,13 @@ public enum ParcheRemote {
         try decoder().decode(UUID.self, from: data)
     }
 
+    /// Lo que devuelven `join_parche` y `claim_parche_place`: el id del parche, o `null` si el código no sirve (la base
+    /// no lanza el error para no deshacer el intento fallido que registró).
+    public static func joinedParcheID(from data: Data) throws -> UUID {
+        guard let id = try decoder().decode(UUID?.self, from: data) else { throw ParcheRepositoryError.invalidCode }
+        return id
+    }
+
     // MARK: - Parámetros de las funciones
 
     public struct CreateParams: Encodable, Sendable {
@@ -675,6 +688,7 @@ extension ParcheRepositoryError {
         case ("P0001", "noSharedCruce"?): self = .noSharedCruce
         case ("P0001", "alreadyMoved"?): self = .alreadyMoved
         case ("P0001", "nothingToMove"?): self = .nothingToMove
+        case ("P0001", "tooManyAttempts"?): self = .tooManyAttempts
         default: return nil
         }
     }

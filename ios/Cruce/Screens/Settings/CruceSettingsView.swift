@@ -25,7 +25,7 @@ struct CruceSettingsView: View {
                 SettingsSection("TU CRUCE") {
                     SettingsRow {
                         Avatar(member: session.partner, size: 24)
-                        Text("Con \(session.partner.name)").font(.archivo(15, .bold))
+                        Text(session.partner.withTitle).font(.archivo(15, .bold))
                         Spacer()
                         if let first = ledger.visibleMovements.last?.date {
                             Text("desde \(DateText.relative(first))").textStyle(.secondary).foregroundStyle(

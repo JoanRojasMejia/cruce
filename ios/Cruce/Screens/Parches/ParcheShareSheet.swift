@@ -87,6 +87,11 @@ struct ParcheShareSheet: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(person.id == detail.myParticipantID ? "\(person.displayName) (tú)" : person.label)
                             .textStyle(.rowTitle)
+                        if let handle = person.handle {
+                            Text(handle)
+                                .textStyle(.secondary)
+                                .foregroundStyle(CruceColor.textSecondary)
+                        }
                         if let code = person.claimCode, !person.hasApp {
                             Text("Su código para quedarse con su lugar: \(code)")
                                 .textStyle(.secondary)

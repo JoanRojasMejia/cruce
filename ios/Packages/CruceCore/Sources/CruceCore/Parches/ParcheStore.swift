@@ -39,6 +39,8 @@ public final class ParcheStore {
         case invalidParcheName
         case invalidPersonName
         case invalidCode
+        /// 5 códigos que no sirven en la última hora.
+        case tooManyAttempts
         case alreadyInParche
         case parcheClosed
         case parcheOpen
@@ -59,6 +61,7 @@ public final class ParcheStore {
             case .invalidParcheName: "El nombre del parche debe tener entre 1 y 60 caracteres."
             case .invalidPersonName: "El nombre debe tener entre 1 y 40 caracteres."
             case .invalidCode: "Ese código no existe"
+            case .tooManyAttempts: CodeRejection.tooManyAttempts.defaultMessage
             case .alreadyInParche: "Ya estás en este parche, así que no puedes quedarte con ese lugar."
             case .parcheClosed: "El parche está cerrado: ya no se pueden anotar ni editar gastos."
             case .parcheOpen: "Primero cierra el parche."
@@ -363,6 +366,22 @@ public final class ParcheStore {
         } catch {
             handle(error)
         }
+    }
+
+    /// Olvida los parches y lo que quedó sin enviar, también en el teléfono (al borrar la cuenta: lo pendiente ya no
+    /// tiene a nombre de quién ir). Un borrado con "Deshacer" en espera se descarta.
+    public func reset() async {
+        deletionTask?.cancel()
+        deletionTask = nil
+        pendingDeletion = nil
+        deletionDate = nil
+        parches = []
+        pending = []
+        declinedCruce = []
+        error = nil
+        isOffline = false
+        hasLoadedLocalState = true
+        try? await pendingStore.save(ParcheLocalState())
     }
 
     /// Vuelve a leer un parche del repositorio, con lo pendiente aplicado encima.
@@ -874,6 +893,7 @@ public final class ParcheStore {
         case .noSharedCruce: return .noSharedCruce
         case .alreadyMoved: return .alreadyMoved
         case .nothingToMove: return .nothingToMove
+        case .tooManyAttempts: return .tooManyAttempts
         }
     }
 }
