@@ -5,8 +5,8 @@ import SwiftUI
 /// el recibo rosa lo ve quien creó la cuenta (Joan) y el verde lo ve quien se unió (Jesús).
 /// Los parches y los tickets usan ilustraciones neutrales (sin rosa ni verde).
 ///
-/// De la 09 a la 21 tienen su espacio en el catálogo, pero la imagen puede no estar todavía:
-/// mientras falte, se dibuja `fallback` (la que esa pantalla usaba antes) o nada.
+/// Todas tienen su imagen en el catálogo. Si alguna llegara a faltar, se dibuja `fallback`
+/// (la que esa pantalla usaba antes) o nada.
 enum Illustration: Equatable {
     case welcome
     case empty
@@ -102,20 +102,21 @@ enum Illustration: Equatable {
         case .settle: return "Dos recibos intercambian un billete"
         case .allClear: return "La mascota de Cruce celebra sobre un letrero de cero pesos"
         case .offline: return "La mascota de Cruce mira un celular sin señal"
-        case .checkEmail: return "La mascota de Cruce revisa un sobre con un código"
-        case .newParche: return "La mascota de Cruce arma un parche con amigos"
-        case .parchesEmpty: return "La mascota de Cruce espera a que llegue el parche"
-        case .parcheArrival: return "La mascota de Cruce recibe a alguien que llega al parche"
-        case .placeClaimed, .placeClaimedMini: return "La mascota de Cruce entrega un lugar con tu nombre"
-        case .closeParche: return "La mascota de Cruce cierra la cuenta del parche"
-        case .ticketPending: return "Un recibo con pagos pendientes"
-        case .cruceTransfer: return "Un recibo pasa del parche al cruce"
-        case .cruceClosed: return "Un cruce cerrado con candado"
-        case .parcheSettled: return "El parche celebra: todos quedaron en cero pesos"
-        case .groupTheyOweYou: return "El parche le entrega monedas a la mascota de Cruce"
-        case .groupYouOwe: return "La mascota de Cruce le lleva monedas al parche"
-        case .paymentPending: return "Un pago que espera confirmación"
-        case .invalidCode: return "La mascota de Cruce no reconoce el código"
+        case .checkEmail: return "La mascota de Cruce abre un sobre del que sale un código de seis casillas"
+        case .newParche: return "La mascota de Cruce levanta una maleta rodeada de cuatro recibos listos para el paseo"
+        case .parchesEmpty: return "La mascota de Cruce espera sentada en una maleta, rodeada de siluetas punteadas"
+        case .parcheArrival: return "La mascota de Cruce y el parche reciben a un recibo que llega corriendo"
+        case .placeClaimed, .placeClaimedMini: return "Un recibo punteado cobra vida y salta feliz"
+        case .closeParche:
+            return "La mascota de Cruce se sienta sobre una maleta llena de recibos para cerrarla con candado"
+        case .ticketPending: return "La mascota de Cruce señala un recibo largo con una moneda"
+        case .cruceTransfer: return "Una moneda salta del parche hacia la mascota de Cruce y un recibo"
+        case .cruceClosed: return "Dos recibos se despiden mientras la mascota de Cruce guarda el historial en una caja"
+        case .parcheSettled: return "La mascota de Cruce y el parche celebran con confeti: todos quedaron en cero pesos"
+        case .groupTheyOweYou: return "Varios recibos le entregan monedas a la mascota de Cruce, sentada sobre monedas"
+        case .groupYouOwe: return "La mascota de Cruce, preocupada, le reparte monedas a una fila de recibos"
+        case .paymentPending: return "Un recibo sostiene un billete junto a un reloj de arena"
+        case .invalidCode: return "La mascota de Cruce intenta abrir un candado con una llave que no entra"
         }
     }
 }
