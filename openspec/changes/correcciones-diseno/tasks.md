@@ -14,7 +14,7 @@
 ## 3. Pantallas
 
 - [x] 3.1 Ajustes de la cuenta y Ajustes del cruce (D3).
-- [ ] 3.2 Detalle del parche más corto: hoja de "Los del parche" y código, actividad en su propia vista.
+- [x] 3.2 Detalle del parche más corto: hoja de "Los del parche" y código, actividad en su propia vista.
 - [ ] 3.3 Llegada con `PCH-` y `SOY-`.
 - [ ] 3.4 Una sola pantalla "Tengo un código", errores separados y enlace `cruce://codigo/…` (D2, D5).
 - [ ] 3.5 Cruces cerrados en la sección "Cerrados".

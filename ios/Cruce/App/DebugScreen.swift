@@ -11,7 +11,8 @@
         case add, saved, history, detail, delete, settle, success, offline, settings
         case cruceSettings, profile, defaultSplit, settleAmount, successPartial, unlink, unlinkSettled, crucesClosed,
             cruceClosed
-        case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
+        case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheShare, parcheActivity,
+            parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
         case parcheDelete, parchePayment, parchePaymentOver, parcheClose, parcheNotCreator, parcheCloseNotCreator,
@@ -86,6 +87,11 @@
             case .parcheCode: return stores(path: [.enterCode])
             case .parcheDetail, .parcheDetailEnd, .parcheOffline:
                 return stores(path: [.parche(MockParches.santaMartaID)])
+            case .parcheShare: return .sample()
+            case .parcheActivity:
+                return stores(path: [
+                    .parche(MockParches.santaMartaID), .parcheActivity(parcheID: MockParches.santaMartaID),
+                ])
             case .parcheExpense: return stores(path: [.addParcheExpense(parcheID: MockParches.santaMartaID)])
             case .parcheExpenseItems, .parcheDelete:
                 return stores(path: [
@@ -159,6 +165,11 @@
             case .parcheDetailEnd:
                 NavigationStack {
                     ParcheDetailView(parcheID: MockParches.santaMartaID, startsAtBottom: true)
+                        .toolbar(.hidden, for: .navigationBar)
+                }
+            case .parcheShare:
+                NavigationStack {
+                    ParcheDetailView(parcheID: MockParches.santaMartaID, sharing: true)
                         .toolbar(.hidden, for: .navigationBar)
                 }
             case .parcheNotCreator:

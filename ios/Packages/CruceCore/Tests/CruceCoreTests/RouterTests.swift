@@ -56,4 +56,14 @@ struct RouterTests {
         router.pop()
         #expect(router.path == [.cruceSettings])
     }
+
+    @Test("La actividad del parche se abre encima de su detalle y vuelve a él")
+    func parcheActivityStacksOnDetail() {
+        let id = UUID()
+        let router = Router(path: [.parche(id)])
+        router.push(.parcheActivity(parcheID: id))
+        #expect(router.path == [.parche(id), .parcheActivity(parcheID: id)])
+        router.pop()
+        #expect(router.path == [.parche(id)])
+    }
 }

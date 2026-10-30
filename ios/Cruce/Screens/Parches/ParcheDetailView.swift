@@ -1,7 +1,9 @@
 import CruceCore
 import SwiftUI
 
-/// Detalle de un parche: tu saldo, cómo saldar, pagos por confirmar, gastos, personas, el código y la actividad.
+/// Detalle de un parche. Arriba tu saldo, las acciones, los pagos por confirmar, "Para saldar" y los saldos; después
+/// los gastos y al final cerrar. "Los del parche" y el código están en la hoja del botón de compartir, y la actividad
+/// en su propia pantalla (la campana del encabezado, con los avisos sin ver).
 struct ParcheDetailView: View {
     @Environment(SessionStore.self) private var session
     @Environment(ParcheStore.self) private var parches
@@ -9,21 +11,19 @@ struct ParcheDetailView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private let parcheID: UUID
-    /// Avisos sin ver al entrar; al abrir el parche el contador vuelve a cero, pero se resaltan estos.
-    @State private var unseenOnOpen: Int?
-    /// Última vez que habías abierto el parche antes de ahora: lo de otros después de eso se marca "nuevo".
-    @State private var lastSeenOnOpen: Date?
-    @State private var newPerson = ""
     @State private var confirming: ParchePayment?
-    @State private var copied = false
-    @State private var showsAllActivity = false
+    /// La hoja de compartir: el código, el ticket del parche y los del parche.
+    @State private var sharing: Bool
+    /// Se tocó "Compartir el ticket del parche": se abre cuando la hoja termina de cerrarse.
+    @State private var opensTicket = false
 
-    /// Abre la pantalla desde abajo (actividad y cerrar); solo lo usa `DebugScreen`.
+    /// Abre la pantalla desde abajo (cerrar); solo lo usa `DebugScreen`.
     private let startsAtBottom: Bool
 
-    init(parcheID: UUID, startsAtBottom: Bool = false) {
+    init(parcheID: UUID, startsAtBottom: Bool = false, sharing: Bool = false) {
         self.parcheID = parcheID
         self.startsAtBottom = startsAtBottom
+        _sharing = State(initialValue: sharing)
     }
 
     var body: some View {
@@ -34,22 +34,22 @@ struct ParcheDetailView: View {
                 ParcheMissing(parcheID: parcheID)
             }
         }
-        .task {
-            if unseenOnOpen == nil {
-                if parches.parche(parcheID) == nil { await parches.refresh(parcheID) }
-                unseenOnOpen = parches.parche(parcheID)?.unseenCount ?? 0
-                lastSeenOnOpen = parches.parche(parcheID)?.me?.lastSeenAt ?? .distantPast
-            }
-            await parches.open(parcheID)
-        }
+        // La actividad queda vista cuando se abre su pantalla, no aquí.
+        .task { await parches.refresh(parcheID) }
+        .sheet(isPresented: $sharing, onDismiss: openTicketAfterSharing, content: shareSheet)
     }
 
     private func content(_ detail: ParcheDetail) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 ScreenHeader(title: detail.parche.name) {
-                    IconButton(systemName: "square.and.arrow.up", accessibilityLabel: "Ticket del parche", size: 44) {
-                        router.push(.parcheTicket(parcheID: parcheID, participantID: nil))
+                    ParcheActivityButton(unseen: detail.unseenCount) {
+                        router.push(.parcheActivity(parcheID: parcheID))
+                    }
+                    IconButton(
+                        systemName: "square.and.arrow.up", accessibilityLabel: "Compartir y los del parche", size: 44
+                    ) {
+                        sharing = true
                     }
                 }
                 HStack(spacing: 8) {
@@ -62,14 +62,12 @@ struct ParcheDetailView: View {
                 }
                 myBalance(detail)
                 actions(detail)
-                cruceQuestions(detail)
                 confirmations(detail)
+                // Junto a los pagos por confirmar: lo que puede pasar a un cruce o espera respuesta.
+                cruceQuestions(detail)
                 transfers(detail)
                 balances(detail)
                 expenses(detail)
-                people(detail)
-                codeCard(detail)
-                activity(detail)
                 // Solo quien creó el parche lo cierra; los demás ven a quién pedírselo.
                 if parches.canClose(detail) {
                     Button("Cerrar el parche") { router.push(.closeParche(parcheID: parcheID)) }
@@ -338,131 +336,6 @@ struct ParcheDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func people(_ detail: ParcheDetail) -> some View {
-        SectionTitle("Los del parche")
-        ParcheCard {
-            ForEach(Array(detail.participants.enumerated()), id: \.element.id) { index, person in
-                if index > 0 { CardDivider() }
-                HStack(spacing: 10) {
-                    ParcheAvatar(participant: person, size: 32)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(name(person, in: detail)).textStyle(.rowTitle)
-                        if let code = person.claimCode, !person.hasApp {
-                            Text("Su código para quedarse con su lugar: \(code)")
-                                .textStyle(.secondary)
-                                .foregroundStyle(CruceColor.textSecondary)
-                                .textSelection(.enabled)
-                        }
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-            }
-            if detail.parche.isOpen {
-                CardDivider()
-                HStack(spacing: 10) {
-                    TextField("Nombre de alguien sin la app", text: $newPerson)
-                        .font(.archivo(14, .bold))
-                        .padding(.horizontal, 12)
-                        .frame(height: 40)
-                        .neoSurface(radius: Radius.input, border: BorderWidth.thin)
-                        .accessibilityLabel("Nombre de alguien sin la app")
-                        .submitLabel(.done)
-                        .onSubmit { Task { await addPerson() } }
-                    Button("Agregar") { Task { await addPerson() } }
-                        .buttonStyle(
-                            NeoButtonStyle(
-                                kind: .primary, height: 40, shadow: ShadowOffset.xs, radius: Radius.chip,
-                                text: .fieldLabel)
-                        )
-                        .frame(width: 96)
-                        .disabled(newPerson.trimmingCharacters(in: .whitespaces).isEmpty || parches.isWorking)
-                }
-                .padding(14)
-            }
-        }
-    }
-
-    private func codeCard(_ detail: ParcheDetail) -> some View {
-        let code = detail.parche.code
-        return FolderCard(tab: "CÓDIGO DEL PARCHE", tabColor: CruceColor.violet, tabWidth: 180, shadow: ShadowOffset.m)
-        {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(code)
-                    .font(.archivo(34, .black))
-                    .tracking(1.5)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .textSelection(.enabled)
-                Text("Compártelo con los del parche para que entren desde su app.")
-                    .textStyle(.secondary)
-                    .foregroundStyle(CruceColor.textSecondary)
-                HStack(spacing: 10) {
-                    ShareLink(item: "Únete al parche \(detail.parche.name) en Cruce con el código \(code)") {
-                        Label("Compartir", systemImage: "square.and.arrow.up")
-                    }
-                    .buttonStyle(.dialog(.primary))
-                    Button {
-                        UIPasteboard.general.string = code
-                        copied = true
-                    } label: {
-                        Label(copied ? "Copiado" : "Copiar", systemImage: copied ? "checkmark" : "doc.on.doc")
-                    }
-                    .buttonStyle(.dialog(.secondary))
-                }
-                .labelStyle(NeoLabelStyle())
-            }
-        }
-        .padding(.top, 8)
-    }
-
-    @ViewBuilder
-    private func activity(_ detail: ParcheDetail) -> some View {
-        let items = detail.sortedActivity
-        let unseen = unseenOnOpen ?? 0
-        SectionTitle(title: "Actividad") {
-            if unseen > 0 {
-                Badge(text: unseen == 1 ? "1 sin ver" : "\(unseen) sin ver", fill: CruceColor.pink)
-            }
-        }
-        ParcheCard {
-            let shown = showsAllActivity ? items : Array(items.prefix(6))
-            ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
-                if index > 0 { CardDivider() }
-                HStack(alignment: .top, spacing: 10) {
-                    Circle()
-                        .fill(isNew(item, in: detail) ? CruceColor.pink : CruceColor.neutral)
-                        .overlay(Circle().strokeBorder(CruceColor.ink, lineWidth: 1.5))
-                        .frame(width: 10, height: 10)
-                        .padding(.top, 4)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(parches.phrase(for: item, in: detail))
-                            .font(.archivo(14, isNew(item, in: detail) ? .extraBold : .bold))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(
-                            DateText.moment(item.createdAt).capitalizedFirst
-                                + (isNew(item, in: detail) ? " · nuevo" : "")
-                        )
-                        .textStyle(.secondary)
-                        .foregroundStyle(CruceColor.textSecondary)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .accessibilityElement(children: .combine)
-            }
-            if items.count > 6 && !showsAllActivity {
-                CardDivider()
-                Button("Ver toda la actividad") { showsAllActivity = true }
-                    .buttonStyle(.neoLink)
-            }
-        }
-    }
-
     // MARK: - Textos
 
     private func statusColor(_ detail: ParcheDetail) -> Color {
@@ -505,22 +378,25 @@ struct ParcheDetailView: View {
         return "\(from) le pagó \(amount) a \(to)"
     }
 
-    /// Un aviso de otra persona que llegó después de la última vez que abriste el parche.
-    private func isNew(_ item: ParcheActivity, in detail: ParcheDetail) -> Bool {
-        guard let lastSeenOnOpen, (unseenOnOpen ?? 0) > 0 else { return false }
-        return item.actorID != detail.myParticipantID && item.createdAt > lastSeenOnOpen
+    private func shareSheet() -> some View {
+        ParcheShareSheet(parcheID: parcheID) {
+            opensTicket = true
+            sharing = false
+        }
+        .presentationDetents([.medium, .large])
+        .presentationCornerRadius(Radius.sheet)
+        .presentationBackground { SheetBackground() }
+    }
+
+    /// "Compartir el ticket del parche" cierra la hoja; el ticket se abre cuando termina de cerrarse.
+    private func openTicketAfterSharing() {
+        guard opensTicket else { return }
+        opensTicket = false
+        router.push(.parcheTicket(parcheID: parcheID, participantID: nil))
     }
 
     private func dismissConfirmation() {
         confirming = nil
-    }
-
-    private func addPerson() async {
-        let name = newPerson
-        guard !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        if await parches.addParticipant(name: name, to: parcheID) != nil {
-            newPerson = ""
-        }
     }
 }
 
