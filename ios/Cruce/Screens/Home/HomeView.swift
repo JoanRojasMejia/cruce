@@ -58,7 +58,7 @@ struct HomeView: View {
         MainHeader(inCruce: true) {
             if showsBack {
                 BackButton()
-                Text("Con \(session.partner.name)")
+                Text(session.partner.withTitle)
                     .textStyle(.title2)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)

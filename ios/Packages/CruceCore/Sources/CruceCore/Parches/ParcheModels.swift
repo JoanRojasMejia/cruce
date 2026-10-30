@@ -54,10 +54,16 @@ public struct ParcheParticipant: Identifiable, Codable, Hashable, Sendable {
     public var lastSeenAt: Date?
     /// Su color: el de su perfil si tiene la app; si no, el siguiente color libre del parche al entrar.
     public var avatarColor: AvatarColor
+    /// Su @usuario (`participant_username`), solo si tiene la app.
+    public var username: String?
+    /// Cuándo se borró la cuenta de quien tenía este lugar (`account_deleted_at`). El lugar se queda, con el nombre
+    /// "Cuenta borrada", sus gastos y sus pagos; no tiene código `SOY-` y nadie lo reclama.
+    public var accountDeletedAt: Date?
 
     public init(
         id: UUID = UUID(), userID: UUID? = nil, displayName: String, claimCode: String? = nil, joinedAt: Date,
-        lastSeenAt: Date? = nil, avatarColor: AvatarColor = .yellow
+        lastSeenAt: Date? = nil, avatarColor: AvatarColor = .yellow, username: String? = nil,
+        accountDeletedAt: Date? = nil
     ) {
         self.id = id
         self.userID = userID
@@ -66,10 +72,12 @@ public struct ParcheParticipant: Identifiable, Codable, Hashable, Sendable {
         self.joinedAt = joinedAt
         self.lastSeenAt = lastSeenAt
         self.avatarColor = avatarColor
+        self.username = username
+        self.accountDeletedAt = accountDeletedAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, userID, displayName, claimCode, joinedAt, lastSeenAt, avatarColor
+        case id, userID, displayName, claimCode, joinedAt, lastSeenAt, avatarColor, username, accountDeletedAt
     }
 
     /// Un participante guardado en el teléfono antes del color por persona no trae `avatarColor`: se lee amarillo.
@@ -82,13 +90,23 @@ public struct ParcheParticipant: Identifiable, Codable, Hashable, Sendable {
         joinedAt = try container.decode(Date.self, forKey: .joinedAt)
         lastSeenAt = try container.decodeIfPresent(Date.self, forKey: .lastSeenAt)
         avatarColor = try container.decodeIfPresent(AvatarColor.self, forKey: .avatarColor) ?? .yellow
+        username = try container.decodeIfPresent(String.self, forKey: .username)
+        accountDeletedAt = try container.decodeIfPresent(Date.self, forKey: .accountDeletedAt)
     }
 
     public var hasApp: Bool { userID != nil }
 
-    /// "Carlos (sin la app)" o solo el nombre.
+    /// Quien tenía este lugar borró su cuenta.
+    public var isDeletedAccount: Bool { accountDeletedAt != nil }
+
+    /// "Carlos (sin la app)" o solo el nombre ("Cuenta borrada" no dice "sin la app": tuvo la app y la borró).
     public var label: String {
-        hasApp ? displayName : "\(displayName) (sin la app)"
+        hasApp || isDeletedAccount ? displayName : "\(displayName) (sin la app)"
+    }
+
+    /// "@ana", solo para quien tiene la app.
+    public var handle: String? {
+        hasApp ? username.map(Username.display) : nil
     }
 
     /// Dos primeras letras del nombre.

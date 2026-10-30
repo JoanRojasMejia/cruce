@@ -130,12 +130,15 @@ struct EnterCodeView: View {
     @ViewBuilder
     private func previewCard(_ preview: CodePreview) -> some View {
         switch preview {
-        case .cruce(let name):
+        case .cruce(let name, let username):
             FolderCard(tab: "CÓDIGO VÁLIDO", tabColor: CruceColor.green, tabWidth: 160) {
                 HStack(spacing: 14) {
                     // Quien invita creó el cruce: su color no viene en la vista previa.
                     Avatar(member: Member(name: name, avatarColor: .yellow, tikeVariant: .rosa), size: 56)
-                    previewText(title: "Cuenta de \(name)", detail: "Vas a llevar las cuentas con \(name).")
+                    // El @usuario distingue a dos personas con el mismo nombre ("Cuenta de Joan · @joan").
+                    previewText(
+                        title: "Cuenta de \(name)", handle: username.map(Username.display),
+                        detail: "Vas a llevar las cuentas con \(name).")
                 }
             }
         case .parche(let name, let alreadyMember):
@@ -155,9 +158,12 @@ struct EnterCodeView: View {
         }
     }
 
-    private func previewText(title: String, detail: String) -> some View {
+    private func previewText(title: String, handle: String? = nil, detail: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title).font(.archivo(18, .extraBold)).fixedSize(horizontal: false, vertical: true)
+            if let handle {
+                Text(handle).font(.archivo(14, .bold)).foregroundStyle(CruceColor.textBody)
+            }
             Text(detail)
                 .textStyle(.secondary)
                 .foregroundStyle(CruceColor.textSecondary)
@@ -216,7 +222,7 @@ struct EnterCodeView: View {
 
     private var buttonTitle: String {
         switch preview {
-        case .cruce(let name): "Unirme a la cuenta de \(name)"
+        case .cruce(let name, _): "Unirme a la cuenta de \(name)"
         case .parche(_, let alreadyMember): alreadyMember ? "Ver el parche" : "Entrar al parche"
         case .place: "Quedarme con el lugar"
         default: "Entrar"
@@ -293,7 +299,8 @@ struct EnterCodeView: View {
 
     #Preview("Código de cruce") {
         NavigationStack {
-            EnterCodeView(code: "CRZ-4821", preview: .cruce(inviterName: "Joan")).toolbar(.hidden, for: .navigationBar)
+            EnterCodeView(code: "CRZ-4821", preview: .cruce(inviterName: "Joan", username: "joan")).toolbar(
+                .hidden, for: .navigationBar)
         }
         .cruceStores(.sample(phase: .invite, viewer: MockData.jesus))
     }

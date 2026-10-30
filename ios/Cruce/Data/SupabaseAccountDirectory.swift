@@ -9,17 +9,21 @@ import Supabase
 struct SupabaseAccountDirectory: AccountDirectory {
     let client: SupabaseClient
 
-    /// Una fila de `profiles`. Al crearla no se manda el color: la base elige uno al azar.
+    /// Una fila de `profiles`. Al crearla no se manda el color ni el @usuario: la base elige un color al azar y le pone
+    /// la sugerencia del nombre como @usuario.
     private struct ProfileRow: Codable {
         let id: UUID
         let displayName: String
         /// Opcional para seguir leyendo una base sin la migración de colores (queda amarillo).
         var avatarColor: AvatarColor?
+        /// Opcional para seguir leyendo una base sin la migración de usuarios. Nunca se manda.
+        var username: String?
 
         enum CodingKeys: String, CodingKey {
             case id
             case displayName = "display_name"
             case avatarColor = "avatar_color"
+            case username
         }
     }
 
@@ -34,7 +38,8 @@ struct SupabaseAccountDirectory: AccountDirectory {
             .execute()
             .value
         return rows.first.map {
-            Profile(id: $0.id, displayName: $0.displayName, avatarColor: $0.avatarColor ?? .yellow)
+            Profile(
+                id: $0.id, displayName: $0.displayName, avatarColor: $0.avatarColor ?? .yellow, username: $0.username)
         }
     }
 
@@ -93,7 +98,22 @@ struct SupabaseAccountDirectory: AccountDirectory {
         // La política "crear mi perfil" solo deja insertar la fila con `id = auth.uid()`.
         try await client
             .from("profiles")
-            .insert(ProfileRow(id: profile.id, displayName: profile.displayName, avatarColor: nil))
+            .insert(ProfileRow(id: profile.id, displayName: profile.displayName, avatarColor: nil, username: nil))
             .execute()
+    }
+
+    func checkUsername(_ username: String, for userID: UUID) async throws -> UsernameCheck {
+        try CruceRemote.usernameCheck(
+            from: try await client.rpc("check_username", params: ["p_username": username]).execute().data)
+    }
+
+    func setUsername(_ username: String, for userID: UUID) async throws -> UsernameCheck {
+        try CruceRemote.usernameCheck(
+            from: try await client.rpc("set_username", params: ["p_username": username]).execute().data)
+    }
+
+    func deleteAccount(for userID: UUID) async throws {
+        // Borra el usuario de Auth de la sesión abierta; la base deja lo compartido como "Cuenta borrada".
+        try await client.rpc("delete_my_account").execute()
     }
 }

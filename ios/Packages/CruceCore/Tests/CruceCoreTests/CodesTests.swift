@@ -80,7 +80,8 @@ struct CodesTests {
         #expect(
             try await directory.previewInvite("CRZ-4821", for: joanID)
                 == .rejected(.own, message: CodeRejection.own.defaultMessage))
-        #expect(try await directory.redeemInvite("CRZ-4821", for: jesusID) == .valid(inviterName: "Joan"))
+        #expect(
+            try await directory.redeemInvite("CRZ-4821", for: jesusID) == .valid(inviterName: "Joan", username: "joan"))
         #expect(
             try await directory.previewInvite("CRZ-4821", for: anaID)
                 == .rejected(.used, message: CodeRejection.used.defaultMessage))

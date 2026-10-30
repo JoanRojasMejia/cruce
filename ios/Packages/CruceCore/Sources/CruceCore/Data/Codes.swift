@@ -121,8 +121,8 @@ public enum CodeRejection: String, Equatable, Sendable {
 
 /// Lo que se sabe de un código completo antes de usarlo: a dónde lleva o por qué no sirve.
 public enum CodePreview: Equatable, Sendable {
-    /// `CRZ-`: el cruce de esa persona ("Cuenta de Joan").
-    case cruce(inviterName: String)
+    /// `CRZ-`: el cruce de esa persona ("Cuenta de Joan"), con su @usuario si la base lo trae.
+    case cruce(inviterName: String, username: String? = nil)
     /// `PCH-`: ese parche; `alreadyMember` si quien lo usa ya está.
     case parche(name: String, alreadyMember: Bool)
     /// `SOY-`: el lugar de esa persona en ese parche.
@@ -132,7 +132,7 @@ public enum CodePreview: Equatable, Sendable {
     /// La vista previa de un `CRZ-` (`preview_invite`).
     public init(_ check: InviteCheck) {
         switch check {
-        case .valid(let name): self = .cruce(inviterName: name)
+        case .valid(let name, let username): self = .cruce(inviterName: name, username: username)
         case .rejected(let rejection, let message): self = .rejected(rejection, message: message)
         }
     }

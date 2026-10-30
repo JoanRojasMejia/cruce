@@ -118,8 +118,8 @@ select pg_temp.as_user('30000000-0000-0000-0000-000000000004');
 select is(public.preview_parche_code((select claim_code from carlos)),
   '{"ok": false, "error": "used", "message": "Ese código ya se usó. Pídele uno nuevo a quien te lo mandó."}'::jsonb,
   'Un SOY- que ya se usó lo dice, en vez de "no existe"');
-select throws_ok(format('select public.claim_parche_place(%L)', (select claim_code from carlos)),
-  'P0001', 'Ese código no existe', 'Quedarse con un lugar ya tomado sigue sin servir');
+select is(public.claim_parche_place((select claim_code from carlos)), null::uuid,
+  'Quedarse con un lugar ya tomado sigue sin servir');
 select is(public.preview_parche_code('SOY-ZZZZZZ') ->> 'error', 'invalid', 'Un SOY- que no existe dice que no existe');
 
 -- Un código nuevo nunca repite uno usado.

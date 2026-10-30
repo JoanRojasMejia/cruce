@@ -54,13 +54,13 @@ public enum MockParches {
         let participants = [
             ParcheParticipant(
                 id: joan, userID: MockData.joan.id, displayName: "Joan", joinedAt: hoursAgo(72),
-                lastSeenAt: hoursAgo(10), avatarColor: .yellow),
+                lastSeenAt: hoursAgo(10), avatarColor: .yellow, username: "joan"),
             ParcheParticipant(
                 id: jesus, userID: MockData.jesus.id, displayName: "Jesús", joinedAt: hoursAgo(71),
-                lastSeenAt: hoursAgo(1), avatarColor: .violet),
+                lastSeenAt: hoursAgo(1), avatarColor: .violet, username: "jesus"),
             ParcheParticipant(
                 id: ana, userID: anaUserID, displayName: "Ana", joinedAt: hoursAgo(70), lastSeenAt: hoursAgo(2),
-                avatarColor: .green),
+                avatarColor: .green, username: "ana"),
             ParcheParticipant(
                 id: carlos, displayName: "Carlos", claimCode: "SOY-K7QX2M", joinedAt: hoursAgo(69), avatarColor: .peach),
         ]

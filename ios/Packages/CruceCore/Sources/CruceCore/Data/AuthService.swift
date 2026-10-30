@@ -28,11 +28,23 @@ public struct Profile: Equatable, Sendable {
     public var displayName: String
     /// Su color fijo (`profiles.avatar_color`). Al crear el perfil lo elige la base, al azar.
     public var avatarColor: AvatarColor
+    /// Su @usuario (`profiles.username`). Al crear el perfil la base le pone la sugerencia de su nombre.
+    public var username: String?
+    /// Cuándo se borró la cuenta (`profiles.deleted_at`); el perfil queda como lápida con `deletedName`.
+    public var deletedAt: Date?
 
-    public init(id: UUID, displayName: String, avatarColor: AvatarColor = .yellow) {
+    /// El nombre de una cuenta borrada (igual que en `forget_account`).
+    public static let deletedName = "Cuenta borrada"
+
+    public init(
+        id: UUID, displayName: String, avatarColor: AvatarColor = .yellow, username: String? = nil,
+        deletedAt: Date? = nil
+    ) {
         self.id = id
         self.displayName = displayName
         self.avatarColor = avatarColor
+        self.username = username
+        self.deletedAt = deletedAt
     }
 }
 
@@ -61,6 +73,13 @@ public protocol AccountDirectory: Sendable {
     /// Cierra un cruce para las dos personas (`close_cruce`) y devuelve cuándo quedó cerrado. Si ya estaba cerrado,
     /// devuelve la fecha de antes.
     func closeCruce(_ cruceID: UUID, for userID: UUID) async throws -> Date
+    /// Si un @usuario está disponible para ese usuario (`check_username`). El propio está disponible.
+    func checkUsername(_ username: String, for userID: UUID) async throws -> UsernameCheck
+    /// Guarda el @usuario si está disponible (`set_username`); el anterior queda libre.
+    func setUsername(_ username: String, for userID: UUID) async throws -> UsernameCheck
+    /// Borra la cuenta (`delete_my_account`): cierra sus cruces, deja sus lugares en los parches como "Cuenta borrada"
+    /// y su perfil como lápida. No se puede deshacer.
+    func deleteAccount(for userID: UUID) async throws
 }
 // En Supabase las funciones usan la sesión abierta (`auth.uid()`): el `userID` que se pasa debe ser el de esa sesión.
 // El doble en memoria lo necesita para saber quién llama.
@@ -159,7 +178,18 @@ public actor InMemoryAccountDirectory: AccountDirectory {
         profiles: [Profile] = [], invitesFrom creators: [UUID] = [],
         now: Date = Date(timeIntervalSince1970: 1_793_000_000)
     ) {
-        self.profiles = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, $0) })
+        // Como el relleno de la base: quien no trae @usuario recibe la sugerencia de su nombre, en orden.
+        var stored: [UUID: Profile] = [:]
+        for profile in profiles {
+            var copy = profile
+            if copy.username == nil && copy.deletedAt == nil {
+                copy.username = Username.suggestion(from: profile.displayName) { name in
+                    stored.values.contains { $0.username == name } || profiles.contains { $0.username == name }
+                }
+            }
+            stored[profile.id] = copy
+        }
+        self.profiles = stored
         self.now = now
         for creator in creators {
             let ledgerID = UUID()
@@ -217,11 +247,57 @@ public actor InMemoryAccountDirectory: AccountDirectory {
     }
 
     /// Como la base: el color del perfil nuevo es uno de la paleta, al azar (el del perfil que llega no se usa).
+    /// Y, como el trigger `profiles_username_default`, le pone la sugerencia de su nombre como @usuario.
     public func createProfile(_ profile: Profile) async throws {
         if isFailing { throw Offline() }
         var created = profile
         created.avatarColor = AvatarColor.palette.randomElement() ?? .yellow
+        created.username = Username.suggestion(from: profile.displayName, isTaken: isTaken)
         profiles[profile.id] = created
+    }
+
+    public func checkUsername(_ username: String, for userID: UUID) async throws -> UsernameCheck {
+        if isFailing { throw Offline() }
+        let normalized = Username.normalize(username)
+        guard Username.isValid(normalized) else { return .invalidFormat }
+        if profiles.values.contains(where: { $0.username == normalized && $0.id != userID }) {
+            return .rejected(.taken, message: UsernameRejection.taken.defaultMessage)
+        }
+        return .available(normalized)
+    }
+
+    public func setUsername(_ username: String, for userID: UUID) async throws -> UsernameCheck {
+        let check = try await checkUsername(username, for: userID)
+        guard case .available(let normalized) = check else { return check }
+        guard profiles[userID]?.deletedAt == nil, profiles[userID] != nil else { throw NotFound() }
+        profiles[userID]?.username = normalized
+        return check
+    }
+
+    /// Como `forget_account`: cierra sus cruces completos, borra su cruce pendiente con su código y deja el perfil como
+    /// lápida (sin @usuario).
+    public func deleteAccount(for userID: UUID) async throws {
+        if isFailing { throw Offline() }
+        for index in ledgers.indices
+        where ledgers[index].members.count == 2 && ledgers[index].closedAt == nil
+            && ledgers[index].members.contains(where: { $0.user == userID })
+        {
+            ledgers[index].closedAt = now
+        }
+        let pending = Set(ledgers.filter { $0.createdBy == userID && $0.members.count < 2 }.map(\.id))
+        ledgers.removeAll { pending.contains($0.id) }
+        invites = invites.filter { !pending.contains($0.value.ledgerID) }
+        if var profile = profiles[userID] {
+            profile.displayName = Profile.deletedName
+            profile.username = nil
+            profile.deletedAt = now
+            profiles[userID] = profile
+        }
+    }
+
+    /// Si ese @usuario ya es de alguien.
+    private func isTaken(_ username: String) -> Bool {
+        profiles.values.contains { $0.username == username }
     }
 
     public func updateDisplayName(_ name: String, for userID: UUID) async throws {
@@ -264,9 +340,11 @@ public actor InMemoryAccountDirectory: AccountDirectory {
                 guard let mine = ledger.members.first(where: { $0.user == userID }),
                     let other = ledger.members.first(where: { $0.user != userID })
                 else { return nil }
+                let profile = profiles[other.user]
                 let partner = Member(
-                    id: other.user, name: profiles[other.user]?.displayName ?? "",
-                    avatarColor: profiles[other.user]?.avatarColor ?? .yellow, tikeVariant: other.tikeVariant)
+                    id: other.user, name: profile?.displayName ?? "",
+                    avatarColor: profile?.avatarColor ?? .yellow, tikeVariant: other.tikeVariant,
+                    username: profile?.username, isDeleted: profile?.deletedAt != nil)
                 return CruceLink(
                     id: ledger.id, partner: partner, myTikeVariant: mine.tikeVariant,
                     linkedAt: max(mine.joinedAt, other.joinedAt), closedAt: ledger.closedAt,
@@ -342,6 +420,6 @@ public actor InMemoryAccountDirectory: AccountDirectory {
         if linked {
             return (.rejected(.alreadyLinked, message: "Ya tienes un cruce con \(name)"), nil)
         }
-        return (.valid(inviterName: name), normalized)
+        return (.valid(inviterName: name, username: profiles[invite.createdBy]?.username), normalized)
     }
 }

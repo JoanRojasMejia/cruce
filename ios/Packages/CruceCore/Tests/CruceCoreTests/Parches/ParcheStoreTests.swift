@@ -735,6 +735,10 @@ struct ParcheStoreTests {
         #expect(joan.pendingCruceTransfers(in: after).isEmpty)
         let rejected = try #require(after.activity.first { $0.kind == .debtRejectedForCruce })
         #expect(joan.phrase(for: rejected, in: after) == "Carlos no aceptó pasar a su cruce la deuda contigo")
+        // S6: quien propuso ve el rechazo como un aviso sin ver en la Actividad (no en otro componente).
+        #expect(after.sortedActivity.contains { $0.id == rejected.id })
+        #expect(rejected.actorID != after.myParticipantID)
+        #expect(after.unseenCount > 0)
         #expect(joan.cruceCandidates(in: after).map(\.amountYouAreOwed) == [47_000], "Se puede volver a proponer")
         #expect(await joan.proposeCruceTransfer(in: MockParches.santaMartaID, with: MockParches.carlos) != nil)
     }

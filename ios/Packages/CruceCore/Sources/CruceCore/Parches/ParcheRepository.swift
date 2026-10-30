@@ -24,6 +24,8 @@ public enum ParcheRepositoryError: Error, Equatable, Sendable {
     case alreadyMoved
     /// En el plan "Para saldar" no hay una transferencia entre los dos (o cambió antes de aceptarla).
     case nothingToMove
+    /// 5 códigos que no sirven en la última hora (`CRZ-`, `PCH-` y `SOY-` cuentan juntos).
+    case tooManyAttempts
 }
 
 /// Acceso a los parches de quien tiene la sesión abierta. Cada operación corresponde a una consulta o función

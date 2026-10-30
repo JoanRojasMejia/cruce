@@ -1,17 +1,69 @@
 import CruceCore
 import SwiftUI
 
-/// Ajustes → la tarjeta del perfil: cambiar el nombre y el color propios. Los demás los ven cuando vuelven a cargar sus
-/// cruces y parches. El color es el mismo en todos los cruces y parches.
+/// Ajustes → la tarjeta del perfil: cambiar el nombre, el @usuario y el color propios. Los demás los ven cuando vuelven
+/// a cargar sus cruces y parches. El color es el mismo en todos los cruces y parches. Al final, "Borrar mi cuenta".
 struct ProfileView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(LedgerStore.self) private var ledger
     @Environment(ParcheStore.self) private var parches
     @Environment(Router.self) private var router
     @State private var name = ""
+    @State private var username = ""
     @State private var color: AvatarColor = .yellow
     @State private var failed = false
+    @State private var confirmingDelete: Bool
+    @State private var deleteFailed = false
+
+    /// `confirmingDelete` abre el diálogo de borrar la cuenta (para `-screen deleteAccount`).
+    init(confirmingDelete: Bool = false) {
+        _confirmingDelete = State(initialValue: confirmingDelete)
+    }
 
     var body: some View {
+        ScrollView {
+            content
+        }
+        .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .screenBackground()
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                Task { await save() }
+            } label: {
+                Text(session.isWorking ? "Guardando…" : "Guardar")
+            }
+            .buttonStyle(NeoButtonStyle(kind: .primary, height: 56, shadow: ShadowOffset.m))
+            .disabled(session.isWorking || trimmed.isEmpty || !hasChanges || !usernameReady)
+            .padding(.horizontal, Spacing.screen)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
+            .background(CruceColor.cream)
+        }
+        .onAppear {
+            name = session.me.name
+            username = session.me.username ?? ""
+            color = session.me.avatarColor
+        }
+        .overlay {
+            if confirmingDelete {
+                DeleteAccountConfirmation(
+                    failed: deleteFailed,
+                    onCancel: {
+                        confirmingDelete = false
+                        deleteFailed = false
+                    },
+                    onDelete: {
+                        Task { await deleteAccount() }
+                    }
+                )
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: confirmingDelete)
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 20) {
             ScreenHeader(title: "Tu perfil")
 
@@ -33,30 +85,23 @@ struct ProfileView: View {
                                 name = String(newValue.prefix(SessionStore.maxNameLength))
                             }
                         }
+                    UsernameField(username: $username)
                     colorPicker
                     if failed, let problem = session.error { ProblemText(problem: problem) }
                 }
             }
 
-            Spacer(minLength: 0)
-
-            Button {
-                Task { await save() }
-            } label: {
-                Text(session.isWorking ? "Guardando…" : "Guardar")
+            SettingsSection("TU CUENTA") {
+                SettingsActionRow("Borrar mi cuenta", systemImage: "person.crop.circle.badge.xmark") {
+                    deleteFailed = false
+                    confirmingDelete = true
+                }
             }
-            .buttonStyle(NeoButtonStyle(kind: .primary, height: 56, shadow: ShadowOffset.m))
-            .disabled(session.isWorking || trimmed.isEmpty || !hasChanges)
         }
         .foregroundStyle(CruceColor.ink)
         .padding(.horizontal, Spacing.screen)
         .padding(.top, 8)
         .padding(.bottom, 16)
-        .screenBackground()
-        .onAppear {
-            name = session.me.name
-            color = session.me.avatarColor
-        }
     }
 
     /// "Tu color": las 6 muestras de la paleta; la elegida lleva borde grueso y un chulo.
@@ -95,10 +140,34 @@ struct ProfileView: View {
     }
 
     private var hasChanges: Bool {
-        trimmed != session.me.name || color != session.me.avatarColor
+        trimmed != session.me.name || color != session.me.avatarColor || usernameChanged
     }
 
-    /// Guarda lo que cambió (nombre, color o los dos). Con el color nuevo se recargan los parches, donde también cambia.
+    private var usernameChanged: Bool {
+        Username.normalize(username) != (session.me.username ?? "")
+    }
+
+    /// Sin cambio en el @usuario, o uno nuevo que la base ya dijo que está disponible.
+    private var usernameReady: Bool {
+        guard usernameChanged else { return true }
+        let normalized = Username.normalize(username)
+        return session.usernameChecked == normalized && session.usernameCheck == .available(normalized)
+    }
+
+    /// Borra la cuenta y, como "Cerrar sesión", limpia la navegación y lo guardado en el teléfono. Sin red, el diálogo
+    /// sigue abierto con el problema.
+    private func deleteAccount() async {
+        guard await session.deleteAccount() else {
+            deleteFailed = true
+            return
+        }
+        confirmingDelete = false
+        router.popToRoot()
+        await ledger.reset()
+        await parches.reset()
+    }
+
+    /// Guarda lo que cambió (nombre, @usuario, color). Con el color nuevo se recargan los parches, donde también cambia.
     private func save() async {
         if color != session.me.avatarColor {
             guard await session.updateColor(color) else {
@@ -112,6 +181,13 @@ struct ProfileView: View {
                 failed = true
                 return
             }
+        }
+        if usernameChanged {
+            guard await session.updateUsername(username) else {
+                failed = true
+                return
+            }
+            await parches.load()
         }
         router.pop()
     }
@@ -128,6 +204,13 @@ struct ProfileView: View {
     #Preview {
         NavigationStack {
             ProfileView().toolbar(.hidden, for: .navigationBar)
+        }
+        .cruceStores(.sample())
+    }
+
+    #Preview("Borrar mi cuenta") {
+        NavigationStack {
+            ProfileView(confirmingDelete: true).toolbar(.hidden, for: .navigationBar)
         }
         .cruceStores(.sample())
     }
