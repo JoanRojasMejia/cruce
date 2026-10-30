@@ -186,7 +186,7 @@ select throws_ok(
   $$update public.profiles set display_name = 'Joan otra vez' where id = '16000000-0000-0000-0000-000000000001'$$,
   'P0001', 'Esa cuenta se borró', 'Una cuenta borrada no se edita (aunque su sesión siga vigente un rato)');
 select pg_temp.as_user('16000000-0000-0000-0000-000000000001');
-select throws_ok($$select public.set_username('joan.vuelve')$$, 'P0001', 'Esa cuenta se borró',
+select throws_ok($$select public.set_username('joan.vuelve')$$, 'P0001', 'Tu cuenta ya no existe',
   'Ni se le pone un @usuario');
 select throws_ok($$insert into public.profiles (id, display_name) values ('16000000-0000-0000-0000-000000000001', 'Joan')$$,
   '23505', null, 'Ni se crea otra vez con el mismo id');

@@ -52,7 +52,9 @@ select is(
 insert into auth.users (id, email) values
   ('12000000-0000-0000-0000-000000000001', 'joan@example.com'),
   ('12000000-0000-0000-0000-000000000002', 'jesus@example.com'),
-  ('12000000-0000-0000-0000-000000000003', 'ana@example.com');
+  ('12000000-0000-0000-0000-000000000003', 'ana@example.com'),
+  -- Existe en Auth pero no es del parche (una sesión sin cuenta recibe accountDeleted, ver 18_cuenta_borrada_sin_sesion).
+  ('12000000-0000-0000-0000-000000000009', 'pedro@example.com');
 select set_config('t.parche', 'a1200000-0000-0000-0000-000000000001', true);
 select set_config('t.cena', 'a1200000-0000-0000-0000-000000000002', true);
 
