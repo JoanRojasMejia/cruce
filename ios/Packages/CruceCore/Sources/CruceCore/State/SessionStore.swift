@@ -103,6 +103,8 @@ public final class SessionStore {
     /// Ya se sabe la etapa real. `AppStores.live()` arranca en `false` hasta el primer `refresh()`;
     /// los datos de ejemplo arrancan en `true` y `RootView` no los refresca.
     public private(set) var isReady: Bool
+    /// Cuántas veces se pidió revisar un código: `checkCode` solo aplica la respuesta del último.
+    private var codeCheck = 0
 
     private let auth: any AuthService
     private let directory: any AccountDirectory
@@ -351,11 +353,16 @@ public final class SessionStore {
     }
 
     /// Dice de quién es el código (4 dígitos, o completo con `CRZ-`) sin unirse. Con menos dígitos no consulta.
+    /// Solo cuenta el último código que se pidió revisar: la respuesta o el error de uno anterior que llega tarde
+    /// (el campo cambió mientras tanto) se ignora.
     public func checkCode(_ code: String) async {
+        codeCheck += 1
+        let check = codeCheck
         invitePreview = nil
         guard let user = userID, let full = Self.inviteCode(from: code) else { return }
-        await perform {
-            invitePreview = try await directory.previewInvite(full, for: user)
+        await perform(codeCheck: check) {
+            let preview = try await directory.previewInvite(full, for: user)
+            if codeCheck == check { invitePreview = preview }
         }
     }
 
@@ -476,23 +483,31 @@ public final class SessionStore {
         return domain.count >= 2 && domain.allSatisfy { !$0.isEmpty }
     }
 
-    /// Corre una llamada con `isWorking` y traduce su error a un `Problem`.
+    /// Corre una llamada con `isWorking` y traduce su error a un `Problem`. Una llamada cancelada (la pantalla ya no
+    /// la necesita) no deja problema, y tampoco el chequeo de un código que ya no es el último (`codeCheck`).
     @discardableResult
-    private func perform(_ work: () async throws -> Void) async -> Bool {
+    private func perform(codeCheck check: Int? = nil, _ work: () async throws -> Void) async -> Bool {
         isWorking = true
         error = nil
         defer { isWorking = false }
         do {
             try await work()
             return true
-        } catch AuthServiceError.invalidCode {
-            error = .invalidCode
-        } catch AuthServiceError.rateLimited {
-            error = .tooManyRequests
         } catch {
-            self.error = .network
+            let isStale = check.map { $0 != codeCheck } ?? false
+            guard !Task.isCancelled, !Self.isCancellation(error), !isStale else { return false }
+            switch error {
+            case AuthServiceError.invalidCode: self.error = .invalidCode
+            case AuthServiceError.rateLimited: self.error = .tooManyRequests
+            default: self.error = .network
+            }
         }
         return false
+    }
+
+    /// La llamada se canceló: Swift lanza `CancellationError` y `URLSession`, `URLError(.cancelled)`.
+    static func isCancellation(_ error: any Error) -> Bool {
+        error is CancellationError || (error as? URLError)?.code == .cancelled
     }
 }
 

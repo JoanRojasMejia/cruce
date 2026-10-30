@@ -236,13 +236,18 @@ struct EnterCodeView: View {
         guard case .complete(let kind, let full) = shape else { return }
         isChecking = true
         defer { isChecking = false }
+        // Si el código cambió mientras se revisaba, `.task(id:)` cancela este chequeo: su respuesta ya no se muestra
+        // (ni un error de conexión falso encima de la del código nuevo).
         switch kind {
         case .cruce:
             await session.checkCode(full)
+            guard !Task.isCancelled else { return }
             preview = session.invitePreview.map(CodePreview.init)
             if preview == nil { problem = session.error?.message }
         case .parche, .place:
-            preview = await parches.previewCode(full)
+            let answer = await parches.previewCode(full)
+            guard !Task.isCancelled else { return }
+            preview = answer
             if preview == nil { problem = parches.error?.message }
         }
     }
