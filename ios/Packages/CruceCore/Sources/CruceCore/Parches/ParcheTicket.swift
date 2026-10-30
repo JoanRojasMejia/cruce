@@ -52,6 +52,22 @@ public struct ParcheTicket: Hashable, Sendable {
         claimCode.map { "¿Ya tienes Cruce? Entra con el código \($0) y tus cuentas te siguen" }
     }
 
+    /// El enlace que abre "Tengo un código" con el `SOY-` de quien no tiene la app (`cruce://codigo/SOY-K7QX2M`, con
+    /// el esquema de la app que lo comparte); `nil` sin código.
+    public func claimLink(scheme: String) -> String? {
+        claimCode.flatMap { CodeLink.url(for: $0, scheme: scheme)?.absoluteString }
+    }
+
+    /// El texto corto que acompaña la imagen al compartir: "Cruce · Parche Santa Marta: Carlos debe $172.000." y, si
+    /// no tiene la app, su código y el enlace para entrar con él.
+    public func shareText(scheme: String) -> String {
+        var text = "Cruce · Parche \(parcheName): \(headline)"
+        if personName == nil { text += " \(Money.format(amount))" }
+        if let claimPhrase { text += ". \(claimPhrase)." }
+        if let link = claimLink(scheme: scheme) { text += " Ábrelo en Cruce: \(link)" }
+        return text
+    }
+
     /// El ticket de una persona: su frase, sus transferencias, sus gastos y, si no tiene la app, su código `SOY-`.
     public static func personal(for participantID: UUID, in detail: ParcheDetail, at date: Date) -> ParcheTicket? {
         guard let person = detail.participant(participantID) else { return nil }

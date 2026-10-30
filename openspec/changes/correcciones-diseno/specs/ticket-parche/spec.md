@@ -14,3 +14,14 @@ La app SHALL generar en el teléfono una imagen para compartir con lo que debe o
 #### Scenario: Lo que consumió
 - **WHEN** en el almuerzo por consumo el ítem "Mojarra" es de Carlos
 - **THEN** su ticket muestra "Mojarra" debajo de "Almuerzo en Taganga"
+
+### Requirement: Código en el ticket de quien no tiene la app
+Si la persona no tiene la app, su ticket personal MUST incluir su código `SOY-` con la frase "¿Ya tienes Cruce? Entra con el código … y tus cuentas te siguen" y el enlace `cruce://codigo/SOY-…` (con el esquema de la app que lo comparte: `cruce-test` en testing, `cruce-dev` en local). El texto que acompaña la imagen al compartir SHALL llevar ese mismo enlace, que abre "Tengo un código" con el campo lleno.
+
+#### Scenario: Persona con la app
+- **WHEN** se comparte el ticket personal de Ana, que tiene la app
+- **THEN** el ticket no lleva código `SOY-`
+
+#### Scenario: Ticket de Carlos con su enlace
+- **WHEN** Jesús comparte el ticket personal de Carlos desde la app de prod
+- **THEN** la imagen y el texto llevan `cruce://codigo/SOY-K7QX2M`, y el texto termina con "Ábrelo en Cruce: cruce://codigo/SOY-K7QX2M"

@@ -28,6 +28,27 @@ struct ParcheTicketTests {
         #expect(ticket.claimPhrase == "¿Ya tienes Cruce? Entra con el código SOY-K7QX2M y tus cuentas te siguen")
     }
 
+    @Test(
+        "El texto para compartir el ticket de Carlos lleva el enlace de su código SOY con el esquema de la app",
+        arguments: ["cruce", "cruce-test", "cruce-dev"])
+    func carlosShareText(scheme: String) throws {
+        let ticket = try #require(ParcheTicket.personal(for: MockParches.carlos, in: detail, at: cut))
+        #expect(ticket.claimLink(scheme: scheme) == "\(scheme)://codigo/SOY-K7QX2M")
+        let text = ticket.shareText(scheme: scheme)
+        #expect(text.hasPrefix("Cruce · Parche Santa Marta: Carlos debe $172.000."))
+        #expect(text.contains("¿Ya tienes Cruce? Entra con el código SOY-K7QX2M y tus cuentas te siguen."))
+        #expect(text.hasSuffix("Ábrelo en Cruce: \(scheme)://codigo/SOY-K7QX2M"))
+    }
+
+    @Test("Sin código SOY (con la app o el del parche) el texto no lleva enlace")
+    func shareTextWithoutLink() throws {
+        let ana = try #require(ParcheTicket.personal(for: MockParches.ana, in: detail, at: cut))
+        #expect(ana.claimLink(scheme: "cruce") == nil)
+        #expect(!ana.shareText(scheme: "cruce").contains("://"))
+        let group = ParcheTicket.parche(detail, at: cut)
+        #expect(group.shareText(scheme: "cruce") == "Cruce · Parche Santa Marta: Total gastado $865.000")
+    }
+
     @Test("Ana tiene la app y está en cero: a paz y salvo y sin código")
     func ana() throws {
         let ticket = try #require(ParcheTicket.personal(for: MockParches.ana, in: detail, at: cut))

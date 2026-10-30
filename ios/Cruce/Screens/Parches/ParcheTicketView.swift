@@ -36,7 +36,7 @@ struct ParcheTicketView: View {
                 )
                 .textStyle(.body)
                 .foregroundStyle(CruceColor.textBody)
-                TicketCard(ticket: ticket)
+                TicketCard(ticket: ticket, claimLink: ticket.claimLink(scheme: CodeLink.appScheme))
                     .padding(.horizontal, 4)
             }
             .padding(.horizontal, Spacing.screen)
@@ -81,7 +81,7 @@ struct ParcheTicketView: View {
     /// Dibuja el ticket a 3x para que se lea bien en el chat.
     private func render(_ ticket: ParcheTicket) {
         let renderer = ImageRenderer(
-            content: TicketCard(ticket: ticket)
+            content: TicketCard(ticket: ticket, claimLink: ticket.claimLink(scheme: CodeLink.appScheme))
                 .frame(width: 360)
                 .padding(20)
                 .background(CruceColor.cream)
@@ -96,12 +96,9 @@ struct ParcheTicketView: View {
         "Cruce · Parche \(ticket.parcheName)"
     }
 
-    /// El texto corto que acompaña la imagen.
+    /// El texto corto que acompaña la imagen, con el enlace del código `SOY-` en el esquema de esta app.
     private func shareText(_ ticket: ParcheTicket) -> String {
-        var text = "\(shareTitle(ticket)): \(ticket.headline)"
-        if ticket.personName == nil { text += " \(Money.format(ticket.amount))" }
-        if let claim = ticket.claimPhrase { text += ". \(claim)." }
-        return text
+        ticket.shareText(scheme: CodeLink.appScheme)
     }
 }
 
@@ -109,6 +106,8 @@ struct ParcheTicketView: View {
 /// No lee el `Environment` de los stores, así `ImageRenderer` lo puede dibujar solo.
 struct TicketCard: View {
     let ticket: ParcheTicket
+    /// El enlace del código `SOY-` (`cruce://codigo/SOY-…`), escrito en el bloque del código.
+    var claimLink: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -211,6 +210,10 @@ struct TicketCard: View {
                         Text("¿Ya tienes Cruce? Entra con el código").font(.archivo(13, .bold))
                         Text(code).font(.archivo(26, .black)).tracking(1.5)
                         Text("y tus cuentas te siguen.").font(.archivo(13, .bold))
+                        // El enlace como texto (en la imagen no se puede tocar; en el texto que se comparte, sí).
+                        if let claimLink {
+                            Text(claimLink).font(.archivo(12, .bold)).lineLimit(1).minimumScaleFactor(0.7)
+                        }
                     }
                     Spacer(minLength: 0)
                     if Illustration.placeClaimedMini.isAvailable {

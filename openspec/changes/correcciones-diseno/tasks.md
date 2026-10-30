@@ -27,7 +27,7 @@
 - [x] 4.3 Formas de reparto: "Iguales entre todos" y "Otra forma de repartir" con ejemplos.
 - [x] 4.4 Deshacer al borrar un gasto durante 5 s (D6).
 - [x] 4.5 Cuenta regresiva de 30 s para "Pedir otro código".
-- [ ] 4.6 Enlace del código `SOY-` en el ticket; Nequi o llave anotado en el ROADMAP.
+- [x] 4.6 Enlace del código `SOY-` en el ticket; Nequi o llave anotado en el ROADMAP.
 
 ## 5. Cierre
 
