@@ -4,6 +4,7 @@ import SwiftUI
 /// Inicio del cruce abierto: el saldo neto es el protagonista.
 /// Pantallas del canvas: 02 Inicio vacío, 03 Te deben, 04 Debes, 20 Vista de Jesús.
 /// Con un solo cruce es la raíz; con varios se abre desde "Tus cruces" (`showsBack`) y lleva volver y "Con Ana".
+/// "Tus parches" solo aparece cuando el cruce es la raíz (D8): abierto desde la lista no la repite, ya está allá.
 /// Un cruce cerrado (desvinculado) muestra el aviso y su saldo, sin agregar gastos ni saldar.
 struct HomeView: View {
     @Environment(SessionStore.self) private var session
@@ -35,8 +36,10 @@ struct HomeView: View {
                         actions
                         recent
                     }
-                    HomeParchesSection()
-                        .padding(.top, 4)
+                    if !showsBack {
+                        HomeParchesSection()
+                            .padding(.top, 4)
+                    }
                 }
                 .padding(.horizontal, Spacing.screen)
                 .padding(.top, 8)

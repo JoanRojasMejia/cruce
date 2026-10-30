@@ -20,3 +20,14 @@ Cuando el cruce es el inicio (un solo cruce abierto), Ajustes del cruce SHALL te
 #### Scenario: Un solo cruce
 - **WHEN** Joan solo tiene su cruce con Jesús, que es su inicio, y toca el engrane
 - **THEN** ve Ajustes del cruce, que termina con "Tu cuenta"; al tocarla se abre Ajustes y al volver regresa a Ajustes del cruce
+
+### Requirement: Tus parches solo en el inicio
+La sección "Tus parches" SHALL aparecer en "Tus cruces" y en el inicio cuando ese inicio es el único cruce abierto. Un cruce abierto desde "Tus cruces" MUST NOT repetir "Tus parches".
+
+#### Scenario: Un solo cruce
+- **WHEN** Joan solo tiene su cruce con Jesús, que es su inicio
+- **THEN** el inicio muestra el saldo con Jesús y, debajo, "Tus parches"
+
+#### Scenario: Cruce abierto desde la lista
+- **WHEN** Joan tiene cruces con Jesús y con Ana y abre el de Ana desde "Tus cruces"
+- **THEN** ve el saldo y los movimientos con Ana, sin la sección "Tus parches"

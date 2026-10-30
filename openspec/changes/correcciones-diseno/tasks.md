@@ -18,7 +18,7 @@
 - [x] 3.3 Llegada con `PCH-` y `SOY-`.
 - [x] 3.4 Una sola pantalla "Tengo un código", errores separados y enlace `cruce://codigo/…` (D2, D5).
 - [x] 3.5 Cruces cerrados en la sección "Cerrados".
-- [ ] 3.6 El cruce abierto desde la lista no repite "Tus parches" (D8).
+- [x] 3.6 El cruce abierto desde la lista no repite "Tus parches" (D8).
 
 ## 4. Detalles
 
