@@ -14,6 +14,10 @@ public enum MockParches {
     public static let ana = UUID(uuidString: "00000000-0000-0000-0000-00000000C003")!
     public static let carlos = UUID(uuidString: "00000000-0000-0000-0000-00000000C004")!
 
+    /// Ana y Joan dentro de "Cena de Ana".
+    public static let cenaAna = UUID(uuidString: "00000000-0000-0000-0000-00000000C011")!
+    public static let cenaJoan = UUID(uuidString: "00000000-0000-0000-0000-00000000C012")!
+
     /// El color del perfil de cada quien con la app: Joan amarillo, Jesús violeta y Ana verde (Carlos, sin la app, es
     /// durazno dentro de "Santa Marta").
     public static let colors: [UUID: AvatarColor] = [
@@ -107,17 +111,17 @@ public enum MockParches {
         func daysAgo(_ days: Double) -> Date { reference.addingTimeInterval(-days * 86_400) }
         let parche = Parche(
             id: cenaID, name: "Cena de Ana", code: "PCH-C3NA9B", status: .closed, createdAt: daysAgo(20),
-            closedAt: daysAgo(19), createdBy: UUID(uuidString: "00000000-0000-0000-0000-00000000C011")!)
+            closedAt: daysAgo(19), createdBy: cenaAna)
         let participants = [
             ParcheParticipant(
-                id: UUID(uuidString: "00000000-0000-0000-0000-00000000C011")!, userID: anaUserID, displayName: "Ana",
+                id: cenaAna, userID: anaUserID, displayName: "Ana",
                 joinedAt: daysAgo(20), lastSeenAt: daysAgo(18), avatarColor: .green),
             ParcheParticipant(
-                id: UUID(uuidString: "00000000-0000-0000-0000-00000000C012")!, userID: MockData.joan.id,
+                id: cenaJoan, userID: MockData.joan.id,
                 displayName: "Joan", joinedAt: daysAgo(20), lastSeenAt: daysAgo(18), avatarColor: .yellow),
         ]
-        let anaID = participants[0].id
-        let joanID = participants[1].id
+        let anaID = cenaAna
+        let joanID = cenaJoan
         let dinner = try! ParcheExpense.resolve(
             id: UUID(uuidString: "00000000-0000-0000-0000-00000000E011")!, parcheID: cenaID, concept: "Cena",
             base: 120_000, split: .equal([anaID, joanID]), payers: [ParchePayer(participantID: anaID, amount: 120_000)],

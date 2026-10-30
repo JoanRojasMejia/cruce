@@ -21,6 +21,8 @@
         case parcheDelete, parchePayment, parchePaymentOver, parcheClose, parcheNotCreator, parcheCloseNotCreator,
             parcheCruce, parcheCrucePending, parcheClosed,
             parcheOffline, parcheUndo
+        /// "Cena de Ana" cerrado con todos en $0 (A2-52) y "Santa Marta" visto por Carlos, que debe (A2-53).
+        case parcheSettledAll, parcheYouOwe
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
         static var current: DebugScreen? {
@@ -145,6 +147,13 @@
                     parcheBackend: closedBackend(carlosHasApp: true, carlosProposed: true))
             case .parcheClosed:
                 return stores(path: [.parche(MockParches.santaMartaID)], parcheBackend: closedBackend())
+            case .parcheSettledAll: return stores(path: [.parche(MockParches.cenaID)])
+            case .parcheYouOwe:
+                // Carlos ya tiene la app y lo ve él: debe $172.000 a favor de Jesús y Joan.
+                let stores = AppStores.sample(
+                    viewer: Self.carlos, parcheBackend: closedBackend(carlosHasApp: true, closed: false))
+                stores.router.path = [.parche(MockParches.santaMartaID)]
+                return stores
             case .saved:
                 let stores = AppStores.sample()
                 stores.ledger.lastSaved = stores.ledger.visibleMovements.first
@@ -299,15 +308,23 @@
         /// La cuenta de Carlos cuando se queda con su lugar (solo para estas pantallas).
         private static let carlosUserID = UUID(uuidString: "00000000-0000-0000-0000-0000000000A4")!
 
+        /// Carlos como quien usa la app (`parcheYouOwe`).
+        private static let carlos = Member(id: carlosUserID, name: "Carlos", avatarColor: .peach, tikeVariant: .verde)
+
         /// "Santa Marta" ya cerrado. Joan y Jesús comparten un cruce, pero en "Para saldar" no hay un pago entre ellos.
         /// Con `carlosHasApp`, Carlos se quedó con su lugar y comparte un cruce con Joan: aparece la pregunta por los
-        /// $47.000 que le paga a Joan. Con `carlosProposed`, Carlos ya lo propuso y Joan lo acepta o lo rechaza.
-        private func closedBackend(carlosHasApp: Bool = false, carlosProposed: Bool = false) -> InMemoryParcheBackend {
+        /// $47.000 que le paga a Joan. Con `carlosProposed`, Carlos ya lo propuso y Joan lo acepta o lo rechaza. Con
+        /// `closed: false`, "Santa Marta" sigue abierto.
+        private func closedBackend(
+            carlosHasApp: Bool = false, carlosProposed: Bool = false, closed: Bool = true
+        ) -> InMemoryParcheBackend {
             let parches = MockParches.parches().map { detail in
                 var detail = detail
                 guard detail.id == MockParches.santaMartaID else { return detail }
-                detail.parche.status = .closed
-                detail.parche.closedAt = .now
+                if closed {
+                    detail.parche.status = .closed
+                    detail.parche.closedAt = .now
+                }
                 if carlosHasApp, let index = detail.participants.firstIndex(where: { $0.id == MockParches.carlos }) {
                     detail.participants[index].userID = Self.carlosUserID
                     detail.participants[index].claimCode = nil

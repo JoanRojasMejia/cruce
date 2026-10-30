@@ -79,7 +79,7 @@ public struct ParcheTicket: Hashable, Sendable {
         let favor: String?
         if net < 0 {
             headline = "\(name) debe \(amount)"
-            let creditors = transfers.filter { $0.fromID == participantID }.map { displayName($0.toID, in: detail) }
+            let creditors = detail.creditors(of: participantID).map { displayName($0, in: detail) }
             favor = creditors.isEmpty ? nil : "a favor de \(list(creditors))"
         } else if net > 0 {
             headline = "A \(name) le deben \(amount)"

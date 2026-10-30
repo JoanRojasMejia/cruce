@@ -840,12 +840,7 @@ public final class ParcheStore {
 
     /// "Carlos te pagó $87.500", "Le pagaste $87.500 a Jesús" o "Carlos le pagó $87.500 a Jesús".
     private func paymentPhrase(from: UUID?, to: UUID?, amount: Int, in detail: ParcheDetail) -> String {
-        let value = Money.format(amount)
-        let fromName = from.map { name($0, in: detail) } ?? "Alguien"
-        let toName = to.map { name($0, in: detail) } ?? "alguien"
-        if from != nil && from == detail.myParticipantID { return "Le pagaste \(value) a \(toName)" }
-        if to != nil && to == detail.myParticipantID { return "\(fromName) te pagó \(value)" }
-        return "\(fromName) le pagó \(value) a \(toName)"
+        detail.paymentPhrase(from: from, to: to, amount: amount)
     }
 
     private static func sorted(_ parches: [ParcheDetail]) -> [ParcheDetail] {

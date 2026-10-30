@@ -295,6 +295,8 @@ Parches (sin captura en `docs/design/screens/`; se abren en Debug con `-screen <
 | "Tengo un código" (`CRZ-`, `PCH-`, `SOY-`) | `EnterCodeView` | `parcheCode` |
 | Llegada: "Entraste a…" (`PCH-`) y "Ahora eres… en…" (`SOY-`) | `ParcheArrivalView` | `parcheArrival`, `parcheArrivalPlace` |
 | Detalle (saldo, acciones, por confirmar, "Para saldar", saldos y gastos) | `ParcheDetailView` | `parcheDetail`, `parcheDetailEnd`, `parcheClosed` |
+| Detalle: debes en el parche, "a favor de Jesús y Joan" (A2-53) | `ParcheDetailView` | `parcheYouOwe` |
+| Detalle: parche saldado, todos en $0, con "Pagos" (A2-52) | `ParcheDetailView` | `parcheSettledAll` |
 | "Los del parche" y el código (botón de compartir) | `ParcheShareSheet` | `parcheShare` |
 | Actividad (al abrirla queda vista) | `ParcheActivityView` | `parcheActivity` |
 | Anotar o editar un gasto (y borrarlo) | `ParcheExpenseView` | `parcheExpense`, `parcheExpenseItems`, `parcheDelete` |

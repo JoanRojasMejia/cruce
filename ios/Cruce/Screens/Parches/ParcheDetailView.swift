@@ -66,9 +66,15 @@ struct ParcheDetailView: View {
                 confirmations(detail)
                 // Junto a los pagos por confirmar: lo que puede pasar a un cruce o espera respuesta.
                 cruceQuestions(detail)
-                transfers(detail)
-                balances(detail)
+                // Con todos en $0 no hay nada que saldar: en vez del plan y los saldos, los pagos (después de los gastos).
+                if detail.showsSettlementPlan {
+                    transfers(detail)
+                    balances(detail)
+                }
                 expenses(detail)
+                if detail.showsPaymentHistory {
+                    payments(detail)
+                }
                 // Solo quien creó el parche lo cierra; los demás ven a quién pedírselo.
                 if parches.canClose(detail) {
                     Button("Cerrar el parche") { router.push(.closeParche(parcheID: parcheID)) }
@@ -126,9 +132,10 @@ struct ParcheDetailView: View {
     // MARK: - Secciones
 
     private func myBalance(_ detail: ParcheDetail) -> some View {
-        let net = detail.myParticipantID.map { detail.balance(of: $0) } ?? 0
+        let net = detail.myNet
         let state = BalanceState(net: net)
-        let tab: Color = net > 0 ? CruceColor.green : net < 0 ? CruceColor.pink : CruceColor.neutral
+        let tab: Color =
+            net > 0 || detail.everyoneAtZero ? CruceColor.green : net < 0 ? CruceColor.pink : CruceColor.neutral
         return FolderCard(
             tab: "TU SALDO EN EL PARCHE", tabColor: tab, tabWidth: 200,
             padding: EdgeInsets(top: 14, leading: 18, bottom: 16, trailing: 18)
@@ -139,15 +146,17 @@ struct ParcheDetailView: View {
                     illustration: Self.balanceIllustration(state, everyoneAtZero: detail.everyoneAtZero), height: 140,
                     fallback: Illustration.balance(state, variant: session.me.tikeVariant))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(myPhrase(detail, net: net)).textStyle(.balancePhrase)
+                    Text(detail.myBalancePhrase).textStyle(.balancePhrase)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Money.format(net, showsSign: true))
                         .font(.archivo(40, .black, relativeTo: .largeTitle))
                         .tracking(-1.6)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
-                    if let favor = favorText(net: net, for: detail.myParticipantID, in: detail) {
-                        Text(favor).font(.archivo(13, .extraBold))
+                    // "a tu favor", "a favor de Jesús y Joan" o "Nadie le debe nada a nadie.".
+                    if let note = detail.myBalanceNote {
+                        Text(note).font(.archivo(13, .extraBold))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -164,27 +173,31 @@ struct ParcheDetailView: View {
         }
     }
 
+    @ViewBuilder
     private func actions(_ detail: ParcheDetail) -> some View {
         // Con texto grande los dos botones no caben lado a lado: van uno debajo del otro.
         let layout =
             dynamicTypeSize >= .xxLarge ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            if detail.parche.isOpen {
-                Button {
-                    router.push(.addParcheExpense(parcheID: parcheID))
-                } label: {
-                    Label("Anotar un gasto", systemImage: "plus")
+        // Cerrado y con todos en $0 no queda nada por anotar.
+        if detail.allowsRecordingPayment {
+            layout {
+                if detail.parche.isOpen {
+                    Button {
+                        router.push(.addParcheExpense(parcheID: parcheID))
+                    } label: {
+                        Label("Anotar un gasto", systemImage: "plus")
+                    }
+                    .buttonStyle(NeoButtonStyle(kind: .primary, height: 54, text: .buttonSecondary))
                 }
-                .buttonStyle(NeoButtonStyle(kind: .primary, height: 54, text: .buttonSecondary))
+                Button {
+                    router.push(.parchePayment(parcheID: parcheID))
+                } label: {
+                    Label("Anotar un pago", systemImage: "arrow.left.arrow.right")
+                }
+                .buttonStyle(detail.parche.isOpen ? .neoSecondary : NeoButtonStyle(kind: .primary, height: 54))
             }
-            Button {
-                router.push(.parchePayment(parcheID: parcheID))
-            } label: {
-                Label("Anotar un pago", systemImage: "arrow.left.arrow.right")
-            }
-            .buttonStyle(detail.parche.isOpen ? .neoSecondary : NeoButtonStyle(kind: .primary, height: 54))
+            .labelStyle(NeoLabelStyle())
         }
-        .labelStyle(NeoLabelStyle())
     }
 
     @ViewBuilder
@@ -357,6 +370,32 @@ struct ParcheDetailView: View {
         }
     }
 
+    /// Los pagos confirmados cuando todos quedaron en $0: "Le pagaste $90.000 a Ana · Confirmado por Ana · 19 oct".
+    @ViewBuilder
+    private func payments(_ detail: ParcheDetail) -> some View {
+        SectionTitle("Pagos")
+        ParcheCard {
+            ForEach(Array(detail.paymentLines().enumerated()), id: \.element.id) { index, line in
+                if index > 0 { CardDivider() }
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(line.title).textStyle(.rowTitle)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(line.detail)
+                            .textStyle(.secondary)
+                            .foregroundStyle(CruceColor.textSecondary)
+                    }
+                    Spacer(minLength: 8)
+                    Text(Money.format(line.amount)).font(.archivo(16, .black)).lineLimit(1)
+                }
+                .foregroundStyle(CruceColor.ink)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
     // MARK: - Textos
 
     private func statusColor(_ detail: ParcheDetail) -> Color {
@@ -370,12 +409,6 @@ struct ParcheDetailView: View {
 
     private func name(_ person: ParcheParticipant, in detail: ParcheDetail) -> String {
         person.id == detail.myParticipantID ? "\(person.displayName) (tú)" : person.label
-    }
-
-    private func myPhrase(_ detail: ParcheDetail, net: Int) -> String {
-        if net > 0 { return "Te deben en el parche" }
-        if net < 0 { return "Debes en el parche" }
-        return detail.isSettled ? "Ya están a paz y salvo" : "Estás a paz y salvo"
     }
 
     /// "Le deben $125.000 · a favor de Jesús", "Debes $33.000" o "A paz y salvo".
