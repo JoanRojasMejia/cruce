@@ -1,9 +1,9 @@
 # Arquitectura
 
 ```
- iPhone de Joan ─┐                        ┌─ Database Webhook ──► Backend Go ──► APNs (push)
+ Un iPhone ─────┐                        ┌─ Database Webhook ──► Backend Go ──► APNs (push)
                  ├──► Supabase ───────────┤
- iPhone de Jesús ┘   (Auth · Postgres ·   └─ Tiempo real ──► los dos iPhones
+ Otro iPhone ───┘   (Auth · Postgres ·   └─ Tiempo real ──► los dos iPhones
                       RLS · Realtime)
 ```
 

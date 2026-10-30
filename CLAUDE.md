@@ -8,7 +8,7 @@ El plan de trabajo, con los checkpoints, está en [`docs/ROADMAP.md`](docs/ROADM
 
 ## 1. Qué es Cruce
 
-Una app de iPhone para llevar las cuentas compartidas con tus amigos: con cada uno, un solo libro y un solo saldo. Empezó con **Joan y Jesús**, que son los primeros usuarios.
+Una app de iPhone para llevar las cuentas compartidas con tus amigos: con cada uno, un solo libro y un solo saldo. Empezó con **Joan y Jesús**, sus creadores y primeros usuarios, y se piensa abrir a cualquier persona. Por eso las reglas hablan de papeles ("quien creó el cruce", "quien se unió", "quien pagó"), no de personas: Joan y Jesús aparecen a propósito en el onboarding y como datos de ejemplo (`MockData`, pruebas, capturas).
 
 - **Problema:** hoy anotan las deudas por separado ("él me debe 30.000", "yo le debo 60.000") y no las pueden cruzar.
 - **Solución:** cada gasto se compensa automáticamente contra lo que el otro debe, y la app muestra siempre **un único saldo neto**: quién le debe a quién y cuánto.
@@ -67,7 +67,7 @@ Es un movimiento más (`kind = settlement`, reparto "todo es del otro"): quien d
 3. **Redondeo:** al peso más cercano, .5 hacia arriba: `(monto * porcentaje + 50) / 100`. Es igual en Swift (`Money.share`) y en SQL (`owed_by_other`).
 4. **Formato:** `$30.000`, `$1.800.000`, `+$18.000`, `−$50.000`. El signo menos es U+2212 (−), no un guion.
 5. **Quién le debe a quién nunca depende solo del color.** Siempre va con la frase ("Jesús te debe"), el signo +/− y el texto "a tu favor" o "a favor de Jesús". La flecha va de quien debe a quien recibe.
-6. **Regla del recibo rosa o verde ("Tike").** Las ilustraciones de "te deben" y "debes" tienen dos versiones. **Quien creó la cuenta (Joan) ve el recibo rosa; quien se unió con código (Jesús) ve el verde.** Se guarda por miembro (`Member.tikeVariant` en Swift, `ledger_members.tike_variant` en SQL). Es lo único que depende del papel en el cruce; los tickets y todo lo de parches usan ilustraciones neutrales.
+6. **Regla del recibo rosa o verde ("Tike").** Las ilustraciones de "te deben" y "debes" tienen dos versiones. **Quien creó el cruce ve el recibo rosa; quien se unió con el código ve el verde** (en los datos de ejemplo, Joan y Jesús). Se guarda por miembro (`Member.tikeVariant` en Swift, `ledger_members.tike_variant` en SQL). Es lo único que depende del papel en el cruce; los tickets y todo lo de parches usan ilustraciones neutrales.
 7. **Color fijo por persona (D7, 29 oct 2026).** Cada persona tiene un color de una paleta de 6 (amarillo, violeta, verde, durazno, rosado y lima) en `profiles.avatar_color` (`AvatarColor` en Swift, tipo `person_color` en SQL). Un perfil nuevo recibe uno al azar, se cambia en Tu perfil y se ve igual en Tus cruces, en cada cruce, en los parches y en los tickets. Quien está sin la app toma el siguiente color libre dentro del parche (`parche_participants.avatar_color`). Los perfiles que ya existían quedaron con el color de su cruce más reciente (o amarillo).
 8. **Eliminar es borrado suave** (`deleted_at`): el otro recibe un aviso.
 
@@ -338,9 +338,9 @@ Hay 15 espacios más, de `il-09-revisa-correo` a `il-21-codigo-invalido` (casos 
 ## 6. Arquitectura
 
 ```
-iPhone de Joan ─┐                       ┌─ Database Webhook ─► Backend Go ─► APNs (push)
+Un iPhone ─────┐                       ┌─ Database Webhook ─► Backend Go ─► APNs (push)
                 ├─► Supabase ───────────┤
-iPhone de Jesús ┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPhones
+Otro iPhone ───┘  (Auth · Postgres ·    └─ Realtime ─► los dos iPhones
                     RLS · Realtime)
 ```
 

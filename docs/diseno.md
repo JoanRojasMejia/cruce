@@ -62,7 +62,7 @@ En `ios/Cruce/Resources/Assets.xcassets/Illustrations`, a @2x y @3x. Los origina
 | `il-01-bienvenida` | Onboarding 1, Conectados |
 | `il-02-sin-movimientos` | Inicio vacío |
 | `il-03-gasto-guardado` | Hoja "Gasto guardado" |
-| `il-04-te-deben-rosa` / `-verde` | Inicio a favor (rosa = Joan, verde = Jesús) |
+| `il-04-te-deben-rosa` / `-verde` | Inicio a favor (rosa = quien creó el cruce, verde = quien se unió) |
 | `il-05-debes-rosa` / `-verde` | Inicio en contra |
 | `il-06-saldar` | Saldar cuentas |
 | `il-07-paz-y-salvo` | Éxito, onboarding 3 |

@@ -8,16 +8,29 @@ Cada checkpoint se lleva como un cambio de OpenSpec en `openspec/changes/` (ver 
 
 ## Decisiones abiertas (las toma Joan)
 
-- [ ] **Membresía de Apple Developer:** ¿se paga ya? La necesitan Sign in with Apple, las notificaciones push (CP9) y TestFlight (CP13). Por ahora no se paga: el CP3 se hizo con inicio de sesión por correo (código de 6 dígitos) y Sign in with Apple queda como función posterior.
+- [x] **Membresía de Apple Developer:** ¿se paga ya? La necesitan Sign in with Apple, las notificaciones push (CP9) y TestFlight (CP13). Por ahora no se paga: el CP3 se hizo con inicio de sesión por correo (código de 6 dígitos) y Sign in with Apple queda como función posterior. *30 oct 2026: queda para más adelante (ver "Para más adelante").*
 - [x] **Hosting del backend de Go:** *Decidido el 27 oct 2026: **Fly.io**, una máquina pequeña siempre prendida (unos US$2 al mes). Render gratis se duerme a los 15 minutos y perdería los webhooks de Supabase; Railway cuesta US$5 al mes como mínimo.*
 - [x] **Persistencia local para el modo sin conexión:** *Decidido el 27 oct 2026: archivo JSON (`Application Support/Cruce/movimientos.json`), con el mismo patrón que la cola de parches.*
 - [x] **Pago parcial ("Cambiar monto" en Saldar):** ¿se permite pagar menos del total? *Decidido el 27 oct 2026: **sí, de $1 hasta el total**; queda como un pago más y la pantalla dice "Pago anotado". Implementado en el CP11.*
 - [x] **Desvincular:** ¿qué pasa con el cruce y su historial? *Decidido el 27 oct 2026: **se cierra para los dos**; nadie anota ni salda, los dos ven y exportan el historial, y para volver se vinculan con un código nuevo (un cruce nuevo). Implementado en el CP11. El 29 oct 2026 Joan la confirmó otra vez ("sigamos con esa misma decision del 27 de octubre": un cruce cerrado no acepta gastos ni pagos) y se agregó "Saldar primero" en la confirmación cuando el saldo no es $0 (`correcciones-diseno`).*
 - [ ] **Pruebas de captura:** ¿se agrega `swift-snapshot-testing`? (CP12).
 - [x] **Una cuenta por persona:** ¿una persona puede pertenecer a más de una cuenta compartida? *Decidido el 27 oct 2026: **varios cruces, uno por pareja**. Con uno solo el inicio es ese cruce; con varios, el inicio muestra "Tus cruces". La regla va en el CP4 y la lista en el CP4b.*
-- [ ] **Borrar la cuenta de usuario:** Apple lo exige; falta definir qué pasa con sus cruces y los movimientos de los otros (CP11 o CP13). Hoy borrar en `auth.users` a alguien que está en un parche falla (ya pasaba antes de `correcciones-diseno`): el `on delete set null` de `parche_participants` choca con el trigger `parche_participants_before_update`. La decisión tiene que resolverlo.
-- [ ] **Intentos con códigos de parche:** `preview_parche_code` cuenta los intentos fallidos (5 por hora, junto con `CRZ-`), pero `join_parche` y `claim_parche_place` todavía no. ¿Se cuentan también ahí?
+- [x] **Borrar la cuenta de usuario:** *Decidido el 30 oct 2026 (cambio `usuarios-y-cuenta`): se borran el perfil, el correo, el @usuario y el color; sus cruces se cierran y la otra persona conserva el historial con "Cuenta borrada"; en los parches su lugar y sus gastos quedan como "Cuenta borrada" sin descuadrar a nadie. El trigger `parche_participants_before_update` deja pasar `user_id` a null solo si ese usuario ya no existe. Si vuelve con el mismo correo es una cuenta nueva, y el @usuario se libera de inmediato.*
+- [x] **Intentos con códigos de parche:** *Decidido el 30 oct 2026 (cambio `usuarios-y-cuenta`): `join_parche` y `claim_parche_place` también cuentan los intentos fallidos, en el mismo límite de 5 por hora.*
+- [x] **Nombres repetidos:** *Decidido el 30 oct 2026 (cambio `usuarios-y-cuenta`): cada persona tiene un **@usuario único** (3 a 20 caracteres: minúsculas, números, `.` y `_`), que elige al registrarse y cambia en Tu perfil; se ve en la vista previa del código, en Tus cruces y en los parches. A los perfiles que ya existían se les asignó uno desde su nombre.*
+- [x] **Teclado de montos:** *Decidido el 30 oct 2026 (cambio `teclado-de-montos`): el monto principal se escribe con el teclado de Cruce, acoplado abajo en todas las pantallas; los montos secundarios, con el del sistema.*
 - [ ] **Cómo pagarle a cada quien (Nequi o llave):** los tickets no lo muestran porque el dato no existe. ¿Se guarda en el perfil y se muestra en el ticket?
+
+---
+
+## Para más adelante (decidido el 30 oct 2026)
+
+Joan los deja para cuando la app se abra a más personas:
+
+- [ ] **Correo de prod con dominio propio:** hoy el código sale de Gmail (unos 500 al día, puede caer en spam); para el público hace falta un proveedor transaccional.
+- [ ] **Membresía de Apple Developer:** TestFlight, App Store, notificaciones push, Sign in with Apple y enlaces universales.
+- [ ] **Política de privacidad:** la pide la App Store.
+- [ ] **Otras monedas e idiomas:** hoy solo pesos colombianos y español de Colombia.
 
 ---
 
