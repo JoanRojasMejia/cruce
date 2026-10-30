@@ -123,10 +123,10 @@ select is(public.join_parche(' ' || lower(current_setting('t.code')) || ' ', 'An
 select public.join_parche(current_setting('t.code'), 'Ana');
 select is((select count(*) from public.parche_participants where user_id = '22222222-2222-2222-2222-222222222222'),
   1::bigint, 'Unirse dos veces no agrega a Ana dos veces');
-select throws_ok($$select public.join_parche('PCH-ZZZZZZ', 'Ana')$$,
-  'P0001', 'Ese código no existe', 'Un código que no existe se rechaza');
-select is(pg_temp.error_hint($$select public.join_parche('PCH-ZZZZZZ', 'Ana')$$), 'invalidCode',
-  'El error de código inválido trae la pista invalidCode');
+select is(public.join_parche('PCH-ZZZZZZ', 'Ana'), null::uuid,
+  'Un código que no existe no une a nadie (devuelve null y cuenta como intento fallido: 17_intentos_parche)');
+select is(pg_temp.error_hint($$select public.join_parche('PCH-ZZZZZZ', 'Ana')$$), null,
+  'Sin lanzar error, para no deshacer el intento fallido');
 select set_config('t.a', (select id::text from public.parche_participants
   where user_id = '22222222-2222-2222-2222-222222222222'), true);
 
@@ -325,8 +325,7 @@ select ok(
 select is((select count(*) from public.parche_expenses where parche_id = pg_temp.pid('parche')), 4::bigint,
   'Carlos ve los gastos del parche, también el borrado');
 select pg_temp.as_user('55555555-5555-5555-5555-555555555555');
-select throws_ok($$select public.claim_parche_place(current_setting('t.soy'))$$,
-  'P0001', 'Ese código no existe', 'Un código SOY- usado ya no sirve');
+select is(public.claim_parche_place(current_setting('t.soy')), null::uuid, 'Un código SOY- usado ya no sirve');
 
 -- ─────────────────────────────────────────────────────────────
 -- Cerrar
