@@ -1,13 +1,14 @@
 import CruceCore
 import SwiftUI
 
-/// Ajustes de la cuenta (pantalla 19): perfil, notificaciones, recordatorios, invitar, cerrar sesión y versión.
+/// Ajustes de la cuenta (pantalla 19): perfil, notificaciones, recordatorios, sonidos, invitar, cerrar sesión y versión.
 /// Lo del cruce abierto (con quién, moneda, reparto, exportar y desvincular) está en `CruceSettingsView`.
 struct SettingsView: View {
     @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
     @Environment(Router.self) private var router
     @State private var notifyNewExpense = true
+    @AppStorage(Feedback.soundsKey) private var soundsOn = true
 
     var body: some View {
         ScrollView {
@@ -48,6 +49,15 @@ struct SettingsView: View {
                         Text("Cada mes").font(.archivo(13, .extraBold))
                         Image(systemName: "chevron.right").font(.system(size: 13, weight: .heavy))
                     }
+                }
+
+                SettingsSection("SONIDOS") {
+                    // Solo suenan anotar, pagar, saldar, borrar, un código que no sirve y cerrar un parche.
+                    Toggle(isOn: $soundsOn) {
+                        Text("Sonidos").font(.archivo(15, .bold))
+                    }
+                    .toggleStyle(NeoToggleStyle())
+                    .frame(minHeight: 52)
                 }
 
                 SettingsSection("TUS CRUCES") {

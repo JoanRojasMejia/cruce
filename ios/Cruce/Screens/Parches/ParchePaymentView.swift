@@ -173,6 +173,7 @@ struct ParchePaymentView: View {
     private func save() async {
         guard let fromID, let toID else { return }
         if await parches.recordPayment(in: parcheID, from: fromID, to: toID, amount: amount) != nil {
+            Feedback.play(.paymentRecorded)
             router.pop()
         } else {
             problem = parches.error?.message
@@ -251,6 +252,7 @@ struct CloseParcheView: View {
         Button("Sí, cerrar el parche") {
             Task {
                 if await parches.close(parcheID) {
+                    Feedback.play(.parcheClosed)
                     if let updated = parches.parche(parcheID), parches.cruceCandidates(in: updated).isEmpty {
                         router.pop()
                     } else {

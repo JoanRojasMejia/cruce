@@ -64,6 +64,7 @@ struct HistoryView: View {
                     onCancel: { deleting = nil },
                     onDelete: {
                         deleting = nil
+                        Feedback.play(.expenseDeleted)
                         Task { await ledger.delete(movement.id) }
                     }
                 )

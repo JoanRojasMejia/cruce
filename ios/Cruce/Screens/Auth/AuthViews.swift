@@ -149,7 +149,10 @@ private struct CodeStep: View {
     private func verify() {
         resent = false
         Task {
-            if !(await session.verify(code: digits)) { digits = "" }
+            if !(await session.verify(code: digits)) {
+                digits = ""
+                Feedback.play(.error)
+            }
         }
     }
 

@@ -16,6 +16,7 @@ struct SettleSuccessView: View {
     var body: some View {
         ZStack {
             CruceColor.yellow.ignoresSafeArea()
+                .onAppear { Feedback.play(remaining == 0 ? .settled : .paymentRecorded) }
             decorations
 
             VStack(spacing: 24) {

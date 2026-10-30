@@ -397,6 +397,7 @@ struct ParcheExpenseView: View {
                     Button("Borrar") {
                         confirmingDelete = false
                         router.pop()
+                        Feedback.play(.expenseDeleted)
                         Task { await parches.deleteExpense(expenseID, in: parcheID) }
                     }
                     .buttonStyle(.dialog(.destructive))
@@ -529,6 +530,7 @@ struct ParcheExpenseView: View {
 
     private func commit(_ expense: ParcheExpense) {
         router.pop()
+        Feedback.play(.expenseSaved)
         Task { await parches.save(expense) }
     }
 

@@ -273,6 +273,7 @@ struct AddMovementView: View {
         guard amount > 0 else { return }
         let movement = draft
         router.pop()
+        Feedback.play(.expenseSaved)
         await ledger.save(movement)
     }
 }

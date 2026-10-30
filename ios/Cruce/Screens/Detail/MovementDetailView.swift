@@ -27,6 +27,7 @@ struct MovementDetailView: View {
                                 onCancel: { confirmingDelete = false },
                                 onDelete: {
                                     confirmingDelete = false
+                                    Feedback.play(.expenseDeleted)
                                     Task {
                                         await ledger.delete(movement.id)
                                         dismiss()

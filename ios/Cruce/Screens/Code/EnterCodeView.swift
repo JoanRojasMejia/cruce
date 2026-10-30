@@ -75,6 +75,10 @@ struct EnterCodeView: View {
         // Un enlace que llega con la pantalla ya abierta llena el campo otra vez.
         .onChange(of: session.pendingCode) { takePendingCode() }
         .onChange(of: code) { problem = nil }
+        // Suena cuando aparece el error del código (no mientras se sigue escribiendo uno que ya estaba mal).
+        .onChange(of: rejection?.title) { old, new in
+            if old == nil, new != nil { Feedback.play(.error) }
+        }
         .task(id: EnteredCode.normalize(code)) { await check() }
     }
 
@@ -262,10 +266,12 @@ struct EnterCodeView: View {
                 if session.phase != .main { router.popToRoot() }
             } else {
                 problem = session.error?.message
+                Feedback.play(.error)
             }
         case .parche, .place:
             guard let arrival = await parches.enter(code: full) else {
                 problem = parches.error?.message ?? CodeRejection.invalid.defaultMessage
+                Feedback.play(.error)
                 return
             }
             // "Tengo un código" se reemplaza por la llegada (o por el parche, si ya estaba en él).
