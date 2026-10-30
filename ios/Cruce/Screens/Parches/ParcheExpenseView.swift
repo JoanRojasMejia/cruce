@@ -92,7 +92,7 @@ struct ParcheExpenseView: View {
             Button(expenseID == nil ? "Guardar el gasto" : "Guardar cambios") { save(detail) }
                 .buttonStyle(NeoButtonStyle(kind: .primary, height: 54))
                 .disabled(
-                    base == 0 || concept.trimmingCharacters(in: .whitespaces).isEmpty || !payersDraft.isBalanced
+                    base == 0 || concept.trimmingCharacters(in: .whitespaces).isEmpty || !payersDraft.canSave
                 )
                 .padding(.horizontal, Spacing.screen)
                 .padding(.top, 10)
@@ -159,7 +159,7 @@ struct ParcheExpenseView: View {
                         }
                     }
                 }
-                if let mismatch = payersDraft.mismatchMessage {
+                if let mismatch = payersDraft.problemMessage {
                     ParcheProblem(text: mismatch)
                 }
             }

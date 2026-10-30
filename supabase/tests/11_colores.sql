@@ -3,7 +3,7 @@
 -- rosa o verde sigue siendo por cruce.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(27);
 
 create function pg_temp.as_user(p_user text) returns void language sql as $$
   select set_config('request.jwt.claims', '{"sub":"' || p_user || '","role":"authenticated"}', true);
@@ -91,21 +91,26 @@ update public.profiles set avatar_color = 'peach' where id = '20000000-0000-0000
 select pg_temp.as_user('20000000-0000-0000-0000-000000000001');
 set local role authenticated;
 select results_eq(
-  $$select partner_name, my_avatar, partner_avatar, my_tike, partner_tike from public.my_cruces()$$,
+  $$select partner_name, my_color, partner_color, my_tike, partner_tike from public.my_cruces()$$,
   $$values ('Ana'::text, 'green'::text, 'pink'::text, 'verde'::text, 'rosa'::text),
            ('Jesús'::text, 'green'::text, 'yellow'::text, 'rosa'::text, 'verde'::text)$$,
   'Joan es verde en sus dos cruces, aunque en uno lo creó (rosa) y en el otro se unió (verde)');
+-- Las versiones anteriores de la app leen my_avatar y partner_avatar como {yellow, violet}: siguen siendo el del rol.
+select results_eq(
+  $$select partner_name, my_avatar, partner_avatar from public.my_cruces()$$,
+  $$values ('Ana'::text, 'violet'::text, 'yellow'::text), ('Jesús'::text, 'yellow'::text, 'violet'::text)$$,
+  'my_avatar y partner_avatar siguen siendo el color del rol (amarillo quien creó, violeta quien se unió)');
 reset role;
 
 select pg_temp.as_user('20000000-0000-0000-0000-000000000002');
 set local role authenticated;
-select results_eq($$select partner_name, partner_avatar from public.my_cruces() where partner_name = 'Joan'$$,
+select results_eq($$select partner_name, partner_color from public.my_cruces() where partner_name = 'Joan'$$,
   $$values ('Joan'::text, 'green'::text)$$, 'Jesús ve a Joan verde');
 reset role;
 
 select pg_temp.as_user('20000000-0000-0000-0000-000000000003');
 set local role authenticated;
-select results_eq($$select partner_name, partner_avatar from public.my_cruces() where partner_name = 'Joan'$$,
+select results_eq($$select partner_name, partner_color from public.my_cruces() where partner_name = 'Joan'$$,
   $$values ('Joan'::text, 'green'::text)$$, 'Ana también ve a Joan verde');
 reset role;
 
@@ -116,9 +121,13 @@ select pg_temp.as_user('20000000-0000-0000-0000-000000000004');
 select ok((public.redeem_invite((select code from nuevo_code))->>'ok')::boolean, 'Pedro se une al cruce de Nuevo');
 set local role authenticated;
 select results_eq(
-  $$select my_tike, my_avatar, partner_tike, partner_avatar from public.my_cruces() where partner_name = 'Nuevo'$$,
+  $$select my_tike, my_color, partner_tike, partner_color from public.my_cruces() where partner_name = 'Nuevo'$$,
   $$values ('verde'::text, 'lime'::text, 'rosa'::text, 'peach'::text)$$,
   'Quien se une ve el recibo verde; los colores son los de cada perfil, no los del rol');
+select results_eq(
+  $$select my_avatar, partner_avatar from public.my_cruces() where partner_name = 'Nuevo'$$,
+  $$values ('violet'::text, 'yellow'::text)$$,
+  'Un cruce nuevo también llena el color del rol para las versiones anteriores');
 reset role;
 
 -- ─────────────────────────────────────────────────────────────
@@ -172,7 +181,7 @@ select is(pg_temp.colors(current_setting('t.parche')::uuid),
 
 select pg_temp.as_user('20000000-0000-0000-0000-000000000001');
 set local role authenticated;
-select results_eq($$select partner_avatar from public.my_cruces() where partner_name = 'Jesús'$$,
+select results_eq($$select partner_color from public.my_cruces() where partner_name = 'Jesús'$$,
   $$values ('pink'::text)$$, 'Joan ve el color nuevo de Jesús en su cruce');
 reset role;
 

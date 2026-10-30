@@ -72,6 +72,21 @@ public struct ParchePayersDraft: Hashable, Sendable {
         return nil
     }
 
+    /// Alguien que está como pagador no puso nada ($0): la base no lo acepta (`.noPayers`). Pasa al escribir $0 a mano
+    /// o cuando el total es menor que el número de pagadores.
+    public var hasPayerWithoutAmount: Bool { payerIDs.isEmpty || payerIDs.contains { amount(of: $0) <= 0 } }
+
+    /// La suma da el total y cada pagador puso algo: se puede guardar.
+    public var canSave: Bool { isBalanced && !hasPayerWithoutAmount }
+
+    /// Lo que impide guardar, para mostrarlo bajo "¿Cuánto puso cada uno?": primero si faltan o sobran pesos, después si
+    /// alguien quedó en $0. `nil` si se puede guardar (con un solo pagador, el monto del gasto ya se valida aparte).
+    public var problemMessage: String? {
+        if let mismatchMessage { return mismatchMessage }
+        if hasSeveralPayers && hasPayerWithoutAmount { return "Cada quien que pagó tiene que poner algo" }
+        return nil
+    }
+
     /// Agrega o quita a esa persona. El último pagador no se puede quitar.
     public mutating func toggle(_ id: UUID) {
         if payerIDs.contains(id) {

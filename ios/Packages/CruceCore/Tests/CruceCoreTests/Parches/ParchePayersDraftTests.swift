@@ -73,6 +73,28 @@ struct ParchePayersDraftTests {
         #expect(draft.mismatchMessage == "Faltan $100.000")
     }
 
+    @Test("Un pagador con $0 no deja guardar, aunque la suma dé el total")
+    func payerWithoutAmountCannotSave() {
+        var draft = ParchePayersDraft(order: order, payerIDs: [jesus, joan], total: 600_000)
+        #expect(draft.canSave)
+        #expect(draft.problemMessage == nil)
+        draft.setAmount(600_000, for: jesus)
+        draft.setAmount(0, for: joan)
+        #expect(draft.isBalanced)
+        #expect(!draft.canSave)
+        #expect(draft.problemMessage == "Cada quien que pagó tiene que poner algo")
+
+        // Un total menor que el número de pagadores: a alguien le tocan $0.
+        let tiny = ParchePayersDraft(order: order, payerIDs: [joan, jesus, ana], total: 2)
+        #expect(tiny.isBalanced)
+        #expect(!tiny.canSave)
+        #expect(tiny.problemMessage == "Cada quien que pagó tiene que poner algo")
+
+        // Faltan o sobran va primero.
+        draft.setAmount(500_000, for: jesus)
+        #expect(draft.problemMessage == "Faltan $100.000")
+    }
+
     @Test("Faltan o sobran: el mensaje dice cuánto, en pesos")
     func mismatchMessage() {
         var draft = ParchePayersDraft(order: order, payerIDs: [jesus, joan], total: 600_000)

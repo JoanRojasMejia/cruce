@@ -171,6 +171,30 @@ struct PersonColorTests {
         #expect(links[0].myTikeVariant == .rosa)
     }
 
+    @Test("my_cruces con partner_color: el color del perfil gana sobre partner_avatar (el del rol)")
+    func remoteCruceProfileColor() throws {
+        let json = """
+            [{"ledger_id": "aaaaaaaa-0000-0000-0000-000000000001", "partner_id": "\(jesusID)",
+              "partner_name": "Jesús", "my_tike": "rosa", "my_avatar": "yellow", "partner_tike": "verde",
+              "partner_avatar": "violet", "linked_at": "2026-10-27T10:00:00+00:00",
+              "my_color": "green", "partner_color": "lime"}]
+            """
+        let links = try CruceRemote.cruceLinks(from: data(json))
+        #expect(links[0].partner.avatarColor == .lime)
+    }
+
+    @Test("my_cruces sin las columnas nuevas (base vieja) sigue leyendo partner_avatar")
+    func remoteCruceWithoutProfileColor() throws {
+        let json = """
+            [{"ledger_id": "aaaaaaaa-0000-0000-0000-000000000001", "partner_id": "\(jesusID)",
+              "partner_name": "Jesús", "my_tike": "verde", "my_avatar": "violet", "partner_tike": "rosa",
+              "partner_avatar": "yellow", "linked_at": "2026-10-27T10:00:00+00:00"}]
+            """
+        let links = try CruceRemote.cruceLinks(from: data(json))
+        #expect(links.count == 1)
+        #expect(links[0].partner.avatarColor == .yellow)
+    }
+
     @Test("Cada participante del parche trae su color; sin la columna (base vieja) queda amarillo")
     func remoteParticipantColor() throws {
         let withColor = try ParcheRemote.participant(

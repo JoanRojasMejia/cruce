@@ -108,6 +108,8 @@ public enum CruceRemote {
         let myTike: TikeVariant
         let partnerTike: TikeVariant
         let partnerAvatar: AvatarColor
+        /// El color del perfil del otro (desde `20261029130000_my_cruces_compat`). Una base vieja no lo trae.
+        let partnerColor: AvatarColor?
         let linkedAt: Date
         let closedAt: Date?
         let defaultOtherPercent: Int?
@@ -119,6 +121,7 @@ public enum CruceRemote {
             case myTike = "my_tike"
             case partnerTike = "partner_tike"
             case partnerAvatar = "partner_avatar"
+            case partnerColor = "partner_color"
             case linkedAt = "linked_at"
             case closedAt = "closed_at"
             case defaultOtherPercent = "default_other_percent"
@@ -131,13 +134,15 @@ public enum CruceRemote {
     }
 
     /// Las filas de `my_cruces()`, en el mismo orden (los abiertos primero, cada grupo del más reciente al más viejo).
-    /// `partner_avatar` es el color del perfil del otro; `my_avatar` (el propio) no se lee: sale del perfil.
+    /// `partner_color` es el color del perfil del otro. `partner_avatar` es el del rol en ese cruce (amarillo quien lo
+    /// creó, violeta quien se unió), que se queda para las versiones anteriores de la app; solo se usa si la base no
+    /// trae `partner_color`. `my_avatar` y `my_color` (los propios) no se leen: salen del perfil.
     public static func cruceLinks(from data: Data) throws -> [CruceLink] {
         try ParcheRemote.decoder().decode([CruceRow].self, from: data).map { row in
             CruceLink(
                 id: row.ledgerId,
                 partner: Member(
-                    id: row.partnerId, name: row.partnerName, avatarColor: row.partnerAvatar,
+                    id: row.partnerId, name: row.partnerName, avatarColor: row.partnerColor ?? row.partnerAvatar,
                     tikeVariant: row.partnerTike),
                 myTikeVariant: row.myTike, linkedAt: row.linkedAt,
                 closedAt: row.closedAt, defaultOtherPercent: row.defaultOtherPercent ?? CruceLink.standardOtherPercent)

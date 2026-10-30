@@ -2,7 +2,7 @@
 -- ver de quién es un código antes de unirse y la lista de cruces completos.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(28);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'joan@example.com'),
@@ -54,9 +54,13 @@ select ok((select (r->>'ok')::boolean from jesus_join), 'Jesús se une a la cuen
 
 -- ── La lista de cruces ───────────────────────────────────────
 select results_eq(
-  $$select partner_name, my_tike, my_avatar, partner_tike, partner_avatar from public.my_cruces()$$,
+  $$select partner_name, my_tike, my_color, partner_tike, partner_color from public.my_cruces()$$,
   $$values ('Joan'::text, 'verde'::text, 'pink'::text, 'rosa'::text, 'green'::text)$$,
   'Jesús ve su cruce con Joan, con el color del perfil y el recibo de cada lado');
+select results_eq(
+  $$select my_avatar, partner_avatar from public.my_cruces()$$,
+  $$values ('violet'::text, 'yellow'::text)$$,
+  'my_avatar y partner_avatar siguen con el color del rol, para las versiones anteriores de la app');
 
 -- ── Un cruce por pareja ──────────────────────────────────────
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', true);
