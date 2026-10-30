@@ -87,6 +87,12 @@ public final class LedgerStore {
         BalanceState(net: net)
     }
 
+    /// La confirmación de desvincular ofrece "Saldar primero": el cruce abierto sigue abierto y su saldo no es $0.
+    /// Un cruce cerrado ya no acepta pagos, así que ahí no se ofrece.
+    public var offersSettleBeforeUnlink: Bool {
+        !session.isOpenCruceClosed && net != 0
+    }
+
     public var movementsSinceLastSettlement: Int {
         BalanceCalculator.movementsSinceLastSettlement(movements).count
     }

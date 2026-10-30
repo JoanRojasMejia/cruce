@@ -63,4 +63,26 @@ struct PartialSettlementTests {
         #expect(store.lastSettlement == nil)
         #expect(store.net == 50_000)
     }
+
+    // MARK: - Saldar primero (desvincular)
+
+    @Test("Con saldo pendiente, desvincular ofrece \"Saldar primero\"")
+    func offersSettleFirst() {
+        #expect(store().offersSettleBeforeUnlink)
+    }
+
+    @Test("A paz y salvo, desvincular no ofrece saldar")
+    func noSettleFirstWhenSettled() async {
+        let store = store()
+        await store.settle(paymentMethod: "Nequi")
+        #expect(store.balance == .settled)
+        #expect(!store.offersSettleBeforeUnlink)
+    }
+
+    @Test("Un cruce cerrado no ofrece saldar, aunque quede saldo")
+    func noSettleFirstWhenClosed() {
+        let store = store(closed: true)
+        #expect(store.net == 50_000)
+        #expect(!store.offersSettleBeforeUnlink)
+    }
 }

@@ -9,7 +9,7 @@
         case signUp, signUpCode, signUpName, invite, join, joinInvalid, connected
         case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus, cruces, cruceAna
         case add, saved, history, detail, delete, settle, success, offline, settings
-        case profile, defaultSplit, settleAmount, successPartial, unlink, crucesClosed, cruceClosed
+        case profile, defaultSplit, settleAmount, successPartial, unlink, unlinkSettled, crucesClosed, cruceClosed
         case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
@@ -52,6 +52,11 @@
                 stores.ledger.pendingSyncCount = 1
                 return stores
             case .settings, .unlink: return stores(path: [.settings])
+            case .unlinkSettled:
+                // A paz y salvo: el diálogo no ofrece "Saldar primero".
+                let stores = AppStores.sample(movements: [])
+                stores.router.path = [.settings]
+                return stores
             case .profile: return stores(path: [.settings, .profile])
             case .defaultSplit: return stores(path: [.settings, .defaultSplit])
             case .settleAmount: return .sample()
@@ -128,7 +133,7 @@
             case .settleAmount:
                 ChangeAmountSheet(total: stores.ledger.balance.amount, initial: 5_000) { _ in }
                     .screenBackground()
-            case .unlink:
+            case .unlink, .unlinkSettled:
                 NavigationStack {
                     SettingsView(confirmingUnlink: true).toolbar(.hidden, for: .navigationBar)
                 }

@@ -154,6 +154,11 @@ struct SettingsView: View {
                                 unlinkFailed = true
                             }
                         }
+                    },
+                    onSettleFirst: {
+                        confirmingUnlink = false
+                        unlinkFailed = false
+                        router.push(.settle)
                     }
                 )
                 .transition(.opacity)

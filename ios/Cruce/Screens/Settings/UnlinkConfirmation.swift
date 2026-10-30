@@ -2,6 +2,7 @@ import CruceCore
 import SwiftUI
 
 /// Diálogo "¿Desvincular a Jesús?": explica que el cruce se cierra para los dos y, si hay, el saldo pendiente.
+/// Con saldo pendiente ofrece "Saldar primero", porque un cruce cerrado ya no acepta pagos.
 struct UnlinkConfirmation: View {
     @Environment(SessionStore.self) private var session
     @Environment(LedgerStore.self) private var ledger
@@ -9,11 +10,17 @@ struct UnlinkConfirmation: View {
     let failed: Bool
     let onCancel: () -> Void
     let onUnlink: () -> Void
+    /// Cierra el diálogo y abre "Saldar cuentas".
+    let onSettleFirst: () -> Void
 
-    init(failed: Bool = false, onCancel: @escaping () -> Void, onUnlink: @escaping () -> Void) {
+    init(
+        failed: Bool = false, onCancel: @escaping () -> Void, onUnlink: @escaping () -> Void,
+        onSettleFirst: @escaping () -> Void = {}
+    ) {
         self.failed = failed
         self.onCancel = onCancel
         self.onUnlink = onUnlink
+        self.onSettleFirst = onSettleFirst
     }
 
     var body: some View {
@@ -36,13 +43,23 @@ struct UnlinkConfirmation: View {
                 .textStyle(.body)
                 .foregroundStyle(CruceColor.textBody)
                 if ledger.net != 0 {
-                    Text("Saldo pendiente: \(ledger.phrase(forNet: ledger.net)). Queda anotado en el historial.")
+                    Text(pendingText)
                         .font(.archivo(14, .extraBold))
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .neoSurface(fill: CruceColor.peach, radius: Radius.input, border: BorderWidth.thin)
                 }
                 if failed, let problem = session.error { ProblemText(problem: problem) }
+                if ledger.offersSettleBeforeUnlink {
+                    Button(action: onSettleFirst) {
+                        Label("Saldar primero", systemImage: "checkmark")
+                    }
+                    .buttonStyle(
+                        NeoButtonStyle(kind: .primary, height: 50, shadow: ShadowOffset.s, radius: Radius.input)
+                    )
+                    .disabled(session.isWorking)
+                    .padding(.top, 4)
+                }
                 HStack(spacing: 10) {
                     Button("Cancelar", action: onCancel)
                         .buttonStyle(
@@ -65,11 +82,24 @@ struct UnlinkConfirmation: View {
             .accessibilityAddTraits(.isModal)
         }
     }
+
+    /// El saldo pendiente y qué pasa con él: después de desvincular ya no se puede saldar.
+    private var pendingText: String {
+        let phrase = ledger.phrase(forNet: ledger.net)
+        return ledger.offersSettleBeforeUnlink
+            ? "Saldo pendiente: \(phrase). Después de desvincular ya no se puede saldar."
+            : "Saldo pendiente: \(phrase). Queda anotado en el historial."
+    }
 }
 
 #if DEBUG
-    #Preview {
+    #Preview("Con saldo pendiente") {
         UnlinkConfirmation(onCancel: {}, onUnlink: {})
             .cruceStores(.sample())
+    }
+
+    #Preview("A paz y salvo") {
+        UnlinkConfirmation(onCancel: {}, onUnlink: {})
+            .cruceStores(.sample(movements: []))
     }
 #endif
