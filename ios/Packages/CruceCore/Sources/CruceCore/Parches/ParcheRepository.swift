@@ -145,7 +145,8 @@ public actor InMemoryParcheBackend {
         let creator = ParcheParticipant(
             userID: user, displayName: displayName, joinedAt: date, lastSeenAt: date, avatarColor: color(of: user))
         var detail = ParcheDetail(
-            parche: Parche(id: id, name: name, code: uniqueCode(.parche), createdAt: date), participants: [creator])
+            parche: Parche(id: id, name: name, code: uniqueCode(.parche), createdAt: date, createdBy: creator.id),
+            participants: [creator])
         detail.activity.append(ParcheActivity(parcheID: id, kind: .parcheCreated, actorID: creator.id, createdAt: date))
         details[id] = detail
         return try respond(view(detail, for: user))
@@ -320,6 +321,8 @@ public actor InMemoryParcheBackend {
     func closeParche(id: UUID, user: UUID) throws {
         try checkConnection()
         var (detail, me) = try record(id, user: user)
+        // Igual que `close_parche`: solo quien lo creó (o, si ya no tiene la app, cualquiera con la app).
+        guard detail.mayClose(me.id) else { throw ParcheRepositoryError.notAllowed }
         guard detail.parche.isOpen else { return try respond(()) }
         let date = now()
         detail.parche.status = .closed

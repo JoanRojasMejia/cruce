@@ -37,3 +37,26 @@ Con el parche cerrado, la app SHALL ofrecer pasar a un cruce solo las transferen
 #### Scenario: El cruce se cerró antes de aceptar
 - **WHEN** Joan y Carlos desvinculan su cruce mientras una propuesta entre ellos está por confirmar
 - **THEN** la base no deja aceptarla y sigue por confirmar
+
+### Requirement: Pagos con confirmación
+Un pago anotado por quien lo recibió, o cuyo receptor no tiene la app, SHALL contar de una vez. Si lo anota otra persona y el receptor tiene la app, MUST quedar pendiente y no contar hasta que el receptor lo confirme. En "¿A quién le pagó?" MUST NOT aparecer quien pagó. Si el pago supera lo que el plan "Para saldar" dice que esa persona le paga a la otra (o el plan no tiene un pago entre ellas en ese sentido), la app SHALL avisarlo antes de anotarlo, con la opción de corregir o anotarlo de todas formas, y otra vez en la confirmación. Para confirmar, el plan MUST calcularse sin ese mismo pago.
+
+#### Scenario: Carlos le pagó a Jesús
+- **WHEN** Ana anota que Carlos le pagó $87.500 a Jesús
+- **THEN** el pago queda pendiente, Jesús ve "Carlos te pagó $87.500, ¿confirmas?" y el saldo cambia solo cuando confirma
+
+#### Scenario: Lo anota quien recibió
+- **WHEN** Jesús anota que Carlos le pagó $87.500
+- **THEN** el pago cuenta de una vez
+
+#### Scenario: Un pago de más al anotar
+- **WHEN** en Santa Marta, donde "Para saldar" dice que Carlos le paga $47.000 a Joan, Joan anota que Carlos le pagó $50.000
+- **THEN** antes de guardarlo la app muestra "Carlos te debe $47.000 en el parche. Anotaste $50.000." con "Corregir" y "Anotar de todas formas"
+
+#### Scenario: Un pago de más al confirmar
+- **WHEN** Ana anotó que Carlos le pagó $50.000 a Joan y Joan va a confirmarlo
+- **THEN** la confirmación muestra "Carlos te debe $47.000 en el parche. Ana anotó $50.000."
+
+#### Scenario: Quien pagó no recibe
+- **WHEN** en "¿Quién pagó?" se elige a Carlos
+- **THEN** Carlos no aparece en "¿A quién le pagó?"

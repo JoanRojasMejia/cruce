@@ -165,6 +165,19 @@ public struct ParcheDetail: Identifiable, Codable, Hashable, Sendable {
         participants.first { $0.id == id }
     }
 
+    /// Quien creó el parche, si se sabe.
+    public var creator: ParcheParticipant? {
+        parche.createdBy.flatMap(participant)
+    }
+
+    /// Esa persona puede cerrar el parche: solo quien lo creó. Igual que `close_parche`: si quien lo creó ya no tiene
+    /// la app (o no se sabe quién fue), lo cierra cualquiera del parche con la app.
+    public func mayClose(_ participantID: UUID?) -> Bool {
+        guard let participantID, let person = participant(participantID), person.hasApp else { return false }
+        guard let creator, creator.hasApp else { return true }
+        return creator.id == participantID
+    }
+
     /// Gastos vigentes, del más reciente al más antiguo.
     public var visibleExpenses: [ParcheExpense] {
         expenses.filter { !$0.isDeleted }.sorted {

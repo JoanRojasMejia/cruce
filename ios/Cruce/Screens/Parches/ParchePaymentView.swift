@@ -237,6 +237,17 @@ struct CloseParcheView: View {
             ParcheProblem(text: error.message)
         }
         Spacer(minLength: 0)
+        if let hint = parches.closeHint(for: detail) {
+            CloseParcheHint(text: hint)
+            Button("Volver al parche") { router.pop() }
+                .buttonStyle(.neoSecondary)
+        } else {
+            closeButtons
+        }
+    }
+
+    @ViewBuilder
+    private var closeButtons: some View {
         Button("Sí, cerrar el parche") {
             Task {
                 if await parches.close(parcheID) {

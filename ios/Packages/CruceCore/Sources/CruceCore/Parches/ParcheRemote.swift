@@ -7,7 +7,7 @@ public enum ParcheRemote {
     /// Lo que se pide de `parches` en una sola consulta: cada parche con todo lo suyo embebido (RLS solo deja ver
     /// los parches de quien pregunta).
     public static let detailSelect = """
-        id, name, code, status, created_at, closed_at, parche_participants(*), \
+        id, name, code, status, created_at, closed_at, created_by, parche_participants(*), \
         parche_expenses(*, parche_expense_payers(participant_id, amount), \
         parche_expense_shares(participant_id, amount, input), \
         parche_expense_items(id, position, amount, participant_ids)), \
@@ -295,6 +295,7 @@ public enum ParcheRemote {
         let status: ParcheStatus
         let createdAt: Date
         let closedAt: Date?
+        let createdBy: UUID?
         let participants: [ParticipantRow]?
         let expenses: [ExpenseRow]?
         let payments: [PaymentRow]?
@@ -305,6 +306,7 @@ public enum ParcheRemote {
             case id, name, code, status
             case createdAt = "created_at"
             case closedAt = "closed_at"
+            case createdBy = "created_by"
             case participants = "parche_participants"
             case expenses = "parche_expenses"
             case payments = "parche_payments"
@@ -367,7 +369,7 @@ public enum ParcheRemote {
             var detail = ParcheDetail(
                 parche: Parche(
                     id: row.id, name: row.name, code: row.code, status: row.status, createdAt: row.createdAt,
-                    closedAt: row.closedAt),
+                    closedAt: row.closedAt, createdBy: row.createdBy),
                 participants: participants)
             let order = detail.order
             detail.participants = order.compactMap { id in participants.first { $0.id == id } }

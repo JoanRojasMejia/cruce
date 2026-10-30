@@ -334,13 +334,14 @@ select throws_ok($$select public.claim_parche_place(current_setting('t.soy'))$$,
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 select throws_ok($$select public.move_parche_debt_to_cruce(current_setting('t.parche')::uuid, current_setting('t.jo')::uuid)$$,
   'P0001', 'El parche sigue abierto', 'La deuda solo pasa al cruce con el parche cerrado');
-select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
+-- Solo quien creó el parche lo cierra (Jesús); 12_cerrar_parche prueba que los demás no pueden.
 select public.close_parche(pg_temp.pid('parche'));
 select ok((select status = 'closed' and closed_at is not null from public.parches where id = pg_temp.pid('parche')),
-  'Joan cierra el parche');
+  'Jesús, quien lo creó, cierra el parche');
 select public.close_parche(pg_temp.pid('parche'));
 select is((select count(*) from public.parche_activity where kind = 'parcheClosed'), 1::bigint,
   'Cerrar otra vez no hace nada');
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444');
 select throws_ok(
   $$select public.save_parche_expense('e0000000-0000-0000-0000-000000000005', current_setting('t.parche')::uuid,
     'Postre', 1000, 0, 1000, now(), 'equal', pg_temp.lines('jo', '1000'), pg_temp.shares('jo', '1000', '1'))$$,

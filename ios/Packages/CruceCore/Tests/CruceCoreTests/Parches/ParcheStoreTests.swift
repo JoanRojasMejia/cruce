@@ -335,8 +335,7 @@ struct ParcheStoreTests {
         let world = ParcheWorld()
         let (jesus, ana, parche, carlos) = try await santaMarta(world)
         let me = try #require(parche.me)
-        #expect(await ana.close(parche.id))
-        await jesus.refresh(parche.id)
+        #expect(await jesus.close(parche.id))
         #expect(jesus.parche(parche.id)?.parche.status == .closed)
         #expect(
             jesus.validateExpense(
@@ -345,7 +344,58 @@ struct ParcheStoreTests {
         #expect(jesus.error == .parcheClosed)
         #expect(await jesus.recordPayment(in: parche.id, from: carlos.id, to: me.id, amount: 5_000) != nil)
         let detail = try #require(jesus.parche(parche.id))
-        #expect(detail.activity.map { jesus.phrase(for: $0, in: detail) }.contains("Ana cerró el parche"))
+        #expect(detail.activity.map { jesus.phrase(for: $0, in: detail) }.contains("Cerraste el parche"))
+        await ana.refresh(parche.id)
+        let anaView = try #require(ana.parche(parche.id))
+        #expect(anaView.activity.map { ana.phrase(for: $0, in: anaView) }.contains("Jesús cerró el parche"))
+    }
+
+    @Test("Solo quien creó el parche lo cierra; los demás ven \"Pídele a Jesús que lo cierre\"")
+    func onlyCreatorCloses() async throws {
+        let world = ParcheWorld()
+        let (jesus, ana, parche, _) = try await santaMarta(world)
+        #expect(parche.parche.createdBy == parche.me?.id, "Jesús lo creó")
+        #expect(jesus.canClose(parche))
+        #expect(jesus.closeHint(for: parche) == nil)
+        await ana.refresh(parche.id)
+        let anaView = try #require(ana.parche(parche.id))
+        #expect(anaView.creator?.displayName == "Jesús")
+        #expect(!ana.canClose(anaView))
+        #expect(ana.closeHint(for: anaView) == "Pídele a Jesús que lo cierre")
+
+        #expect(await ana.close(parche.id) == false)
+        #expect(ana.error == .onlyCreatorCloses(creator: "Jesús"))
+        #expect(ana.error?.message == "Solo Jesús puede cerrar el parche.")
+        #expect(ana.parche(parche.id)?.parche.isOpen == true)
+
+        // El backend aplica la misma regla aunque la pantalla no la revise.
+        let repository = InMemoryParcheRepository(backend: world.backend, userID: world.ana.id)
+        await #expect(throws: ParcheRepositoryError.notAllowed) { try await repository.closeParche(id: parche.id) }
+
+        #expect(await jesus.close(parche.id))
+        #expect(!jesus.canClose(try #require(jesus.parche(parche.id))), "Cerrado ya no se cierra otra vez")
+        #expect(jesus.closeHint(for: try #require(jesus.parche(parche.id))) == nil)
+        #expect(await jesus.close(parche.id), "Cerrar uno cerrado no hace nada")
+        let closed = try #require(jesus.parche(parche.id))
+        #expect(closed.activity.filter { $0.kind == .parcheClosed }.count == 1)
+    }
+
+    @Test("Si quien lo creó ya no tiene la app, lo cierra cualquiera con la app")
+    func anyoneWithTheAppClosesWhenCreatorIsGone() throws {
+        let day = Date(timeIntervalSince1970: 1_800_000_000)
+        let creator = ParcheParticipant(displayName: "Ana", joinedAt: day)
+        let jesus = ParcheParticipant(userID: UUID(), displayName: "Jesús", joinedAt: day)
+        let carlos = ParcheParticipant(displayName: "Carlos", claimCode: "SOY-ABC234", joinedAt: day)
+        var detail = ParcheDetail(
+            parche: Parche(name: "Cena", code: "PCH-ABC234", createdAt: day, createdBy: creator.id),
+            participants: [creator, jesus, carlos], myParticipantID: jesus.id)
+        #expect(detail.mayClose(jesus.id))
+        #expect(!detail.mayClose(carlos.id), "Sin la app no cierra")
+        detail.parche.createdBy = nil
+        #expect(detail.mayClose(jesus.id), "Sin saber quién lo creó, también")
+        detail.parche.createdBy = jesus.id
+        #expect(detail.mayClose(jesus.id))
+        #expect(!detail.mayClose(creator.id))
     }
 
     @Test("Queda a paz y salvo cuando se confirma el último pago de un parche cerrado")
@@ -724,16 +774,19 @@ struct ParcheStoreTests {
         let world = ParcheWorld()
         let (jesus, ana, parche, _) = try await santaMarta(world)
         let me = try #require(parche.me)
-        // Jesús todavía cree que el parche está abierto, pero Ana ya lo cerró.
-        #expect(await ana.close(parche.id))
+        // Ana todavía cree que el parche está abierto, pero Jesús ya lo cerró.
+        await ana.refresh(parche.id)
+        let anaMe = try #require(ana.parche(parche.id)?.me)
+        #expect(await jesus.close(parche.id))
         let expense = try #require(
-            jesus.validateExpense(
-                in: parche.id, concept: "Tarde", base: 10_000, split: .equal([me.id]),
-                payers: [ParchePayer(participantID: me.id, amount: 10_000)]))
-        await jesus.save(expense)
-        #expect(jesus.pendingSyncCount == 0)
-        #expect(jesus.error == .parcheClosed)
-        #expect(jesus.parche(parche.id)?.visibleExpenses.isEmpty == true, "Se recarga lo que hay en el servidor")
+            ana.validateExpense(
+                in: parche.id, concept: "Tarde", base: 10_000, split: .equal([anaMe.id]),
+                payers: [ParchePayer(participantID: anaMe.id, amount: 10_000)]))
+        await ana.save(expense)
+        #expect(ana.pendingSyncCount == 0)
+        #expect(ana.error == .parcheClosed)
+        #expect(ana.parche(parche.id)?.visibleExpenses.isEmpty == true, "Se recarga lo que hay en el servidor")
+        #expect(me.displayName == "Jesús")
     }
 
     @Test("Sin conexión no se puede crear un parche")

@@ -13,7 +13,8 @@
         case parches, parchesEmpty, parcheNew, parcheCode, parcheDetail, parcheDetailEnd, parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
-        case parcheDelete, parchePayment, parchePaymentOver, parcheClose, parcheCruce, parcheCrucePending, parcheClosed,
+        case parcheDelete, parchePayment, parchePaymentOver, parcheClose, parcheNotCreator, parcheCloseNotCreator,
+            parcheCruce, parcheCrucePending, parcheClosed,
             parcheOffline
 
         /// Pantalla pedida con el argumento `-screen`, si la hay.
@@ -102,6 +103,9 @@
             case .parchePayment, .parchePaymentOver:
                 return stores(path: [.parchePayment(parcheID: MockParches.santaMartaID)])
             case .parcheClose: return stores(path: [.closeParche(parcheID: MockParches.santaMartaID)])
+            case .parcheNotCreator, .parcheCloseNotCreator:
+                // Jesús ve "Santa Marta", que creó Joan: no lo puede cerrar.
+                return AppStores.sample(viewer: MockData.jesus)
             case .parcheCruce:
                 return stores(
                     path: [.closeParche(parcheID: MockParches.santaMartaID)],
@@ -150,6 +154,15 @@
                 NavigationStack {
                     ParcheDetailView(parcheID: MockParches.santaMartaID, startsAtBottom: true)
                         .toolbar(.hidden, for: .navigationBar)
+                }
+            case .parcheNotCreator:
+                NavigationStack {
+                    ParcheDetailView(parcheID: MockParches.santaMartaID, startsAtBottom: true)
+                        .toolbar(.hidden, for: .navigationBar)
+                }
+            case .parcheCloseNotCreator:
+                NavigationStack {
+                    CloseParcheView(parcheID: MockParches.santaMartaID).toolbar(.hidden, for: .navigationBar)
                 }
             case .parchePaymentOver:
                 NavigationStack {

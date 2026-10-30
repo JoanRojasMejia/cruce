@@ -22,6 +22,7 @@ struct ParcheRemoteTests {
             [{
               "id": "\(parcheID)", "name": "Santa Marta", "code": "PCH-ABC234", "status": "closed",
               "created_at": "2026-10-20T10:00:00.123456+00:00", "closed_at": "2026-10-25T18:30:00+00:00",
+              "created_by": "\(jesus)",
               "parche_participants": [
                 {"id": "\(carlos)", "parche_id": "\(parcheID)", "user_id": null, "display_name": "Carlos",
                  "claim_code": "SOY-XYZ789", "joined_at": "2026-10-20T10:05:00+00:00", "last_seen_at": null},
@@ -95,11 +96,26 @@ struct ParcheRemoteTests {
         #expect(detail.parche.code == "PCH-ABC234")
         #expect(detail.parche.status == .closed)
         #expect(detail.parche.closedAt != nil)
+        #expect(detail.parche.createdBy == jesus)
+        #expect(detail.creator?.displayName == "Jesús")
         #expect(detail.participants.map(\.id) == [jesus, ana, carlos])
         #expect(detail.myParticipantID == jesus)
         #expect(detail.crucePartnerIDs == [ana])
         #expect(detail.participant(carlos)?.claimCode == "SOY-XYZ789")
         #expect(detail.participant(carlos)?.hasApp == false)
+    }
+
+    @Test("Sin created_by (respuesta de antes) el parche no tiene creador")
+    func missingCreatedBy() throws {
+        let json = try #require(String(data: sample, encoding: .utf8))
+            .replacingOccurrences(of: "\"created_by\": \"\(jesus)\",", with: "")
+        let details = try ParcheRemote.details(from: Data(json.utf8), userID: me, crucePartners: [])
+        #expect(details.first?.parche.createdBy == nil)
+    }
+
+    @Test("Se pide created_by en la consulta del detalle")
+    func detailSelectAsksCreator() {
+        #expect(ParcheRemote.detailSelect.contains("created_by"))
     }
 
     @Test("Las fechas de Postgres conservan los microsegundos")

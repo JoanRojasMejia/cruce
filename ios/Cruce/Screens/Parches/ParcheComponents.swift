@@ -146,6 +146,24 @@ struct ParcheProblem: View {
     }
 }
 
+/// En lugar del botón "Cerrar el parche", a quien no lo creó: "Pídele a Jesús que lo cierre".
+struct CloseParcheHint: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "lock").font(.system(size: 14, weight: .bold)).accessibilityHidden(true)
+            Text(text).font(.archivo(15, .extraBold)).fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(CruceColor.ink)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .neoSurface(fill: CruceColor.neutral, radius: Radius.button, border: BorderWidth.thin)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 /// Aviso de que hay cosas sin enviar (sin conexión), con el botón para reintentar.
 struct ParcheSyncBanner: View {
     @Environment(ParcheStore.self) private var parches

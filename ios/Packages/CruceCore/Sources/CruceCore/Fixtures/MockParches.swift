@@ -33,7 +33,9 @@ public enum MockParches {
 
     private static func santaMarta(reference: Date) -> ParcheDetail {
         func hoursAgo(_ hours: Double) -> Date { reference.addingTimeInterval(-hours * 3_600) }
-        let parche = Parche(id: santaMartaID, name: "Santa Marta", code: "PCH-SM4R7A", createdAt: hoursAgo(72))
+        // Joan lo creó: solo él lo cierra.
+        let parche = Parche(
+            id: santaMartaID, name: "Santa Marta", code: "PCH-SM4R7A", createdAt: hoursAgo(72), createdBy: joan)
         let participants = [
             ParcheParticipant(
                 id: joan, userID: MockData.joan.id, displayName: "Joan", joinedAt: hoursAgo(72),
@@ -105,7 +107,7 @@ public enum MockParches {
         func daysAgo(_ days: Double) -> Date { reference.addingTimeInterval(-days * 86_400) }
         let parche = Parche(
             id: cenaID, name: "Cena de Ana", code: "PCH-C3NA9B", status: .closed, createdAt: daysAgo(20),
-            closedAt: daysAgo(19))
+            closedAt: daysAgo(19), createdBy: UUID(uuidString: "00000000-0000-0000-0000-00000000C011")!)
         let participants = [
             ParcheParticipant(
                 id: UUID(uuidString: "00000000-0000-0000-0000-00000000C011")!, userID: anaUserID, displayName: "Ana",

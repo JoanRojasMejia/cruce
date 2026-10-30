@@ -70,10 +70,13 @@ struct ParcheDetailView: View {
                 people(detail)
                 codeCard(detail)
                 activity(detail)
-                if detail.parche.isOpen {
+                // Solo quien creó el parche lo cierra; los demás ven a quién pedírselo.
+                if parches.canClose(detail) {
                     Button("Cerrar el parche") { router.push(.closeParche(parcheID: parcheID)) }
                         .buttonStyle(.neoSecondary)
                         .padding(.top, 8)
+                } else if let hint = parches.closeHint(for: detail) {
+                    CloseParcheHint(text: hint).padding(.top, 8)
                 }
             }
             .padding(.horizontal, Spacing.screen)

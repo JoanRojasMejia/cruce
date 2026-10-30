@@ -32,6 +32,8 @@ public final class ParcheStore {
         case expense(ParcheExpenseError)
         case invalidPayment
         case notAllowed
+        /// Quien no creó el parche quiso cerrarlo.
+        case onlyCreatorCloses(creator: String)
         case noSharedCruce
         case alreadyMoved
         case nothingToMove
@@ -50,6 +52,7 @@ public final class ParcheStore {
             case .expense(let error): error.message
             case .invalidPayment: "Revisa el pago: necesita un monto mayor que $0 y dos personas distintas."
             case .notAllowed: "Eso no lo puedes hacer en este parche."
+            case .onlyCreatorCloses(let creator): "Solo \(creator) puede cerrar el parche."
             case .noSharedCruce: "No tienen un cruce juntos, así que la deuda se salda en el parche."
             case .alreadyMoved: "Esa deuda ya pasó a su cruce."
             case .nothingToMove: "En “Para saldar” no hay un pago entre ustedes, o las cuentas cambiaron."
@@ -135,6 +138,17 @@ public final class ParcheStore {
         if transfer.fromID == detail.myParticipantID { return "Le pagas \(amount) a \(to)" }
         if transfer.toID == detail.myParticipantID { return "\(from) te paga \(amount)" }
         return "\(from) le paga \(amount) a \(to)"
+    }
+
+    /// Quien usa la app puede cerrar este parche: está abierto y lo creó (ver `ParcheDetail.mayClose`).
+    public func canClose(_ detail: ParcheDetail) -> Bool {
+        detail.parche.isOpen && detail.mayClose(detail.myParticipantID)
+    }
+
+    /// Con el parche abierto, a quien no lo puede cerrar: "Pídele a Jesús que lo cierre".
+    public func closeHint(for detail: ParcheDetail) -> String? {
+        guard detail.parche.isOpen, !canClose(detail) else { return nil }
+        return "Pídele a \(detail.creator?.displayName ?? "quien creó el parche") que lo cierre"
     }
 
     /// Pagos que recibió quien usa la app y que esperan su confirmación.
@@ -390,11 +404,19 @@ public final class ParcheStore {
         return participant
     }
 
-    /// Cierra el parche después de confirmar. No se reabre.
+    /// Cierra el parche después de confirmar. No se reabre. Solo quien lo creó; a los demás les deja
+    /// "Solo Jesús puede cerrar el parche." en `error`.
     @discardableResult
     public func close(_ parcheID: UUID) async -> Bool {
+        if let detail = parche(parcheID), !detail.mayClose(detail.myParticipantID) {
+            error = .onlyCreatorCloses(creator: detail.creator?.displayName ?? "quien creó el parche")
+            return false
+        }
         let ok = await perform { try await repository.closeParche(id: parcheID) } != nil
         await refresh(parcheID)
+        if !ok, error == .notAllowed, let creator = parche(parcheID)?.creator {
+            error = .onlyCreatorCloses(creator: creator.displayName)
+        }
         return ok
     }
 

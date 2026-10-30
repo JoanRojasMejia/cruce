@@ -5,7 +5,7 @@
 - [x] 1.3 Color fijo por persona en `profiles` y en quien está sin la app; rosa o verde solo para el Tike (migración, pgTAP `11_colores`). Ruta: escritor delegado.
 - [x] 1.4 Varios pagadores: "¿Cuánto puso cada uno?", partes iguales por defecto, "Faltan $X"/"Sobran $X" y prueba de Santa Marta. Ruta: escritor delegado.
 - [x] 1.5 Aviso de pago de más al anotar y al confirmar; quien pagó no aparece en "¿A quién le pagó?". Ruta: escritor delegado.
-- [ ] 1.6 Solo quien creó el parche lo cierra; "Pídele a <nombre> que lo cierre" (migración, pgTAP `12_cerrar_parche`). Ruta: escritor delegado.
+- [x] 1.6 Solo quien creó el parche lo cierra; "Pídele a <nombre> que lo cierre" (migración, pgTAP `12_cerrar_parche`). Ruta: escritor delegado.
 
 ## 2. Ilustraciones
 

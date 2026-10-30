@@ -18,10 +18,12 @@ public struct Parche: Identifiable, Codable, Hashable, Sendable {
     public var status: ParcheStatus
     public var createdAt: Date
     public var closedAt: Date?
+    /// El participante que creó el parche (`parches.created_by`): solo él lo cierra. `nil` en lo guardado antes.
+    public var createdBy: UUID?
 
     public init(
         id: UUID = UUID(), name: String, code: String, status: ParcheStatus = .open, createdAt: Date,
-        closedAt: Date? = nil
+        closedAt: Date? = nil, createdBy: UUID? = nil
     ) {
         self.id = id
         self.name = name
@@ -29,6 +31,7 @@ public struct Parche: Identifiable, Codable, Hashable, Sendable {
         self.status = status
         self.createdAt = createdAt
         self.closedAt = closedAt
+        self.createdBy = createdBy
     }
 
     public var isOpen: Bool { status == .open }
