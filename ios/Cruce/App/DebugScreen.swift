@@ -10,6 +10,8 @@
         /// "Tengo un código": de un parche y de un lugar (con la base en memoria) y cada error.
         case codeParche, codePlace, codeExpired, codeUsed, codeOwn, codeUnknown
         case homeEmpty, homeTheyOwe, homeYouOwe, homeJesus, cruces, cruceAna
+        /// La entrada "Choque" sobre el inicio de ejemplo (las demás pantallas abren sin ella).
+        case splash
         case add, saved, history, detail, delete, settle, success, offline, settings
         case cruceSettings, profile, defaultSplit, settleAmount, successPartial, unlink, unlinkSettled, crucesClosed,
             cruceClosed
@@ -54,7 +56,7 @@
             case .codeExpired, .codeUsed, .codeOwn, .codeUnknown: return .sample()
             case .connected: return .sample(phase: .connected)
             case .homeEmpty: return .sample(movements: [])
-            case .homeTheyOwe: return .sample()
+            case .homeTheyOwe, .splash: return .sample()
             case .homeYouOwe:
                 // Solo los gastos que pagó Jesús: Joan queda debiendo.
                 return .sample(movements: MockData.movements().filter { $0.payerID == MockData.jesus.id })

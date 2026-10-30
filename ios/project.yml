@@ -52,6 +52,8 @@ targets:
         CFBundleDevelopmentRegion: es
         UILaunchScreen:
           UIColorName: LaunchBackground
+          # El cuadro del logo, centrado: la entrada "Choque" (LaunchSplash) empieza desde aquí.
+          UIImageName: LaunchLogo
         UIUserInterfaceStyle: Light
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

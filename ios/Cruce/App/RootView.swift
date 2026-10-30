@@ -9,6 +9,17 @@ struct RootView: View {
     @Environment(SessionStore.self) private var session
     @Environment(ParcheStore.self) private var parches
     @Environment(Router.self) private var router
+    /// La entrada "Choque" se ve una vez, al abrir la app (no al volver de segundo plano).
+    @State private var showsSplash = Self.startsWithSplash
+
+    /// En Debug, las pantallas de `-screen` abren sin la entrada, salvo `splash`.
+    private static var startsWithSplash: Bool {
+        #if DEBUG
+            DebugScreen.current == nil || DebugScreen.current == .splash
+        #else
+            true
+        #endif
+    }
 
     var body: some View {
         Group {
@@ -17,6 +28,11 @@ struct RootView: View {
                 CruceColor.cream.ignoresSafeArea()
             } else {
                 phaseView
+            }
+        }
+        .overlay {
+            if showsSplash {
+                LaunchSplash(isReady: session.isReady) { showsSplash = false }
             }
         }
         .animation(.easeInOut(duration: 0.25), value: session.phase)
