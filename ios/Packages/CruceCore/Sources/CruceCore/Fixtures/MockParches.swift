@@ -18,6 +18,17 @@ public enum MockParches {
     public static let cenaAna = UUID(uuidString: "00000000-0000-0000-0000-00000000C011")!
     public static let cenaJoan = UUID(uuidString: "00000000-0000-0000-0000-00000000C012")!
 
+    /// "Finca" (solo Debug y pruebas, fuera de `parches()`): Joan, Yisus, Laura y Nata (sin la app). Yisus pagó el
+    /// mercado de $516.000 y Nata el Uber de $114.000, los dos entre los cuatro. Saldos: Joan y Laura −$157.500,
+    /// Nata −$43.500 y Yisus +$358.500; en "Para saldar" los tres le pagan a Yisus.
+    public static let fincaID = UUID(uuidString: "00000000-0000-0000-0000-00000000B003")!
+    public static let fincaJoan = UUID(uuidString: "00000000-0000-0000-0000-00000000C021")!
+    public static let fincaYisus = UUID(uuidString: "00000000-0000-0000-0000-00000000C022")!
+    public static let fincaLaura = UUID(uuidString: "00000000-0000-0000-0000-00000000C023")!
+    public static let fincaNata = UUID(uuidString: "00000000-0000-0000-0000-00000000C024")!
+    /// La cuenta de Laura (tiene la app).
+    public static let lauraUserID = UUID(uuidString: "00000000-0000-0000-0000-0000000000A5")!
+
     /// El color del perfil de cada quien con la app: Joan amarillo, Jesús violeta y Ana verde (Carlos, sin la app, es
     /// durazno dentro de "Santa Marta").
     public static let colors: [UUID: AvatarColor] = [
@@ -105,6 +116,38 @@ public enum MockParches {
         return ParcheDetail(
             parche: parche, participants: participants, expenses: [lunch, lodging, taxi], payments: [pendingPayment],
             activity: activity)
+    }
+
+    /// El parche "Finca" (ver `fincaID`), abierto y creado por Joan.
+    public static func finca(reference: Date = .now) -> ParcheDetail {
+        func hoursAgo(_ hours: Double) -> Date { reference.addingTimeInterval(-hours * 3_600) }
+        let parche = Parche(
+            id: fincaID, name: "Finca", code: "PCH-FNC4XQ", createdAt: hoursAgo(30), createdBy: fincaJoan)
+        let participants = [
+            ParcheParticipant(
+                id: fincaJoan, userID: MockData.joan.id, displayName: "Joan", joinedAt: hoursAgo(30),
+                lastSeenAt: hoursAgo(1), avatarColor: .yellow),
+            ParcheParticipant(
+                id: fincaYisus, userID: MockData.jesus.id, displayName: "Yisus", joinedAt: hoursAgo(29),
+                lastSeenAt: hoursAgo(1), avatarColor: .violet),
+            ParcheParticipant(
+                id: fincaLaura, userID: lauraUserID, displayName: "Laura", joinedAt: hoursAgo(28),
+                lastSeenAt: hoursAgo(2), avatarColor: .green),
+            ParcheParticipant(
+                id: fincaNata, displayName: "Nata", claimCode: "SOY-N4T4QZ", joinedAt: hoursAgo(27),
+                avatarColor: .peach),
+        ]
+        let order = participants.map(\.id)
+        let everyone: Set<UUID> = [fincaJoan, fincaYisus, fincaLaura, fincaNata]
+        let market = try! ParcheExpense.resolve(
+            id: UUID(uuidString: "00000000-0000-0000-0000-00000000E021")!, parcheID: fincaID, concept: "Mercado",
+            base: 516_000, split: .equal(everyone), payers: [ParchePayer(participantID: fincaYisus, amount: 516_000)],
+            order: order, recordedBy: fincaYisus, at: hoursAgo(26))
+        let uber = try! ParcheExpense.resolve(
+            id: UUID(uuidString: "00000000-0000-0000-0000-00000000E022")!, parcheID: fincaID, concept: "Uber",
+            base: 114_000, split: .equal(everyone), payers: [ParchePayer(participantID: fincaNata, amount: 114_000)],
+            order: order, recordedBy: fincaJoan, at: hoursAgo(25))
+        return ParcheDetail(parche: parche, participants: participants, expenses: [market, uber])
     }
 
     private static func cena(reference: Date) -> ParcheDetail {

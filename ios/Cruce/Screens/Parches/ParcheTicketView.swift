@@ -145,6 +145,11 @@ struct TicketCard: View {
                 }
             }
 
+            if let breakdown = ticket.breakdown {
+                dashed
+                section("CÓMO SE CALCULA") { breakdownRows(breakdown) }
+            }
+
             dashed
             section("PARA SALDAR") {
                 if ticket.transfers.isEmpty {
@@ -157,6 +162,7 @@ struct TicketCard: View {
                         }
                     }
                 }
+                if let explanation = ticket.explanation { explanationBox(explanation) }
             }
 
             if !ticket.lines.isEmpty {
@@ -232,6 +238,39 @@ struct TicketCard: View {
         .background(ReceiptShape().fill(CruceColor.surface))
         .overlay(ReceiptShape().stroke(CruceColor.ink, lineWidth: BorderWidth.regular))
         .background(ReceiptShape().fill(CruceColor.ink).offset(x: ShadowOffset.l, y: ShadowOffset.l))
+    }
+
+    /// Las filas que dan el saldo ("Puso −$114.000"), una raya y el resultado ("Debe $43.500").
+    private func breakdownRows(_ breakdown: ParcheTicket.Breakdown) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(breakdown.rows.enumerated()), id: \.offset) { _, row in
+                HStack(alignment: .firstTextBaseline) {
+                    Text(row.label).font(.archivo(14, .bold)).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Text(Money.format(row.amount, showsSign: row.amount < 0)).font(.archivo(14, .black))
+                }
+                .accessibilityElement(children: .combine)
+            }
+            Rectangle().fill(CruceColor.ink).frame(height: BorderWidth.thin).accessibilityHidden(true)
+            HStack(alignment: .firstTextBaseline) {
+                Text(breakdown.result.label).font(.archivo(15, .black)).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Text(Money.format(breakdown.result.amount)).font(.archivo(15, .black))
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// "¿Por qué le paga todo a Yisus?": solo cuando "Para saldar" cruza las cuentas de la persona.
+    private func explanationBox(_ explanation: ParcheTicket.Explanation) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(explanation.title).font(.archivo(14, .black)).fixedSize(horizontal: false, vertical: true)
+            Text(explanation.body).font(.archivo(13, .bold)).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .neoSurface(fill: CruceColor.cream, radius: Radius.input, border: BorderWidth.thin)
+        .accessibilityElement(children: .combine)
     }
 
     /// Neutral, sin rosa ni verde: a paz y salvo sigue con il-07; pendiente (individual o de grupo), il-15.

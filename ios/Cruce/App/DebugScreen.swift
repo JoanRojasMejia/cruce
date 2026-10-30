@@ -18,6 +18,8 @@
             parcheExpense,
             parcheExpenseItems
         case parcheTicket, parcheTicketSettled, parcheTicketGroup
+        /// "Finca" (`MockParches.finca`): el detalle y los tickets de Nata y Yisus, con "Cómo se calcula" y "¿Por qué…?".
+        case parcheFinca, parcheTicketNata, parcheTicketYisus
         case parcheDelete, parchePayment, parchePaymentOver, parcheClose, parcheNotCreator, parcheCloseNotCreator,
             parcheCruce, parcheCrucePending, parcheClosed,
             parcheOffline, parcheUndo
@@ -131,6 +133,15 @@
                     .parche(MockParches.santaMartaID),
                     .parcheTicket(parcheID: MockParches.santaMartaID, participantID: nil),
                 ])
+            case .parcheFinca: return stores(path: [.parche(MockParches.fincaID)], parcheBackend: Self.fincaBackend())
+            case .parcheTicketNata, .parcheTicketYisus:
+                return stores(
+                    path: [
+                        .parche(MockParches.fincaID),
+                        .parcheTicket(
+                            parcheID: MockParches.fincaID,
+                            participantID: self == .parcheTicketNata ? MockParches.fincaNata : MockParches.fincaYisus),
+                    ], parcheBackend: Self.fincaBackend())
             case .parchePayment, .parchePaymentOver:
                 return stores(path: [.parchePayment(parcheID: MockParches.santaMartaID)])
             case .parcheClose: return stores(path: [.closeParche(parcheID: MockParches.santaMartaID)])
@@ -303,6 +314,13 @@
             let stores = AppStores.sample(parcheBackend: backend)
             stores.router.path = path
             return stores
+        }
+
+        /// Los parches de ejemplo y "Finca", que no está en `MockParches.parches()` para no cambiar las pruebas.
+        private static func fincaBackend() -> InMemoryParcheBackend {
+            InMemoryParcheBackend(
+                parches: MockParches.parches() + [MockParches.finca()],
+                cruces: [[MockData.joan.id, MockData.jesus.id]], colors: MockParches.colors)
         }
 
         /// La cuenta de Carlos cuando se queda con su lugar (solo para estas pantallas).

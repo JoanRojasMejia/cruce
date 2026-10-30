@@ -311,7 +311,7 @@ struct ParcheDetailView: View {
                 }
             }
         }
-        Text("Toca a una persona para compartir su ticket.")
+        Text("Cruce junta las deudas para que haya menos pagos. Toca a una persona para ver su cuenta.")
             .textStyle(.secondary)
             .foregroundStyle(CruceColor.textSecondary)
     }

@@ -46,6 +46,10 @@ public struct ParcheTicket: Hashable, Sendable {
     public let stamp: Stamp
     /// El código `SOY-` de quien no tiene la app.
     public let claimCode: String?
+    /// "Cómo se calcula" en el personal: las cuentas que dan su saldo; `nil` en el del parche o si no hay nada.
+    public let breakdown: Breakdown?
+    /// "¿Por qué le paga todo a Yisus?" en el personal, solo cuando "Para saldar" cruza sus cuentas.
+    public let explanation: Explanation?
 
     /// "¿Ya tienes Cruce? Entra con el código SOY-K7QX2M y tus cuentas te siguen".
     public var claimPhrase: String? {
@@ -58,14 +62,21 @@ public struct ParcheTicket: Hashable, Sendable {
         claimCode.flatMap { CodeLink.url(for: $0, scheme: scheme)?.absoluteString }
     }
 
-    /// El texto corto que acompaña la imagen al compartir: "Cruce · Parche Santa Marta: Carlos debe $172.000." y, si
-    /// no tiene la app, su código y el enlace para entrar con él.
+    /// El texto corto que acompaña la imagen al compartir, una idea por línea: "Cruce · Parche Santa Marta: Carlos
+    /// debe $172.000.", cómo se calcula, por qué le paga a quien le paga y, si no tiene la app, su código y el enlace
+    /// para entrar con él.
     public func shareText(scheme: String) -> String {
-        var text = "Cruce · Parche \(parcheName): \(headline)"
-        if personName == nil { text += " \(Money.format(amount))" }
-        if let claimPhrase { text += ". \(claimPhrase)." }
-        if let link = claimLink(scheme: scheme) { text += " Ábrelo en Cruce: \(link)" }
-        return text
+        var lines = ["Cruce · Parche \(parcheName): \(headline)"]
+        if personName == nil { lines[0] += " \(Money.format(amount))" }
+        if let breakdown { lines.append("Cómo se calcula: \(breakdown.sentence).") }
+        if let explanation { lines.append("\(explanation.title) \(explanation.body)") }
+        var claim = claimPhrase.map { "\($0)." }
+        if let link = claimLink(scheme: scheme) {
+            claim = (claim.map { "\($0) " } ?? "") + "Ábrelo en Cruce: \(link)"
+        }
+        if let claim { lines.append(claim) }
+        if lines.count > 1 { lines[0] += "." }
+        return lines.joined(separator: "\n")
     }
 
     /// El ticket de una persona: su frase, sus transferencias, sus gastos y, si no tiene la app, su código `SOY-`.
@@ -103,7 +114,8 @@ public struct ParcheTicket: Hashable, Sendable {
             favor: favor,
             transfers: transfers.map { phrase(for: $0, in: detail) }, lines: lines,
             expenseCount: detail.visibleExpenses.count, cutAt: date, stamp: net == 0 ? .settled : .pending,
-            claimCode: person.hasApp ? nil : person.claimCode)
+            claimCode: person.hasApp ? nil : person.claimCode, breakdown: breakdown(for: participantID, in: detail),
+            explanation: explanation(for: participantID, in: detail))
     }
 
     /// El ticket del parche: total gastado y transferencias para saldar, sin los saldos de cada persona.
@@ -114,7 +126,7 @@ public struct ParcheTicket: Hashable, Sendable {
             amount: detail.totalSpent,
             favor: nil, transfers: detail.suggestedTransfers.map { phrase(for: $0, in: detail) }, lines: [],
             expenseCount: detail.visibleExpenses.count, cutAt: date, stamp: settled ? .settled : .pending,
-            claimCode: nil)
+            claimCode: nil, breakdown: nil, explanation: nil)
     }
 
     /// "Jesús le paga $110.000 a Ana".
@@ -129,7 +141,7 @@ public struct ParcheTicket: Hashable, Sendable {
         return names.dropLast().joined(separator: ", ") + " y " + last
     }
 
-    private static func displayName(_ id: UUID, in detail: ParcheDetail) -> String {
+    static func displayName(_ id: UUID, in detail: ParcheDetail) -> String {
         detail.participant(id)?.displayName ?? "Alguien"
     }
 }
