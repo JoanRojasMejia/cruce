@@ -6,8 +6,9 @@
 //   `supabase status -o env` (ANON_KEY).
 // - Staging (Cruce Test) → testing: la clave sale de
 //   `supabase projects api-keys --project-ref pqdjiecynyjnianslikp` (anon).
-// - Release (Cruce Prod) → prod: el proyecto de prod todavía no existe. Mientras tanto se deja con
-//   `pega-aqui…` y la app de prod se detiene al arrancar; nunca pongas aquí las claves de testing.
+// - Release (Cruce Prod) → prod: la URL y la clave salen de
+//   `supabase projects api-keys --project-ref xykjqysqfgsfqgslieds` (anon). Con `pega-aqui…`
+//   la app de prod se detiene al arrancar; nunca pongas aquí las claves de testing.
 // La clave anónima es pública por diseño: la protege RLS. Nunca pongas aquí la llave service_role.
 //
 // En un .xcconfig `//` empieza un comentario, por eso las URL llevan `$()` entre las dos barras.
@@ -18,5 +19,5 @@ SUPABASE_ANON_KEY[config=Debug] = pega-aqui-la-clave-anonima-local
 SUPABASE_URL[config=Staging] = https:/$()/pqdjiecynyjnianslikp.supabase.co
 SUPABASE_ANON_KEY[config=Staging] = pega-aqui-la-clave-anonima-de-testing
 
-SUPABASE_URL[config=Release] = pega-aqui-la-url-de-prod
+SUPABASE_URL[config=Release] = https:/$()/xykjqysqfgsfqgslieds.supabase.co
 SUPABASE_ANON_KEY[config=Release] = pega-aqui-la-clave-anonima-de-prod
